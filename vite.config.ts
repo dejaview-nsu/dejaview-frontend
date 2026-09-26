@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => {
   const isDev = mode === "development";
 
   return {
+    // Vite 8 does not read tsconfig `paths` by default (`resolve.tsconfigPaths`
+    // is false), so without this the `@/*` alias resolves in `tsc` and
+    // `vite build` but fails on the dev server.
+    resolve: {
+      tsconfigPaths: true,
+    },
     plugins: [
       react(),
       babel({
