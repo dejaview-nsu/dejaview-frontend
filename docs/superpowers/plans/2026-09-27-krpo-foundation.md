@@ -191,7 +191,7 @@ git commit -m "chore: init package with deps and scripts"
 `@vitejs/plugin-react` 6 работает на oxc и НЕ принимает babel-плагины, поэтому `effector/babel-plugin` подключается через первый плагин Vite 8 — `@rolldown/plugin-babel`.
 
 ```ts
-import { babel } from "@rolldown/plugin-babel";
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -208,12 +208,17 @@ export default defineConfig(({ mode }) => {
       }),
       tailwindcss(),
     ],
+    resolve: {
+      // В Vite 8 по умолчанию выключено — без этого dev-сервер не резолвит алиас @/*
+      // из tsconfig paths (build при этом работает).
+      tsconfigPaths: true,
+    },
     server: isDev ? { port: 5173 } : undefined,
   };
 });
 ```
 
-Если dev-сервер не стартует из-за `@rolldown/plugin-babel` (плагин применяет babel к каждому модулю) — сузить include до `src/**` или перейти на запасной вариант: убрать `@rolldown/plugin-babel` (babel-плагин нужен только для стабильных SID; для CSR-приложения это оптимизация, не необходимость) и удалить его из зависимостей вместе с `@babel/core`.
+Примечания (выяснены при имплементации): в `@rolldown/plugin-babel@0.2.4` НЕТ именованного экспорта `babel` — импортировать default (`import babel from ...`). Если dev-сервер не стартует из-за babel-плагина — сузить include до `src/**`, и только если не помогло — убрать `@rolldown/plugin-babel` (babel-плагин нужен только для стабильных SID; для CSR это оптимизация) и удалить его из зависимостей вместе с `@babel/core`.
 
 - [ ] **Step 4: Создать index.html**
 
