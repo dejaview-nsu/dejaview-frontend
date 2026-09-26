@@ -1,8 +1,15 @@
 node_modules/
 dist/
 build/
+coverage/
+*.local
+*.log
 .env
 .env.local
-*.log
-coverage/
+!.env.example
+stats.html
 .vite/
+.idea/
+.claude/
+.superpowers/
+.DS_Store
