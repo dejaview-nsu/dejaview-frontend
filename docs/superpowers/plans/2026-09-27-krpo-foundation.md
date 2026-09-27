@@ -28,9 +28,11 @@
 ### Task 1: Скелет проекта и зависимости
 
 **Files:**
+
 - Create: `package.json`, `.gitignore`, `.npmrc`
 
 **Interfaces:**
+
 - Consumes: git-репозиторий (уже инициализирован, ветка `main`, есть коммит спеки).
 - Produces: установленный `node_modules`; package.json со всеми зависимостями и скриптами из Global Constraints (используются всеми последующими задачами).
 
@@ -132,9 +134,11 @@ git commit -m "chore: init package with deps and scripts"
 ### Task 2: TypeScript, Vite, точка входа приложения
 
 **Files:**
+
 - Create: `tsconfig.json`, `tsconfig.node.json`, `vite.config.ts`, `index.html`, `.env.sample`, `src/vite-env.d.ts`, `src/app/main.tsx`, `src/app/application.tsx`, `src/app/index.css`
 
 **Interfaces:**
+
 - Consumes: package.json со скриптами (Task 1).
 - Produces: сборка Vite; алиас `@/*` → `src/*`; компонент `App` в `src/app/application.tsx` (Task 6 встроит в него роутинг); `src/app/index.css` с `@import "tailwindcss"` (Task 7 добавит токены).
 
@@ -283,7 +287,6 @@ export const App = () => {
 import { createRoot } from "react-dom/client";
 
 import { App } from "./application";
-
 import "./index.css";
 
 const container = document.querySelector("#root");
@@ -326,9 +329,11 @@ git commit -m "feat: vite + ts setup with app entry"
 ### Task 3: Vitest-инфраструктура + shared-хелперы (TDD)
 
 **Files:**
+
 - Create: `vitest.config.ts`, `vitest.setup.ts`, `src/shared/lib/cn.ts`, `src/shared/lib/guards.ts`, `src/shared/lib/__tests__/guards.test.ts`
 
 **Interfaces:**
+
 - Consumes: tsconfig (алиас `@/*`), vitest-зависимости (Task 1).
 - Produces: работающий vitest (все последующие тестовые задачи); `cn(...classes)` из `@/shared/lib/cn` (Task 7); `isNonNullable(value): value is NonNullable<T>` из `@/shared/lib/guards` (Task 8 использует в sample-фильтрах при необходимости).
 
@@ -361,7 +366,6 @@ export default defineConfig({
 
 ```ts
 import "@testing-library/jest-dom/vitest";
-
 import { vi } from "vitest";
 
 if (typeof window !== "undefined" && !window.matchMedia) {
@@ -445,8 +449,7 @@ pnpm test:run
 `src/shared/lib/guards.ts`:
 
 ```ts
-export const isNonNullable = <T>(value: T): value is NonNullable<T> =>
-  value !== null && value !== undefined;
+export const isNonNullable = <T>(value: T): value is NonNullable<T> => value !== null && value !== undefined;
 ```
 
 `src/shared/lib/cn.ts` (re-export; прямой импорт clsx запрещён правилом из Task 4):
@@ -476,9 +479,11 @@ git commit -m "feat: vitest setup with shared cn and guards helpers"
 ### Task 4: ESLint, Prettier, git-хуки
 
 **Files:**
+
 - Create: `eslint.config.ts`, `.prettierrc`, `.lintstagedrc`, `.commitlintrc.json`, `.husky/pre-commit`, `.husky/commit-msg`
 
 **Interfaces:**
+
 - Consumes: tsconfig (для projectService), package.json scripts (Task 1).
 - Produces: `pnpm lint` / `pnpm format` работают на всех последующих задачах; pre-commit гоняет lint-staged + typecheck; commit-msg — commitlint.
 
@@ -635,9 +640,11 @@ git commit -m "chore: eslint, prettier and git hooks setup"
 ### Task 5: appStarted, url-билдеры, zodContract (TDD)
 
 **Files:**
+
 - Create: `src/shared/config/init/index.ts`, `src/shared/api/url.ts`, `src/shared/api/index.ts`, `src/shared/lib/contracts/zod.ts`, `src/shared/lib/contracts/index.ts`, `src/shared/lib/__tests__/zod-contract.test.ts`, `src/shared/lib/index.ts`
 
 **Interfaces:**
+
 - Consumes: vitest (Task 3).
 - Produces:
   - `appStarted: EventCallable<void>` из `@/shared/config/init` (Task 6 — точка старта роутера);
@@ -649,8 +656,8 @@ git commit -m "chore: eslint, prettier and git hooks setup"
 `src/shared/lib/__tests__/zod-contract.test.ts`:
 
 ```ts
-import { z } from "zod";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import { zodContract } from "../contracts/zod";
 
@@ -756,10 +763,12 @@ git commit -m "feat: shared appStarted, url builders and zod contract"
 ### Task 6: Роутинг @effector/router, страницы, BaseLayout
 
 **Files:**
+
 - Create: `src/shared/routes/routes.ts`, `src/shared/routes/index.ts`, `src/layouts/base/ui/page.tsx`, `src/layouts/base/ui/index.ts`, `src/layouts/base/index.ts`, `src/pages/not-found/ui/page.tsx`, `src/pages/not-found/ui/index.ts`, `src/pages/not-found/index.ts`, `src/pages/about/ui/page.tsx`, `src/pages/about/ui/index.ts`, `src/pages/about/index.ts`, `src/pages/home/ui/page.tsx`, `src/pages/home/ui/index.ts`, `src/pages/home/index.ts`, `src/pages/routing.tsx`, `src/pages/index.ts`
 - Modify: `src/app/application.tsx`, `src/app/main.tsx`
 
 **Interfaces:**
+
 - Consumes: `appStarted` (Task 5).
 - Produces:
   - `routes: { home: Route<{}>; about: Route<{}>; notFound: PathlessRoute<{}> }` и `router` из `@/shared/routes` (Task 8 использует `routes.home` в модели);
@@ -937,9 +946,10 @@ export { HomePage } from "./ui";
 `src/pages/routing.tsx`:
 
 ```tsx
-import { createRouteView, createRoutesView, withLayout } from "@effector/router-react";
+import { createRoutesView, createRouteView, withLayout } from "@effector/router-react";
 
 import { BaseLayout } from "@/layouts/base";
+
 import { routes } from "@/shared/routes";
 
 import { AboutPage } from "./about";
@@ -979,6 +989,7 @@ import { RouterProvider } from "@effector/router-react";
 import { I18nProvider } from "@react-aria/i18n";
 
 import { Routing } from "@/pages";
+
 import { router } from "@/shared/routes";
 
 import "./index.css";
@@ -1036,10 +1047,12 @@ git commit -m "feat: effector router with base layout and pages"
 ### Task 7: Tailwind-токены, тема, кнопка на RAC (TDD)
 
 **Files:**
+
 - Modify: `src/app/index.css`, `src/pages/about/ui/page.tsx`
 - Create: `src/shared/ui/button/ui.tsx`, `src/shared/ui/button/ui.test.tsx`, `src/shared/ui/button/index.ts`, `src/shared/ui/index.ts`, `src/shared/ui/test-utils.tsx`
 
 **Interfaces:**
+
 - Consumes: `cn` из `@/shared/lib/cn` (Task 3), vitest+RTL (Task 3).
 - Produces:
   - CSS-токены Tailwind: утилиты `bg-surface-page`, `bg-surface-base`, `text-text-base`, `text-text-caption`, `border-border-base`, `bg-system-primary`, `bg-system-primary-hover` уже использованы в Task 6 — здесь они появляются; тема через `data-theme="dark"` на `<body>`;
@@ -1069,7 +1082,6 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { userEventSetup } from "../test-utils";
-
 import { Button } from "./ui";
 
 describe("Button", () => {
@@ -1121,8 +1133,8 @@ pnpm test:run src/shared/ui/button/ui.test.tsx
 :root {
   --surface-page: #f7f8fa;
   --surface-base: #ffffff;
-  --text-base: #1a1d21;
-  --text-caption: #667085;
+  --text-base-color: #1a1d21;
+  --text-caption-color: #667085;
   --border-base: #e4e7ec;
   --system-primary: #2563eb;
   --system-primary-hover: #1d4ed8;
@@ -1131,8 +1143,8 @@ pnpm test:run src/shared/ui/button/ui.test.tsx
 [data-theme="dark"] {
   --surface-page: #101214;
   --surface-base: #191c20;
-  --text-base: #f2f4f7;
-  --text-caption: #98a2b3;
+  --text-base-color: #f2f4f7;
+  --text-caption-color: #98a2b3;
   --border-base: #2b3038;
   --system-primary: #3b82f6;
   --system-primary-hover: #60a5fa;
@@ -1141,15 +1153,15 @@ pnpm test:run src/shared/ui/button/ui.test.tsx
 @theme inline {
   --color-surface-page: var(--surface-page);
   --color-surface-base: var(--surface-base);
-  --color-text-base: var(--text-base);
-  --color-text-caption: var(--text-caption);
+  --color-text-base: var(--text-base-color);
+  --color-text-caption: var(--text-caption-color);
   --color-border-base: var(--border-base);
   --color-system-primary: var(--system-primary);
   --color-system-primary-hover: var(--system-primary-hover);
 }
 ```
 
-`@theme inline` сохраняет ссылки `var(...)` в утилитах — тема переключается заменой CSS-переменных через `data-theme` без пересборки.
+`@theme inline` сохраняет ссылки `var(...)` в утилитах — тема переключается заменой CSS-переменных через `data-theme` без пересборки. Raw-переменные текста называются `--text-*-color`: префикс `--text-*` — это namespace font-size-токенов Tailwind 4, наивные `--text-base`/`--text-caption` в unlayered `:root` молча ломают утилиту `text-base`.
 
 - [ ] **Step 5: Реализовать кнопку**
 
@@ -1231,7 +1243,7 @@ export const AboutPage = () => {
       </div>
     </section>
   );
-}
+};
 ```
 
 - [ ] **Step 8: Проверить сборку и линтер**
@@ -1254,10 +1266,12 @@ git commit -m "feat: tailwind tokens with dark theme and rac button"
 ### Task 8: Модель home: farfetched + zod + chainRoute (TDD)
 
 **Files:**
+
 - Create: `src/pages/home/api/schema.ts`, `src/pages/home/api/request.ts`, `src/pages/home/api/index.ts`, `src/pages/home/model/home.ts`, `src/pages/home/model/page.ts`, `src/pages/home/model/index.ts`, `src/pages/home/__tests__/model.test.ts`
 - Modify: `src/pages/home/ui/page.tsx`, `src/pages/home/index.ts`, `src/pages/routing.tsx`
 
 **Interfaces:**
+
 - Consumes: `zodContract` (Task 5), `routes.home` (Task 6), `Button` (Task 7), `chainRoute` из `@effector/router`.
 - Produces: эталон полной страницы FSD: `api` (zod-схемы + фабрика farfetched-запроса) + `model` (фабрика с контрактом `inputs/outputs`, `invoke()` на уровне модуля, `chainRoute`) + `ui`. Шаблон для всех будущих слайсов.
 
@@ -1326,8 +1340,7 @@ import { createHomePageFactory } from "../model/home";
 const post = { userId: 1, id: 1, title: "Заголовок", body: "Текст" };
 
 /** Мок executeFx: farfetched-запросы мокаются на уровне внутреннего эффекта. */
-const executeQueryFx = (query: unknown) =>
-  (query as { __: { executeFx: never } }).__.executeFx;
+const executeQueryFx = (query: unknown) => (query as { __: { executeFx: never } }).__.executeFx;
 
 const setup = async (handler: () => typeof post) => {
   const route = createRoute({ path: "/" });
@@ -1517,9 +1530,10 @@ export { $$home } from "./model";
 `src/pages/routing.tsx` — в `createRouteView` для главной использовать чейн-роут (экран активен только после готовности данных):
 
 ```tsx
-import { createRouteView, createRoutesView, withLayout } from "@effector/router-react";
+import { createRoutesView, createRouteView, withLayout } from "@effector/router-react";
 
 import { BaseLayout } from "@/layouts/base";
+
 import { routes } from "@/shared/routes";
 
 import { AboutPage } from "./about";
@@ -1573,9 +1587,11 @@ git commit -m "feat: home page model with farfetched query and chain route"
 ### Task 9: README слоёв и финальная верификация
 
 **Files:**
+
 - Create: `src/widgets/README.md`, `src/features/README.md`, `src/entities/README.md`
 
 **Interfaces:**
+
 - Consumes: всё приложение (Tasks 1–8).
 - Produces: документация слоёв FSD для будущих задач; финальная проверка критериев успеха из спеки.
 
@@ -1593,14 +1609,15 @@ git commit -m "feat: home page model with farfetched query and chain route"
 - **entities** — бизнес-сущности и их модели/интерфейсы (session, user, product).
 
 ## Анатомия слайса
-
 ```
+
 <slice-name>/
-├── api/            # farfetched-запросы: request.ts (фабрики), schema.ts (zod)
-├── model/          # effector-модели: фабрики с контрактом { inputs, outputs }
-├── ui/             # React-компоненты
-├── __tests__/      # тесты моделей
-└── index.ts        # публичный API слайса — только через него
+├── api/ # farfetched-запросы: request.ts (фабрики), schema.ts (zod)
+├── model/ # effector-модели: фабрики с контрактом { inputs, outputs }
+├── ui/ # React-компоненты
+├── **tests**/ # тесты моделей
+└── index.ts # публичный API слайса — только через него
+
 ```
 
 ## Правила
@@ -1624,6 +1641,7 @@ pnpm build
 Ожидание: все команды зелёные.
 
 Ручная проверка (`pnpm start:dev`, открыть `http://localhost:5173`):
+
 1. Главная загружает пост (jsonplaceholder) через farfetched с zod-валидацией; до готовности — спиннер.
 2. Навигация `/` ↔ `/about` работает; `/xyz` → 404.
 3. Переключение темы на `/about` меняет цвета.
