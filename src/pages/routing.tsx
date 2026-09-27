@@ -5,6 +5,7 @@ import { BaseLayout } from "@/layouts/base";
 import { routes } from "@/shared/routes";
 
 import { AboutPage } from "./about";
+import { $$home } from "./home";
 import { HomePage } from "./home";
 import { NotFoundPage } from "./not-found";
 
@@ -18,7 +19,7 @@ const PageLoader = () => {
 
 export const Routing = createRoutesView({
   routes: withLayout(BaseLayout, [
-    createRouteView({ route: routes.home, view: HomePage }),
+    createRouteView({ route: $$home.outputs.readyRoute, view: HomePage }),
     createRouteView({ route: routes.about, view: AboutPage }),
     createRouteView({ route: routes.notFound, view: NotFoundPage }),
   ]),
