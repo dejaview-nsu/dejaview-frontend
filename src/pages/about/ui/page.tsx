@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/button";
+
 export const AboutPage = () => {
   return (
     <section className="flex flex-col gap-4">
@@ -5,6 +7,16 @@ export const AboutPage = () => {
       <p className="text-text-caption">
         Основа: React + Vite + Effector + @effector/router + React Aria Components + Vitest. Архитектура — FSD.
       </p>
+      <div>
+        <Button
+          variant="secondary"
+          onPress={() => {
+            document.body.dataset.theme = document.body.dataset.theme === "dark" ? "light" : "dark";
+          }}
+        >
+          Переключить тему
+        </Button>
+      </div>
     </section>
   );
 };
