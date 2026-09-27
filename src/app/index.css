@@ -3,8 +3,8 @@
 :root {
   --surface-page: #f7f8fa;
   --surface-base: #ffffff;
-  --text-base: #1a1d21;
-  --text-caption: #667085;
+  --text-base-color: #1a1d21;
+  --text-caption-color: #667085;
   --border-base: #e4e7ec;
   --system-primary: #2563eb;
   --system-primary-hover: #1d4ed8;
@@ -13,8 +13,8 @@
 [data-theme="dark"] {
   --surface-page: #101214;
   --surface-base: #191c20;
-  --text-base: #f2f4f7;
-  --text-caption: #98a2b3;
+  --text-base-color: #f2f4f7;
+  --text-caption-color: #98a2b3;
   --border-base: #2b3038;
   --system-primary: #3b82f6;
   --system-primary-hover: #60a5fa;
@@ -23,8 +23,8 @@
 @theme inline {
   --color-surface-page: var(--surface-page);
   --color-surface-base: var(--surface-base);
-  --color-text-base: var(--text-base);
-  --color-text-caption: var(--text-caption);
+  --color-text-base: var(--text-base-color);
+  --color-text-caption: var(--text-caption-color);
   --color-border-base: var(--border-base);
   --color-system-primary: var(--system-primary);
   --color-system-primary-hover: var(--system-primary-hover);
