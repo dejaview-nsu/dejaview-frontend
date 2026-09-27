@@ -79,6 +79,9 @@
       "rolldown",
       "oxc-transform",
       "@tailwindcss/oxide"
-    ]
+    ],
+    "patchedDependencies": {
+      "effector@23.4.4": "patches/effector@23.4.4.patch"
+    }
   }
 }

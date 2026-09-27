@@ -4,19 +4,24 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  effector@23.4.4:
+    hash: 3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4
+    path: patches/effector@23.4.4.patch
+
 importers:
 
   .:
     dependencies:
       '@effector/router':
         specifier: ^1.2.0
-        version: 1.2.0(effector-action@1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4)))(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))(query-string@9.5.1)(zod@4.6.5)
+        version: 1.2.0(effector-action@1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))))(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))(query-string@9.5.1)(zod@4.6.5)
       '@effector/router-react':
         specifier: ^1.0.2
-        version: 1.0.2(effector-action@1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4)))(effector-react@23.3.0(effector@23.4.4)(react@19.3.0))(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))(react@19.3.0)(zod@4.6.5)
+        version: 1.0.2(effector-action@1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))))(effector-react@23.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(react@19.3.0))(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))(react@19.3.0)(zod@4.6.5)
       '@farfetched/core':
         specifier: ^0.15.0
-        version: 0.15.0(effector@23.4.4)
+        version: 0.15.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))
       '@react-aria/i18n':
         specifier: ^3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -31,19 +36,19 @@ importers:
         version: 2.1.1
       effector:
         specifier: ^23.4.4
-        version: 23.4.4
+        version: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
       effector-action:
         specifier: ^1.2.2
-        version: 1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))
+        version: 1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))
       effector-react:
         specifier: ^23.3.0
-        version: 23.3.0(effector@23.4.4)(react@19.3.0)
+        version: 23.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(react@19.3.0)
       history:
         specifier: ^5.3.0
         version: 5.3.0
       patronum:
         specifier: ^2.3.0
-        version: 2.3.0(effector@23.4.4)
+        version: 2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))
       query-string:
         specifier: ^9.5.1
         version: 9.5.1
@@ -2630,11 +2635,11 @@ snapshots:
 
   '@effector/router-paths@1.1.0': {}
 
-  '@effector/router-react@1.0.2(effector-action@1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4)))(effector-react@23.3.0(effector@23.4.4)(react@19.3.0))(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))(react@19.3.0)(zod@4.6.5)':
+  '@effector/router-react@1.0.2(effector-action@1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))))(effector-react@23.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(react@19.3.0))(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))(react@19.3.0)(zod@4.6.5)':
     dependencies:
-      '@effector/router': 1.2.0(effector-action@1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4)))(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))(query-string@9.5.1)(zod@4.6.5)
-      effector: 23.4.4
-      effector-react: 23.3.0(effector@23.4.4)(react@19.3.0)
+      '@effector/router': 1.2.0(effector-action@1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))))(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))(query-string@9.5.1)(zod@4.6.5)
+      effector: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
+      effector-react: 23.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(react@19.3.0)
       query-string: 9.5.1
       react: 19.3.0
     transitivePeerDependencies:
@@ -2642,12 +2647,12 @@ snapshots:
       - patronum
       - zod
 
-  '@effector/router@1.2.0(effector-action@1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4)))(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))(query-string@9.5.1)(zod@4.6.5)':
+  '@effector/router@1.2.0(effector-action@1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))))(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))(query-string@9.5.1)(zod@4.6.5)':
     dependencies:
       '@effector/router-paths': 1.1.0
-      effector: 23.4.4
-      effector-action: 1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4))
-      patronum: 2.3.0(effector@23.4.4)
+      effector: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
+      effector-action: 1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)))
+      patronum: 2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))
       query-string: 9.5.1
       zod: 4.6.5
 
@@ -2688,9 +2693,9 @@ snapshots:
 
   '@exodus/bytes@1.16.0': {}
 
-  '@farfetched/core@0.15.0(effector@23.4.4)':
+  '@farfetched/core@0.15.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))':
     dependencies:
-      effector: 23.4.4
+      effector: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
 
   '@formatjs/ecma402-abstract@2.3.6':
     dependencies:
@@ -3376,18 +3381,18 @@ snapshots:
 
   dom-accessibility-api@0.6.3: {}
 
-  effector-action@1.2.2(effector@23.4.4)(patronum@2.3.0(effector@23.4.4)):
+  effector-action@1.2.2(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))):
     dependencies:
-      effector: 23.4.4
-      patronum: 2.3.0(effector@23.4.4)
+      effector: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
+      patronum: 2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))
 
-  effector-react@23.3.0(effector@23.4.4)(react@19.3.0):
+  effector-react@23.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4))(react@19.3.0):
     dependencies:
-      effector: 23.4.4
+      effector: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
       react: 19.3.0
       use-sync-external-store: 1.7.0(react@19.3.0)
 
-  effector@23.4.4: {}
+  effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4): {}
 
   electron-to-chromium@1.5.439: {}
 
@@ -3968,9 +3973,9 @@ snapshots:
 
   pathe@2.0.3: {}
 
-  patronum@2.3.0(effector@23.4.4):
+  patronum@2.3.0(effector@23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)):
     dependencies:
-      effector: 23.4.4
+      effector: 23.4.4(patch_hash=3d751fba60b421aa789d512fc24eef9892e18f3674b8d1701f848a05a5e07ba4)
 
   picocolors@1.1.1: {}
 
