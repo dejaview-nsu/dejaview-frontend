@@ -1,6 +1,3 @@
-// @rolldown/plugin-babel exposes the plugin as its default export (`babelPlugin`);
-// there is no named `babel` export.
-import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
@@ -16,14 +13,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       tsconfigPaths: true,
     },
-    plugins: [
-      react(),
-      babel({
-        include: /\.(ts|tsx)$/,
-        plugins: [["effector/babel-plugin", { factories: ["@withease/factories"] }]],
-      }),
-      tailwindcss(),
-    ],
+    plugins: [react(), tailwindcss()],
     server: { host: env.VITE_URL ?? "localhost", port },
     preview: { port },
   };

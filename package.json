@@ -46,10 +46,8 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.6",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
-    "@rolldown/plugin-babel": "^0.2.4",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -82,9 +80,6 @@
       "rolldown",
       "oxc-transform",
       "@tailwindcss/oxide"
-    ],
-    "patchedDependencies": {
-      "effector@23.4.4": "patches/effector@23.4.4.patch"
-    }
+    ]
   }
 }
