@@ -13,9 +13,20 @@
 
 ## Стек
 
-- React, TypeScript
+- React 19, TypeScript, Vite
+- Состояние: Effector + @effector/router, данные: Farfetched + zod
+- UI: React Aria Components, стили: Tailwind CSS 4
+- Тесты: Vitest + Testing Library
 - Типы API генерируются из `dejaview-docs/api/openapi.yaml`, руками не пишутся
 - Конфигурация из переменных окружения, секреты в репозиторий не попадают
+
+## Как поднять локально
+
+```
+pnpm install && pnpm start:dev
+```
+
+Приложение — на `http://localhost:5173` (порт и хост настраиваются `VITE_PORT`/`VITE_URL`). Переменные окружения по шаблону `.env.example`, для локального старта не обязательны. Команды разработки и известные патчи — в [docs/patches.md](docs/patches.md).
 
 ## Ссылки
 

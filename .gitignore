@@ -5,6 +5,7 @@ coverage/
 *.local
 *.log
 .env
+.env.*
 .env.local
 !.env.example
 stats.html
