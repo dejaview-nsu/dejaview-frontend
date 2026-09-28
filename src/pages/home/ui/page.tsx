@@ -5,9 +5,10 @@ import { Button } from "@/shared/ui/button";
 import { $$home } from "../model";
 
 export const HomePage = () => {
-  const { post, error, refresh } = useUnit({
+  const { post, error, pending, refresh } = useUnit({
     post: $$home.outputs.$post,
     error: $$home.outputs.$error,
+    pending: $$home.outputs.$pending,
     refresh: $$home.inputs.refreshRequested,
   });
 
@@ -17,7 +18,9 @@ export const HomePage = () => {
         <h1 className="text-2xl font-semibold">Не удалось загрузить данные</h1>
         <p className="text-text-caption">Проверьте подключение и попробуйте снова.</p>
         <div>
-          <Button onPress={refresh}>Повторить</Button>
+          <Button isDisabled={pending} onPress={refresh}>
+            Повторить
+          </Button>
         </div>
       </section>
     );

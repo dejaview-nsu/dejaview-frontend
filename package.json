@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22.18"
+  },
   "sideEffects": [
     "./*/**/[!index].*"
   ],
@@ -13,10 +16,10 @@
     "start:dev": "vite",
     "start:prod": "vite preview",
     "build": "tsc --noEmit && vite build",
-    "lint": "eslint \"./src/**/**.{ts,tsx,js,jsx,json}\"",
-    "lint:fix": "eslint --fix \"./src/**/**.{ts,tsx,js,jsx,json}\"",
-    "format": "prettier \"./src/**/**.{ts,tsx,js,jsx,json}\"",
-    "format:fix": "prettier --write \"./src/**/**.{ts,tsx,js,jsx,json}\"",
+    "lint": "eslint \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\"",
+    "lint:fix": "eslint --fix \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\"",
+    "format": "prettier \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\"",
+    "format:fix": "prettier --write \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
