@@ -1,0 +1,86 @@
+{
+  "name": "krpo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "sideEffects": [
+    "./*/**/[!index].*"
+  ],
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "husky",
+    "start:dev": "vite",
+    "start:prod": "vite preview",
+    "build": "tsc --noEmit && vite build",
+    "lint": "eslint \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
+    "lint:fix": "eslint --fix \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
+    "format": "prettier \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
+    "format:check": "prettier --check \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
+    "format:fix": "prettier --write \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@effector/router": "^1.2.0",
+    "@effector/router-react": "^1.0.2",
+    "@farfetched/core": "^0.15.0",
+    "@react-aria/i18n": "^3.13.1",
+    "@withease/factories": "^1.0.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "effector": "^23.4.4",
+    "effector-action": "^1.2.2",
+    "effector-react": "^23.3.0",
+    "history": "^5.3.0",
+    "patronum": "^2.3.0",
+    "query-string": "^9.5.1",
+    "react": "^19.3.0",
+    "react-aria-components": "^1.21.1",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.2",
+    "@vitest/ui": "^5.0.2",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-effector": "^0.19.0",
+    "eslint-plugin-unicorn": "^76.0.0",
+    "husky": "^9.1.7",
+    "jsdom": "~29.0.0",
+    "lint-staged": "~16.1.6",
+    "prettier": "^3.9.9",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "rolldown",
+      "oxc-transform",
+      "@tailwindcss/oxide"
+    ]
+  }
+}
