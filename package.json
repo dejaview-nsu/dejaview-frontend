@@ -19,6 +19,7 @@
     "lint": "eslint \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
     "lint:fix": "eslint --fix \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
     "format": "prettier \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
+    "format:check": "prettier --check \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
     "format:fix": "prettier --write \"eslint.config.ts\" \"vite.config.ts\" \"vitest.config.ts\" \"./src/**/**.{ts,tsx,js,jsx,json}\" \"./tests/**/**.{ts,tsx,js,jsx,json}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
