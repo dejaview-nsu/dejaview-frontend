@@ -4,7 +4,7 @@ import { allSettled, fork, type Scope } from "effector";
 import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
-import { createHomePageFactory } from "../model/home";
+import { createHomePageFactory } from "@/pages/home/model/home";
 
 const post = { userId: 1, id: 1, title: "Заголовок", body: "Текст" };
 

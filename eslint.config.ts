@@ -21,10 +21,7 @@ export default tseslint.config(
       ...effector.configs.scope.rules,
       ...effector.configs.future.rules,
       ...effector.configs.patronum.rules,
-      // `__tests__` directories are the project-wide test layout prescribed by the
-      // foundation design spec (`<slice>/__tests__/*.test.ts`), so they are exempt
-      // from kebab-case while the rule stays enforced for all other names.
-      "unicorn/filename-case": ["error", { case: "kebabCase", ignore: [/^__tests__$/] }],
+      "unicorn/filename-case": ["error", { case: "kebabCase" }],
       "unicorn/no-nested-ternary": "error",
       "no-restricted-imports": [
         "error",

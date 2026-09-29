@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isNonNullable } from "../guards";
+import { isNonNullable } from "@/shared/lib/guards";
 
 describe("isNonNullable", () => {
   it("passes for non-null values", () => {

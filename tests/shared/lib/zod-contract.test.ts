@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { zodContract } from "../contracts/zod";
+import { zodContract } from "@/shared/lib/contracts/zod";
 
 describe("zodContract", () => {
   const contract = zodContract(z.object({ id: z.number(), title: z.string() }));

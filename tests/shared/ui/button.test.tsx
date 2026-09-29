@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { userEventSetup } from "../test-utils";
-import { Button } from "./ui";
+import { Button } from "@/shared/ui/button";
+
+import { userEventSetup } from "../../test-utils";
 
 describe("Button", () => {
   it("renders children as accessible button", () => {
