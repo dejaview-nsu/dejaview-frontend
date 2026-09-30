@@ -1,62 +1,25 @@
-import { chainRoute, type Route } from "@effector/router";
+import { type Route, stringifyQuery } from "@effector/router";
 import { createFactory } from "@withease/factories";
-import { combine, createEvent, sample } from "effector";
+import { sample } from "effector";
 
-import { loginRedirectRequested, router, routes } from "@/shared/routes";
+import { loginRedirectRequested, router } from "@/shared/routes";
 
 import type { $$session } from "./page";
-import type { SessionStatus } from "./session";
-
-type KnownStatus = Exclude<SessionStatus, "unknown">;
+import { chainSessionRoute } from "./session-route";
 
 export const createAuthorizedRouteFactory = createFactory(
   ({ route, session }: { route: Route; session: typeof $$session }) => {
-    const checkStarted = createEvent();
-    const statusChecked = createEvent<KnownStatus>();
-    const accessGranted = createEvent();
-    const accessDenied = createEvent();
-
-    const readyRoute = chainRoute({
-      route,
-      beforeOpen: checkStarted,
-      openOn: accessGranted,
-      cancelOn: accessDenied,
-    });
-
-    const $isWaiting = combine(route.$isOpened, readyRoute.$isOpened, (opened, ready) => opened && !ready);
-
-    sample({
-      clock: checkStarted,
-      source: session.outputs.$status,
-      filter: (status) => status === "unknown",
-      target: session.inputs.sessionCheckRequested,
-    });
-
-    sample({
-      clock: checkStarted,
-      source: session.outputs.$status,
-      filter: (status): status is KnownStatus => status !== "unknown",
-      target: statusChecked,
-    });
-
-    sample({ clock: session.outputs.statusResolved, filter: $isWaiting, target: statusChecked });
-
-    sample({ clock: statusChecked, filter: (status) => status === "authenticated", target: accessGranted });
-    sample({ clock: statusChecked, filter: (status) => status === "guest", target: accessDenied });
+    const { readyRoute, accessDenied } = chainSessionRoute({ route, session, allow: "authenticated" });
 
     sample({
       clock: accessDenied,
-      source: router.$path,
-      fn: (path) => ({ path: path ?? "/", replace: true }),
-      target: loginRedirectRequested,
-    });
+      source: { path: router.$path, query: router.$query },
+      fn: ({ path, query }) => {
+        const search = stringifyQuery(query);
 
-    sample({
-      clock: session.outputs.statusResolved,
-      source: readyRoute.$isOpened,
-      filter: (opened, status) => opened && status === "guest",
-      fn: () => ({ replace: true }),
-      target: routes.home.open,
+        return { path: `${path ?? "/"}${search ? `?${search}` : ""}`, replace: true };
+      },
+      target: loginRedirectRequested,
     });
 
     return {

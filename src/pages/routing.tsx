@@ -8,12 +8,14 @@ import { AboutPage } from "./about";
 import { ConfirmEmailPage } from "./confirm-email";
 import { $$home } from "./home";
 import { HomePage } from "./home";
+import { $$loginRoute } from "./login";
 import { LoginPage } from "./login";
 import { MoviePage } from "./movie";
 import { NotFoundPage } from "./not-found";
 import { OidcCallbackPage } from "./oidc-callback";
 import { $$profile } from "./profile";
 import { ProfilePage } from "./profile";
+import { $$register } from "./register";
 import { RegisterPage } from "./register";
 
 const PageLoader = () => {
@@ -29,8 +31,8 @@ export const Routing = createRoutesView({
     createRouteView({ route: $$home.outputs.readyRoute, view: HomePage }),
     createRouteView({ route: routes.about, view: AboutPage }),
     createRouteView({ route: routes.movie, view: MoviePage }),
-    createRouteView({ route: routes.login, view: LoginPage }),
-    createRouteView({ route: routes.register, view: RegisterPage }),
+    createRouteView({ route: $$loginRoute.outputs.readyRoute, view: LoginPage }),
+    createRouteView({ route: $$register.outputs.readyRoute, view: RegisterPage }),
     createRouteView({ route: $$profile.outputs.readyRoute, view: ProfilePage }),
     createRouteView({ route: routes.confirmEmail, view: ConfirmEmailPage }),
     createRouteView({ route: routes.oidcCallback, view: OidcCallbackPage }),

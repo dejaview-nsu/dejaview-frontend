@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 
 import { createSessionFactory } from "@/entities/session/model/session";
 
+import { ApiError } from "@/shared/api";
 import { appStarted } from "@/shared/config/init";
+
+import { executeFx } from "../../session-scope";
 
 const setup = () => {
   const $$session = invoke(createSessionFactory);
@@ -58,5 +61,39 @@ describe("session model", () => {
     await allSettled($$session.inputs.sessionCheckRequested, { scope });
 
     expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
+  });
+
+  it("stub rejects with typed SESSION_REQUIRED error and model becomes guest", async () => {
+    const { $$session, scope } = setup();
+
+    await allSettled($$session.inputs.sessionCheckRequested, { scope });
+
+    const error = scope.getState($$session.__.sessionQuery.$error);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 401, code: "SESSION_REQUIRED", field: null });
+    expect(scope.getState($$session.outputs.$status)).toBe("guest");
+  });
+
+  it.each([
+    new ApiError({ status: 401, code: "SESSION_EXPIRED", message: "Сессия истекла. Войдите снова", field: null }),
+    new ApiError({ status: 500, code: "INTERNAL_ERROR", message: "Произошла ошибка. Попробуйте позже", field: null }),
+    new Error("network"),
+  ])("session check failure %s resolves to guest", async (failure) => {
+    const $$session = invoke(createSessionFactory);
+    const scope = fork({
+      handlers: [
+        [
+          executeFx($$session.__.sessionQuery),
+          () => {
+            throw failure;
+          },
+        ],
+      ],
+    });
+
+    await allSettled($$session.inputs.sessionCheckRequested, { scope });
+
+    expect(scope.getState($$session.outputs.$status)).toBe("guest");
   });
 });

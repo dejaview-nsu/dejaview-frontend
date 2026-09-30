@@ -1,2 +1,2 @@
 export { LoginPage } from "./ui";
-export { $$login } from "./model";
+export { $$login, $$loginRoute } from "./model";

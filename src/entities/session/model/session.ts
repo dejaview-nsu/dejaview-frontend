@@ -3,6 +3,7 @@ import { createEvent, createStore, sample } from "effector";
 import { readonly } from "patronum";
 
 import { appStarted } from "@/shared/config/init";
+import { routes } from "@/shared/routes";
 
 import { createSessionStub, type SessionUser } from "../api";
 
@@ -38,6 +39,12 @@ export const createSessionFactory = createFactory(() => {
   sample({ clock: statusResolved, target: $status });
   sample({ clock: sessionQuery.finished.success, fn: ({ result }) => result.user, target: $user });
   sample({ clock: statusResolved, filter: (status) => status === "guest", fn: () => null, target: $user });
+
+  sample({
+    clock: signOutMutation.finished.finally,
+    fn: () => ({ replace: true, query: {} }),
+    target: routes.home.open,
+  });
 
   return {
     __: { sessionQuery, signInMutation, signOutMutation },

@@ -1,2 +1,2 @@
-export { $$login } from "./page";
+export { $$login, $$loginRoute } from "./page";
 export { createLoginPageFactory } from "./login";

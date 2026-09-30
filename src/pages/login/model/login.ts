@@ -4,7 +4,7 @@ import { createEvent, sample } from "effector";
 
 import { type $$session } from "@/entities/session";
 
-import { routes } from "@/shared/routes";
+import { loginReturnRequested } from "@/shared/routes";
 
 export const createLoginPageFactory = createFactory(
   ({ route, session }: { route: Route; session: typeof $$session }) => {
@@ -16,8 +16,7 @@ export const createLoginPageFactory = createFactory(
       clock: session.outputs.statusResolved,
       source: route.$isOpened,
       filter: (opened, status) => opened && status === "authenticated",
-      fn: () => ({ replace: true }),
-      target: routes.home.open,
+      target: loginReturnRequested,
     });
 
     return {

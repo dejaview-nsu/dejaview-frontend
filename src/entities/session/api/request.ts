@@ -1,6 +1,7 @@
 import { createMutation, createQuery } from "@farfetched/core";
 import { createEffect } from "effector";
 
+import { ApiError } from "@/shared/api";
 import { zodContract } from "@/shared/lib/contracts";
 
 import { type SessionInfo, sessionInfoSchema } from "./schema";
@@ -13,7 +14,12 @@ export const createSessionStub = () => {
   const sessionQuery = createQuery({
     effect: createEffect(async (): Promise<SessionInfo> => {
       if (!hasSession) {
-        throw new Error("401 SESSION_REQUIRED");
+        throw new ApiError({
+          status: 401,
+          code: "SESSION_REQUIRED",
+          message: "Войдите, чтобы продолжить",
+          field: null,
+        });
       }
 
       return {

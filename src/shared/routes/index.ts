@@ -1,2 +1,2 @@
-export { loginRedirectRequested } from "./login-redirect";
+export { loginRedirectRequested, loginReturnRequested } from "./login-redirect";
 export { routes, router } from "./routes";
