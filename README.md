@@ -33,6 +33,7 @@ pnpm install && pnpm start:dev
 - Задачи и требования: https://ai.nsu.ru/projects/dejaview
 - Архитектура, контракты, соглашения: https://github.com/dejaview-nsu/dejaview-docs
 - Организация: https://github.com/dejaview-nsu
+- Дизайн-макеты и дизайн система (Figma): https://www.figma.com/design/b26RzxztcxHD7uzDaWbP15/DejaView?node-id=1-2&t=6dwwByiAVp9K8QwG-1
 
 ## Как работаем
 
