@@ -1,5 +1,5 @@
 import { createRoute, createRouter, historyAdapter } from "@effector/router";
-import { sample } from "effector";
+import { createEffect, sample } from "effector";
 import { createBrowserHistory } from "history";
 
 import { appStarted } from "../config/init";
@@ -30,8 +30,13 @@ export const router = createRouter({
   notFound: routes.notFound,
 });
 
-sample({
-  clock: appStarted,
-  fn: () => historyAdapter(createBrowserHistory()),
-  target: router.setHistory,
+const createBrowserHistoryFx = createEffect(() => {
+  const adapter = historyAdapter(createBrowserHistory());
+  // @effector/router 1.2.0 reattaches block before asynchronous POP retries finish.
+  // Use listen for native back/forward until the upstream blocker is fixed.
+  delete adapter.block;
+  return adapter;
 });
+
+sample({ clock: appStarted, target: createBrowserHistoryFx });
+sample({ clock: createBrowserHistoryFx.doneData, target: router.setHistory });
