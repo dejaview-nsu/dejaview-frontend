@@ -1,2 +1,2 @@
 export { createSessionStub } from "./request";
-export { sessionInfoSchema, type SessionInfo, type SessionUser } from "./schema";
+export type { SessionInfo, UserSummary as SessionUser } from "@/shared/api";

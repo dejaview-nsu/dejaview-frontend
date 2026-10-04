@@ -1,11 +1,13 @@
 import { createFactory } from "@withease/factories";
-import { createEvent, createStore, sample } from "effector";
+import { combine, createEvent, createStore, sample } from "effector";
 import { readonly } from "patronum";
 
+import { sessionRequired } from "@/shared/api";
 import { appStarted } from "@/shared/config/init";
-import { routes } from "@/shared/routes";
+import { loginRedirectRequested, router, routes } from "@/shared/routes";
 
 import { createSessionStub, type SessionUser } from "../api";
+import { toLocationPath } from "./location";
 
 export type SessionStatus = "unknown" | "guest" | "authenticated";
 
@@ -46,8 +48,41 @@ export const createSessionFactory = createFactory(() => {
     target: routes.home.open,
   });
 
+  const protectedRoutes = new Set<unknown>();
+  const loginRedirectStarted = createEvent<{ path: string; replace: boolean }>();
+  const $isLoginRedirectPending = createStore(false);
+  const $isOnAuthPage = combine(
+    routes.login.$isOpened,
+    routes.register.$isOpened,
+    (login, register) => login || register,
+  );
+
+  sample({ clock: sessionRequired, fn: () => "guest" as const, target: statusResolved });
+
+  sample({
+    clock: sessionRequired,
+    source: {
+      path: router.$path,
+      query: router.$query,
+      activeRoutes: router.$activeRoutes,
+      isPending: $isLoginRedirectPending,
+      isOnAuthPage: $isOnAuthPage,
+    },
+    filter: ({ isPending, isOnAuthPage }) => !isPending && !isOnAuthPage,
+    fn: ({ path, query, activeRoutes }) => ({
+      path: toLocationPath({ path, query }),
+      replace: activeRoutes.some((route) => protectedRoutes.has(route)),
+    }),
+    target: loginRedirectStarted,
+  });
+
+  sample({ clock: loginRedirectStarted, fn: () => true, target: $isLoginRedirectPending });
+  sample({ clock: loginRedirectStarted, target: loginRedirectRequested });
+  sample({ clock: routes.login.opened, fn: () => false, target: $isLoginRedirectPending });
+
   return {
     __: { sessionQuery, signInMutation, signOutMutation },
+    registry: { protectedRoutes },
     inputs: { sessionCheckRequested, signedIn, signedOut },
     outputs: {
       $status: readonly($status),

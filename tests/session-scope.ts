@@ -4,7 +4,7 @@ import { createMemoryHistory } from "history";
 
 import { $$session } from "@/entities/session";
 
-import { ApiError } from "@/shared/api";
+import { ApiError, transportFx, type TransportRequest, type TransportResponse } from "@/shared/api";
 import { router } from "@/shared/routes";
 
 export const sessionInfo = {
@@ -20,11 +20,19 @@ export const executeFx = (unit: unknown) => (unit as { __: { executeFx: never } 
 export const setupSessionScope = async ({
   initialEntry = "/",
   authenticated = false,
-}: { initialEntry?: string; authenticated?: boolean } = {}) => {
+  transport = async () => {
+    throw new Error("Unexpected API request");
+  },
+}: {
+  initialEntry?: string;
+  authenticated?: boolean;
+  transport?: (request: TransportRequest) => Promise<TransportResponse>;
+} = {}) => {
   let hasSession = authenticated;
 
   const scope = fork({
     handlers: [
+      [transportFx, transport],
       [
         executeFx($$session.__.sessionQuery),
         () => {

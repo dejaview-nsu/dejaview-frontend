@@ -1,10 +1,8 @@
 import { createMutation, createQuery } from "@farfetched/core";
 import { createEffect } from "effector";
 
-import { ApiError } from "@/shared/api";
+import { ApiError, type SessionInfo, zSessionInfo } from "@/shared/api";
 import { zodContract } from "@/shared/lib/contracts";
-
-import { type SessionInfo, sessionInfoSchema } from "./schema";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -27,7 +25,7 @@ export const createSessionStub = () => {
         expires_at: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
       };
     }),
-    contract: zodContract(sessionInfoSchema),
+    contract: zodContract(zSessionInfo),
   });
 
   const signInMutation = createMutation({
