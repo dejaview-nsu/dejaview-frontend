@@ -7,6 +7,7 @@ export type MockStorage = {
 export const MOCK_STORAGE_KEYS = {
   session: "dejaview:mocks:session",
   searchScenario: "dejaview:mocks:search",
+  loginScenario: "dejaview:mocks:login",
 } as const;
 
 export const createMockStorage = (resolveStorage: () => Storage | null | undefined): MockStorage => {

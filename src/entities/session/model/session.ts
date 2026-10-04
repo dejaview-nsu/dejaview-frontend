@@ -1,21 +1,21 @@
 import { createFactory } from "@withease/factories";
 import { combine, createEvent, createStore, sample } from "effector";
-import { readonly } from "patronum";
+import { not, readonly } from "patronum";
 
-import { sessionRequired } from "@/shared/api";
+import { type ApiError, sessionRequired, toApiError } from "@/shared/api";
 import { appStarted } from "@/shared/config/init";
 import { loginRedirectRequested, router, routes } from "@/shared/routes";
 
-import { createSessionStub, type SessionUser } from "../api";
+import { createSessionApi, type SessionCredentials, type SessionUser } from "../api";
 import { toLocationPath } from "./location";
 
 export type SessionStatus = "unknown" | "guest" | "authenticated";
 
 export const createSessionFactory = createFactory(() => {
-  const { sessionQuery, signInMutation, signOutMutation } = createSessionStub();
+  const { sessionQuery, signInMutation, signOutMutation } = createSessionApi();
 
   const sessionCheckRequested = createEvent();
-  const signedIn = createEvent();
+  const signedIn = createEvent<SessionCredentials>();
   const signedOut = createEvent();
   const statusResolved = createEvent<Exclude<SessionStatus, "unknown">>();
 
@@ -26,8 +26,23 @@ export const createSessionFactory = createFactory(() => {
   sample({ clock: appStarted, target: sessionCheckRequested });
   sample({ clock: sessionCheckRequested, target: sessionQuery.start });
 
+  const $loginError = createStore<ApiError | null>(null);
+  const $isSigningIn = signInMutation.$pending;
+  const $isCheckingAfterLogin = createStore(false);
+
+  sample({ clock: signedIn, filter: not($isSigningIn), fn: () => null, target: $loginError });
   sample({ clock: signedIn, target: signInMutation.start });
+  sample({ clock: signInMutation.finished.success, fn: () => true, target: $isCheckingAfterLogin });
   sample({ clock: signInMutation.finished.success, target: sessionQuery.start });
+  sample({ clock: signInMutation.finished.failure, fn: ({ error }) => toApiError(error), target: $loginError });
+  sample({
+    clock: sessionQuery.finished.failure,
+    filter: $isCheckingAfterLogin,
+    fn: ({ error }) => toApiError(error),
+    target: $loginError,
+  });
+  sample({ clock: sessionQuery.finished.finally, fn: () => false, target: $isCheckingAfterLogin });
+  sample({ clock: routes.login.closed, fn: () => null, target: $loginError });
 
   sample({ clock: signedOut, target: signOutMutation.start });
 
@@ -57,22 +72,25 @@ export const createSessionFactory = createFactory(() => {
     (login, register) => login || register,
   );
 
+  const loginRequired = createEvent<{ path: string; replace: boolean }>();
+
   sample({ clock: sessionRequired, fn: () => "guest" as const, target: statusResolved });
 
   sample({
     clock: sessionRequired,
-    source: {
-      path: router.$path,
-      query: router.$query,
-      activeRoutes: router.$activeRoutes,
-      isPending: $isLoginRedirectPending,
-      isOnAuthPage: $isOnAuthPage,
-    },
-    filter: ({ isPending, isOnAuthPage }) => !isPending && !isOnAuthPage,
+    source: { path: router.$path, query: router.$query, activeRoutes: router.$activeRoutes },
     fn: ({ path, query, activeRoutes }) => ({
       path: toLocationPath({ path, query }),
       replace: activeRoutes.some((route) => protectedRoutes.has(route)),
     }),
+    target: loginRequired,
+  });
+
+  sample({
+    clock: loginRequired,
+    source: { isPending: $isLoginRedirectPending, isOnAuthPage: $isOnAuthPage },
+    filter: ({ isPending, isOnAuthPage }) => !isPending && !isOnAuthPage,
+    fn: (_, redirect) => redirect,
     target: loginRedirectStarted,
   });
 
@@ -83,11 +101,13 @@ export const createSessionFactory = createFactory(() => {
   return {
     __: { sessionQuery, signInMutation, signOutMutation },
     registry: { protectedRoutes },
-    inputs: { sessionCheckRequested, signedIn, signedOut },
+    inputs: { sessionCheckRequested, signedIn, signedOut, loginRequired },
     outputs: {
       $status: readonly($status),
       $user: readonly($user),
       $isAuthenticated,
+      $isSigningIn: readonly($isSigningIn),
+      $loginError: readonly($loginError),
       statusResolved: readonly(statusResolved),
     },
   };

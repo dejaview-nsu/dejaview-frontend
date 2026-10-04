@@ -14,6 +14,21 @@ const serializeBody = (body: unknown): { payload: XMLHttpRequestBodyInit | null;
   return { payload: JSON.stringify(body), isJson: true };
 };
 
+const isBodySent = (xhr: XMLHttpRequest) => {
+  switch (xhr.readyState) {
+    case XMLHttpRequest.HEADERS_RECEIVED:
+    case XMLHttpRequest.LOADING: {
+      return true;
+    }
+    case XMLHttpRequest.DONE: {
+      return xhr.status !== 0;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+
 export const xhrTransport: Transport = (request) =>
   new Promise((resolve, reject) => {
     if (request.signal?.aborted) {
@@ -74,7 +89,7 @@ export const xhrTransport: Transport = (request) =>
       });
       xhr.upload.addEventListener("load", markUploaded);
       xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState >= XMLHttpRequest.HEADERS_RECEIVED) {
+        if (isBodySent(xhr)) {
           markUploaded();
         }
       });

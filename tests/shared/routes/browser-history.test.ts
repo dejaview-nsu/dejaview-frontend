@@ -143,7 +143,7 @@ describe("application browser history", () => {
 
   it("replaces profile on sign out and supports router back/forward commands", async () => {
     const { scope, browserWindow, expectLocation } = await setup("/about");
-    await allSettled($$session.inputs.signedIn, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
     await allSettled(routes.profile.open, { scope, params: undefined });
     await expectLocation("/profile");
     expect(scope.getState($$profile.outputs.readyRoute.$isOpened)).toBe(true);

@@ -125,6 +125,34 @@ describe("file search without scope", () => {
     expect(failed).not.toHaveBeenCalled();
     expect(succeeded).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [
+      "TIMEOUT",
+      () => {
+        vi.advanceTimersByTime(90_000);
+      },
+    ],
+    ["NETWORK_ERROR", () => FakeXMLHttpRequest.last().failNetwork()],
+  ])("%s during uploading fails without passing through processing", async (code, breakUpload) => {
+    vi.useFakeTimers();
+    const { $$search, progress, error } = setup();
+    const stages: FileSearchStage[] = [];
+
+    createWatch({ unit: $$search.outputs.$stage, fn: (value) => stages.push(value) });
+
+    $$search.inputs.started(videoFile());
+    const xhr = await waitForXhr();
+
+    xhr.progressUpload(40, 100);
+    breakUpload();
+
+    await vi.waitFor(() => expect(stages.at(-1)).toBe("failed"));
+
+    expect(stages).not.toContain("processing");
+    expect(progress.value).toBe(40);
+    expect(error.value).toMatchObject({ code });
+  });
 });
 
 describe("searchByFile abort", () => {
@@ -145,5 +173,29 @@ describe("searchByFile abort", () => {
     expect(error).not.toBeInstanceOf(ApiError);
     expect(xhr.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("abort during upload does not report processing", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const controller = new AbortController();
+
+    const promise = searchByFile({
+      mode: "video",
+      file: videoFile(),
+      signal: controller.signal,
+      onUploadProgress: (fraction) => console.log("загрузка", fraction),
+      onUploadComplete: () => console.log("обработка…"),
+    });
+    const xhr = await waitForXhr();
+
+    xhr.progressUpload(40, 100);
+    controller.abort();
+
+    const error = await promise.catch((reason: unknown) => reason);
+
+    expect(isAbortError(error)).toBe(true);
+    expect(log.mock.calls).toEqual([["загрузка", 0.4]]);
+
+    log.mockRestore();
   });
 });

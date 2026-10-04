@@ -7,11 +7,16 @@ import { $$login, $$loginRoute } from "@/pages/login/model";
 
 import { $$session } from "@/entities/session";
 
+import { transportFx } from "@/shared/api";
+import { createMockTransport, NO_MOCK_DELAYS } from "@/shared/api/mocks";
 import { router, routes } from "@/shared/routes";
+
+import { createTestMockStorage } from "../../session-scope";
 
 describe("login page model", () => {
   it("stub login authenticates user and opens home", async () => {
-    const scope = fork();
+    const transport = createMockTransport({ storage: createTestMockStorage(), delays: NO_MOCK_DELAYS });
+    const scope = fork({ handlers: [[transportFx, transport]] });
     const history = createMemoryHistory({ initialEntries: ["/"] });
 
     await allSettled(router.setHistory, { scope, params: historyAdapter(history) });

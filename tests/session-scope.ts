@@ -4,7 +4,8 @@ import { createMemoryHistory } from "history";
 
 import { $$session } from "@/entities/session";
 
-import { ApiError, transportFx, type TransportRequest, type TransportResponse } from "@/shared/api";
+import { ApiError, type Transport, transportFx } from "@/shared/api";
+import { createMockStorage, createMockTransport, type MockStorage, NO_MOCK_DELAYS } from "@/shared/api/mocks";
 import { router } from "@/shared/routes";
 
 export const sessionInfo = {
@@ -17,18 +18,20 @@ export const sessionRequiredError = () =>
 
 export const executeFx = (unit: unknown) => (unit as { __: { executeFx: never } }).__.executeFx;
 
+const unexpectedRequest: Transport = async () => {
+  throw new Error("Unexpected API request");
+};
+
 export const setupSessionScope = async ({
   initialEntry = "/",
   authenticated = false,
-  transport = async () => {
-    throw new Error("Unexpected API request");
-  },
+  transport = unexpectedRequest,
 }: {
   initialEntry?: string;
   authenticated?: boolean;
-  transport?: (request: TransportRequest) => Promise<TransportResponse>;
+  transport?: Transport;
 } = {}) => {
-  let hasSession = authenticated;
+  let isSignedIn = authenticated;
 
   const scope = fork({
     handlers: [
@@ -36,7 +39,7 @@ export const setupSessionScope = async ({
       [
         executeFx($$session.__.sessionQuery),
         () => {
-          if (!hasSession) {
+          if (!isSignedIn) {
             throw sessionRequiredError();
           }
 
@@ -46,13 +49,13 @@ export const setupSessionScope = async ({
       [
         executeFx($$session.__.signInMutation),
         () => {
-          hasSession = true;
+          isSignedIn = true;
         },
       ],
       [
         executeFx($$session.__.signOutMutation),
         () => {
-          hasSession = false;
+          isSignedIn = false;
         },
       ],
     ],
@@ -64,4 +67,32 @@ export const setupSessionScope = async ({
   await allSettled($$session.inputs.sessionCheckRequested, { scope });
 
   return { scope, history };
+};
+
+export const setupApiScope = async ({
+  initialEntry = "/",
+  transport,
+}: {
+  initialEntry?: string;
+  transport: Transport;
+}) => {
+  const scope = fork({ handlers: [[transportFx, transport]] });
+  const history = createMemoryHistory({ initialEntries: [initialEntry] });
+
+  await allSettled(router.setHistory, { scope, params: historyAdapter(history) });
+  await allSettled($$session.inputs.sessionCheckRequested, { scope });
+
+  return { scope, history };
+};
+
+export const createTestMockStorage = () => createMockStorage(() => null);
+
+export const setupMockApiScope = async ({
+  initialEntry = "/",
+  storage = createTestMockStorage(),
+}: { initialEntry?: string; storage?: MockStorage } = {}) => {
+  const transport = createMockTransport({ storage, delays: NO_MOCK_DELAYS });
+  const { scope, history } = await setupApiScope({ initialEntry, transport });
+
+  return { scope, history, storage };
 };

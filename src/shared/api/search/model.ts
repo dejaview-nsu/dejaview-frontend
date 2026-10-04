@@ -3,7 +3,7 @@ import { createFactory } from "@withease/factories";
 import { createEvent, createStore, sample, scopeBind } from "effector";
 import { readonly } from "patronum";
 
-import { ApiError, createClientError, isSessionError } from "../errors";
+import { type ApiError, isSessionError, toApiError } from "../errors";
 import type { MovieSearchResult } from "../generated";
 import type { FileSearchMode } from "./modes";
 import { searchByFile } from "./request";
@@ -13,9 +13,6 @@ export type FileSearchStage = "idle" | "uploading" | "processing" | "done" | "fa
 type SearchCall = { file: File; callId: number };
 
 const ACTIVE_STAGES: readonly FileSearchStage[] = ["uploading", "processing"];
-
-const toApiError = (error: unknown): ApiError =>
-  error instanceof ApiError ? error : createClientError("INVALID_RESPONSE", 0);
 
 export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSearchMode }) => {
   const started = createEvent<File>();

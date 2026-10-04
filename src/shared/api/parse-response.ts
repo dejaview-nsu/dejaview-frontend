@@ -4,8 +4,16 @@ import { ApiError, type ClientErrorCode, createClientError } from "./errors";
 import { zError } from "./generated/zod.gen";
 import type { TransportResponse } from "./transport/types";
 
+export type ErrorMessages = Partial<Record<ClientErrorCode, string>>;
+
 export type ParseOptions = {
   isSearch?: boolean;
+  errorMessages?: ErrorMessages;
+};
+
+export type ApiResponse = {
+  status: number;
+  body: unknown;
 };
 
 const parseJson = (text: string): unknown => {
@@ -24,7 +32,7 @@ const parseRetryAfter = (value: string | null): number | null => {
   return Number(value.trim());
 };
 
-const fallbackCode = (status: number, { isSearch = false }: ParseOptions): ClientErrorCode => {
+const fallbackCode = (status: number, isSearch: boolean): ClientErrorCode => {
   switch (status) {
     case 401: {
       return "SESSION_REQUIRED";
@@ -49,39 +57,42 @@ const fallbackCode = (status: number, { isSearch = false }: ParseOptions): Clien
   }
 };
 
-export const parseResponse = <Data>(
+export const parseResponse = (
   response: TransportResponse,
-  schema: z.ZodType<Data> | null,
-  options: ParseOptions = {},
-): Data | undefined => {
+  { isSearch = false, errorMessages = {} }: ParseOptions = {},
+): ApiResponse => {
   const { status, bodyText } = response;
+  const body = parseJson(bodyText);
 
   if (status >= 200 && status < 300) {
-    if (schema === null) {
-      return undefined;
-    }
-
-    const result = schema.safeParse(parseJson(bodyText));
-
-    if (!result.success) {
-      throw createClientError("INVALID_RESPONSE", status);
-    }
-
-    return result.data;
+    return { status, body };
   }
 
   const retryAfter = parseRetryAfter(response.getHeader("Retry-After"));
-  const body = zError.safeParse(parseJson(bodyText));
+  const error = zError.safeParse(body);
 
-  if (!body.success) {
-    throw createClientError(fallbackCode(status, options), status, retryAfter);
+  if (!error.success) {
+    const code = fallbackCode(status, isSearch);
+
+    throw createClientError(code, status, { retryAfter, message: errorMessages[code] });
   }
 
   throw new ApiError({
     status,
-    code: body.data.code,
-    message: body.data.message,
-    field: body.data.field ?? null,
+    code: error.data.code,
+    message: error.data.message,
+    field: error.data.field ?? null,
     retryAfter,
+    details: body,
   });
+};
+
+export const validateResponse = <Data>({ status, body }: ApiResponse, schema: z.ZodType<Data>): Data => {
+  const result = schema.safeParse(body);
+
+  if (!result.success) {
+    throw createClientError("INVALID_RESPONSE", status);
+  }
+
+  return result.data;
 };

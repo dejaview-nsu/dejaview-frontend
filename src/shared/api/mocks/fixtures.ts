@@ -1,4 +1,4 @@
-import type { Error as ErrorBody, SearchResponse, SessionInfo } from "../generated";
+import type { AuthLoginError, Error as ErrorBody, SearchResponse, SessionInfo } from "../generated";
 import type { FileSearchMode } from "../search/modes";
 
 export const FOUND_RESULTS = {
@@ -102,6 +102,46 @@ export const COMMON_ERRORS = {
 } as const satisfies Record<string, ErrorBody>;
 
 export const RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
+
+export const LOGIN_LOCKED_RETRY_AFTER_SECONDS = 840;
+
+export const LOGIN_ERRORS = {
+  INVALID_CREDENTIALS: {
+    status: 400,
+    body: {
+      code: "AUTH_INVALID_CREDENTIALS",
+      message: "Неверные имя пользователя или пароль",
+      field: null,
+      captcha_required: false,
+    },
+  },
+  CAPTCHA_REQUIRED: {
+    status: 403,
+    body: {
+      code: "AUTH_CAPTCHA_REQUIRED",
+      message: "Подтвердите, что вы не робот",
+      field: "captcha_token",
+      captcha_required: true,
+    },
+  },
+  EMAIL_NOT_CONFIRMED: {
+    status: 403,
+    body: {
+      code: "AUTH_EMAIL_NOT_CONFIRMED",
+      message: "Email не подтверждён. Проверьте почту или запросите новую ссылку",
+      field: null,
+      captcha_required: false,
+    },
+  },
+  LOGIN_LOCKED: {
+    status: 429,
+    body: {
+      code: "AUTH_LOGIN_LOCKED",
+      message: "Слишком много попыток входа. Повторите через 14 минут",
+      field: null,
+    },
+  },
+} as const satisfies Record<string, { status: number; body: AuthLoginError | ErrorBody }>;
 
 export const NGINX_BAD_GATEWAY_HTML =
   "<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center><hr><center>nginx</center></body></html>";

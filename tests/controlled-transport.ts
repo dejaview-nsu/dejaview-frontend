@@ -13,11 +13,15 @@ export const jsonResponse = (
   status: number,
   body: unknown,
   headers: Record<string, string> = {},
-): TransportResponse => ({
-  status,
-  bodyText: typeof body === "string" ? body : JSON.stringify(body),
-  getHeader: (name) => headers[name] ?? null,
-});
+): TransportResponse => {
+  const normalizedHeaders = new Map(Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value]));
+
+  return {
+    status,
+    bodyText: typeof body === "string" ? body : JSON.stringify(body),
+    getHeader: (name) => normalizedHeaders.get(name.toLowerCase()) ?? null,
+  };
+};
 
 export const createControlledTransport = ({ ignoreAbort = false } = {}) => {
   const calls: PendingCall[] = [];

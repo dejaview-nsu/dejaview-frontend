@@ -8,7 +8,10 @@ class FakeXMLHttpRequestUpload extends EventTarget {
 }
 
 export class FakeXMLHttpRequest extends EventTarget {
+  static readonly UNSENT = 0;
+  static readonly OPENED = 1;
   static readonly HEADERS_RECEIVED = 2;
+  static readonly LOADING = 3;
   static readonly DONE = 4;
   static instances: FakeXMLHttpRequest[] = [];
 
@@ -23,6 +26,7 @@ export class FakeXMLHttpRequest extends EventTarget {
   responseText = "";
   aborted = false;
   private responseHeaders: Record<string, string> = {};
+  private sent = false;
 
   static reset() {
     FakeXMLHttpRequest.instances = [];
@@ -41,6 +45,7 @@ export class FakeXMLHttpRequest extends EventTarget {
   open(method: string, url: string) {
     this.method = method;
     this.url = url;
+    this.readyState = FakeXMLHttpRequest.OPENED;
   }
 
   setRequestHeader(name: string, value: string) {
@@ -49,12 +54,19 @@ export class FakeXMLHttpRequest extends EventTarget {
 
   send(body: unknown) {
     this.body = body;
+    this.sent = true;
     FakeXMLHttpRequest.instances.push(this);
   }
 
   abort() {
     this.aborted = true;
-    this.dispatchEvent(new Event("abort"));
+
+    if (!this.sent) {
+      return;
+    }
+
+    this.failRequest("abort");
+    this.readyState = FakeXMLHttpRequest.UNSENT;
   }
 
   getResponseHeader(name: string) {
@@ -81,10 +93,22 @@ export class FakeXMLHttpRequest extends EventTarget {
     this.responseHeaders = Object.fromEntries(
       Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
     );
+    this.sent = false;
+    this.dispatchEvent(new Event("readystatechange"));
     this.dispatchEvent(new Event("load"));
   }
 
   failNetwork() {
-    this.dispatchEvent(new Event("error"));
+    this.failRequest("error");
+  }
+
+  private failRequest(type: "abort" | "error") {
+    this.readyState = FakeXMLHttpRequest.DONE;
+    this.status = 0;
+    this.responseText = "";
+    this.sent = false;
+    this.dispatchEvent(new Event("readystatechange"));
+    this.upload.dispatchEvent(new ProgressEvent(type));
+    this.dispatchEvent(new Event(type));
   }
 }

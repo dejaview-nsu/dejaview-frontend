@@ -2,7 +2,7 @@ import { type Route } from "@effector/router";
 import { createFactory } from "@withease/factories";
 import { sample } from "effector";
 
-import { loginRedirectRequested, router } from "@/shared/routes";
+import { router } from "@/shared/routes";
 
 import { toLocationPath } from "./location";
 import type { $$session } from "./page";
@@ -18,7 +18,7 @@ export const createAuthorizedRouteFactory = createFactory(
       clock: accessDenied,
       source: { path: router.$path, query: router.$query },
       fn: (location) => ({ path: toLocationPath(location), replace: true }),
-      target: loginRedirectRequested,
+      target: session.inputs.loginRequired,
     });
 
     return {

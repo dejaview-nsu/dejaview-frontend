@@ -203,6 +203,75 @@ describe("xhr transport", () => {
     await expect(promise).rejects.toMatchObject({ kind: "timeout" });
   });
 
+  describe("failure during upload is not the end of upload", () => {
+    const startUpload = (signal?: AbortSignal) => {
+      const onUploadComplete = vi.fn();
+      const promise = xhrTransport({
+        method: "POST",
+        path: "/search/video",
+        body: new FormData(),
+        timeouts: { upload: 1000, response: 5000 },
+        signal,
+        onUploadComplete,
+      });
+      const xhr = FakeXMLHttpRequest.last();
+
+      xhr.progressUpload(40, 100);
+
+      return { promise, xhr, onUploadComplete };
+    };
+
+    it("upload timeout", async () => {
+      vi.useFakeTimers();
+      const { promise, onUploadComplete } = startUpload();
+
+      vi.advanceTimersByTime(1000);
+
+      await expect(promise).rejects.toMatchObject({ kind: "timeout" });
+      expect(onUploadComplete).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("network failure", async () => {
+      vi.useFakeTimers();
+      const { promise, xhr, onUploadComplete } = startUpload();
+
+      xhr.failNetwork();
+
+      await expect(promise).rejects.toMatchObject({ kind: "network" });
+      expect(onUploadComplete).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("abort", async () => {
+      vi.useFakeTimers();
+      const controller = new AbortController();
+      const { promise, onUploadComplete } = startUpload(controller.signal);
+
+      controller.abort();
+
+      await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+      expect(onUploadComplete).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+
+  it("treats the final readystatechange of a response as the end of upload", async () => {
+    const onUploadComplete = vi.fn();
+    const promise = xhrTransport({
+      method: "POST",
+      path: "/search/image",
+      body: new FormData(),
+      timeouts: { upload: 1000, response: 1000 },
+      onUploadComplete,
+    });
+
+    FakeXMLHttpRequest.last().respond(413, '{"code":"FILE_TOO_LARGE","message":"x"}');
+    await promise;
+
+    expect(onUploadComplete).toHaveBeenCalledTimes(1);
+  });
+
   it("aborts xhr on signal", async () => {
     const controller = new AbortController();
     const promise = xhrTransport({

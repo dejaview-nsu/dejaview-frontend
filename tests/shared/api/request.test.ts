@@ -1,7 +1,17 @@
 import { allSettled, fork } from "effector";
 import { describe, expect, it, vi } from "vitest";
 
-import { ApiError, requestFx, transportFx, type TransportResponse, zSessionInfo } from "@/shared/api";
+import {
+  ApiError,
+  type ApiRequest,
+  requestFx,
+  transportFx,
+  type TransportResponse,
+  zNoContent,
+  zSessionInfo,
+} from "@/shared/api";
+
+import { sendApiRequestFx } from "../../api-request";
 
 const response = (status: number, body: unknown): TransportResponse => ({
   status,
@@ -14,15 +24,27 @@ const sessionInfo = {
   expires_at: "2026-09-28T12:00:00Z",
 };
 
-const run = async (transportResponse: TransportResponse, schema: typeof zSessionInfo | null = zSessionInfo) => {
+const run = async (transportResponse: TransportResponse, schema: ApiRequest<unknown>["schema"] = zSessionInfo) => {
   const transport = vi.fn(async () => transportResponse);
   const scope = fork({ handlers: [[transportFx, transport]] });
-  const result = await allSettled(requestFx, { scope, params: { method: "GET", path: "/auth/session", schema } });
+  const result = await allSettled(sendApiRequestFx, {
+    scope,
+    params: { method: "GET", path: "/auth/session", schema },
+  });
 
   return { result, transport };
 };
 
 describe("requestFx", () => {
+  it("returns status and parsed JSON body without schema validation", async () => {
+    const scope = fork({ handlers: [[transportFx, async () => response(200, { user: null })]] });
+    const result = await allSettled(requestFx, { scope, params: { method: "GET", path: "/auth/session" } });
+
+    expect(result).toEqual({ status: "done", value: { status: 200, body: { user: null } } });
+  });
+});
+
+describe("sendApiRequest", () => {
   it("passes request to transport with default JSON timeout", async () => {
     const { transport } = await run(response(200, sessionInfo));
 
@@ -35,8 +57,8 @@ describe("requestFx", () => {
     expect(result).toEqual({ status: "done", value: sessionInfo });
   });
 
-  it("returns undefined for responses without schema", async () => {
-    const { result } = await run(response(204, ""), null);
+  it("returns undefined for responses without content", async () => {
+    const { result } = await run(response(204, ""), zNoContent);
 
     expect(result).toEqual({ status: "done", value: undefined });
   });
@@ -61,5 +83,12 @@ describe("requestFx", () => {
       message: "Сессия истекла. Войдите снова",
       field: null,
     });
+  });
+
+  it("keeps the whole error body in details", async () => {
+    const body = { code: "AUTH_INVALID_CREDENTIALS", message: "Неверные имя пользователя или пароль", field: null };
+    const { result } = await run(response(400, { ...body, captcha_required: true }));
+
+    expect(result.value).toMatchObject({ details: { ...body, captcha_required: true } });
   });
 });

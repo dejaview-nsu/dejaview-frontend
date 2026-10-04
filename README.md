@@ -26,50 +26,38 @@
 pnpm install && pnpm start:dev
 ```
 
-Приложение — на `http://localhost:5173` (порт и хост настраиваются `VITE_PORT`/`VITE_URL`). Без настроек проект открывается, но запросы к API без заглушек или backend не работают: вход и поиск будут падать с сетевой ошибкой. Выберите один из вариантов.
+Приложение — на `http://localhost:5173`. Без настроек открываются страницы, но запросы к API не работают. Выберите вариант.
 
-Сначала скопируйте шаблон переменных в `.env.development.local`:
-
-```powershell
-# PowerShell
-Copy-Item .env.example .env.development.local
-```
-
-```bash
-# bash
-cp .env.example .env.development.local
-```
-
-Vite читает `.env.development.local` только при `pnpm start:dev`, при `pnpm build` этот файл не используется. Поэтому настройки разработки никогда не попадут в сборку. Файл не коммитится.
-
-**Пока нет backend** — ответы API из заглушек:
+**Пока нет backend** — заглушки API. Создайте в корне файл `.env.development.local`:
 
 ```
 VITE_API_MOCKS=true
 ```
 
-`VITE_API_MOCKS=true` — только для локальной разработки, в `.env.development.local`.
+Войти можно кнопкой «Войти (заглушка)» на `/login`, вход сохраняется после перезагрузки. Сценарии ответов — в разделе «Заглушки» [`src/shared/api/README.md`](src/shared/api/README.md).
 
-**Backend запущен локально** — запросы к `/api/v1` dev-сервер передаёт на backend:
+**Backend запущен локально** — в том же файле:
 
 ```
 VITE_API_MOCKS=false
 VITE_API_PROXY_TARGET=http://localhost:8080
 ```
 
-После изменения переменных перезапустите `pnpm start:dev`.
+После изменения переменных перезапустите `pnpm start:dev`. Файл `.env.development.local` читается только при разработке: в сборку и в git он не попадает.
 
 ### Переменные окружения
 
-| Переменная              | Где используется                                                                    | По умолчанию                        | Пример                               |
-| ----------------------- | ----------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------ |
-| `VITE_URL`              | хост dev-сервера Vite (`vite.config.ts`)                                            | `localhost`                         | `0.0.0.0`                            |
-| `VITE_PORT`             | порт dev-сервера и `pnpm start:prod` (`vite.config.ts`)                             | `5173`                              | `3000`                               |
-| `VITE_API_URL`          | `buildUrl` в `src/shared/api/url.ts`, адрес из каркаса; к API DejaView не относится | —                                   | `https://api.example.com`            |
-| `VITE_API_BASE_URL`     | клиент API, подставляется при сборке; полный адрес вместе с `/api/v1`               | `/api/v1`                           | `https://dejaview.example.ru/api/v1` |
-| `VITE_API_MOCKS`        | клиент API: `true` — ответы из заглушек; только в `.env.development.local`          | `false`                             | `true`                               |
-| `VITE_API_PROXY_TARGET` | proxy `/api/v1` в dev-сервере (`vite.config.ts`)                                    | не задана, proxy выключен           | `http://localhost:8080`              |
-| `OPENAPI_SPEC`          | путь к спецификации для `pnpm api:generate`; переменная оболочки, не `.env`         | `../dejaview-docs/api/openapi.yaml` | `D:\docs\api\openapi.yaml`           |
+Все настройки необязательны. Шаблон со всеми переменными — `.env.example`, его можно скопировать в `.env.development.local` (`Copy-Item .env.example .env.development.local` в PowerShell, `cp .env.example .env.development.local` в bash).
+
+| Переменная              | Где используется                                               | По умолчанию                        | Пример                               |
+| ----------------------- | -------------------------------------------------------------- | ----------------------------------- | ------------------------------------ |
+| `VITE_URL`              | хост dev-сервера                                               | `localhost`                         | `127.0.0.1`                          |
+| `VITE_PORT`             | порт dev-сервера                                               | `5173`                              | `3000`                               |
+| `VITE_API_URL`          | демо-запрос из каркаса, к API DejaView не относится            | —                                   | `https://api.example.com`            |
+| `VITE_API_BASE_URL`     | адрес API вместе с `/api/v1`, подставляется при сборке         | `/api/v1`                           | `https://dejaview.example.ru/api/v1` |
+| `VITE_API_MOCKS`        | `true` — ответы из заглушек, только для разработки             | `false`                             | `true`                               |
+| `VITE_API_PROXY_TARGET` | куда dev-сервер пересылает `/api/v1`                           | не задана, proxy выключен           | `http://localhost:8080`              |
+| `OPENAPI_SPEC`          | путь к контракту для `pnpm api:generate`, задаётся в терминале | `../dejaview-docs/api/openapi.yaml` | `D:\docs\api\openapi.yaml`           |
 
 ## Генерация типов API
 

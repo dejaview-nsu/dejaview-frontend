@@ -1,4 +1,4 @@
-import { allSettled, fork } from "effector";
+import { allSettled, createEffect, fork } from "effector";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,12 +10,14 @@ import {
   isSearchUnavailableError,
   isSessionError,
   isTimeoutError,
-  requestFx,
+  searchByFile,
   transportFx,
   type TransportResponse,
   zSearchResponse,
 } from "@/shared/api";
 import { createAbortError, TransportError } from "@/shared/api/transport/errors";
+
+import { sendApiRequestFx } from "../../api-request";
 
 const NGINX_HTML = "<html><body><h1>502 Bad Gateway</h1></body></html>";
 
@@ -27,7 +29,7 @@ const response = (status: number, body: unknown, headers: Record<string, string>
 
 const failWith = async (transport: () => Promise<TransportResponse>, { isSearch = false } = {}) => {
   const scope = fork({ handlers: [[transportFx, transport]] });
-  const result = await allSettled(requestFx, {
+  const result = await allSettled(sendApiRequestFx, {
     scope,
     params: { method: "POST", path: "/search/image", schema: zSearchResponse, isSearch },
   });
@@ -137,6 +139,26 @@ describe("API errors without valid JSON body", () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status, code, message, field: null });
+  });
+
+  it.each([
+    ["image", "Невозможно выполнить поиск по изображению: размер файла больше 10 МБ"],
+    ["video", "Невозможно выполнить поиск по видеофрагменту: размер файла больше 50 МБ"],
+  ] as const)("413 HTML on %s search has the contract text of the mode", async (mode, message) => {
+    const searchFx = createEffect(searchByFile);
+    const scope = fork({ handlers: [[transportFx, async () => response(413, NGINX_HTML)]] });
+    const file = new File(["x"], "file.bin");
+
+    const result = await allSettled(searchFx, { scope, params: { mode, file } });
+
+    expect(result.value).toBeInstanceOf(ApiError);
+    expect(result.value).toMatchObject({ status: 413, code: "FILE_TOO_LARGE", message, field: null });
+  });
+
+  it("413 HTML outside search keeps the general text", async () => {
+    const error = await failWithResponse(response(413, NGINX_HTML));
+
+    expect(error).toMatchObject({ code: "FILE_TOO_LARGE", message: "Файл слишком большой" });
   });
 
   it("429 without body keeps Retry-After", async () => {

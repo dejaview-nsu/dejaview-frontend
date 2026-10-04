@@ -1,3 +1,5 @@
+import type { z } from "zod";
+
 export type ApiErrorBody = {
   code: string;
   message: string;
@@ -9,6 +11,7 @@ export class ApiError extends Error {
   readonly code: string;
   readonly field: string | null;
   readonly retryAfter: number | null;
+  readonly details: unknown;
 
   constructor({
     status,
@@ -16,15 +19,23 @@ export class ApiError extends Error {
     message,
     field,
     retryAfter = null,
-  }: ApiErrorBody & { status: number; retryAfter?: number | null }) {
+    details = null,
+  }: ApiErrorBody & { status: number; retryAfter?: number | null; details?: unknown }) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.field = field;
     this.retryAfter = retryAfter;
+    this.details = details;
   }
 }
+
+export const getErrorDetails = <Details>(error: ApiError, schema: z.ZodType<Details>): Details | null => {
+  const result = schema.safeParse(error.details);
+
+  return result.success ? result.data : null;
+};
 
 export const CLIENT_ERRORS = {
   NETWORK_ERROR: "Не удалось связаться с сервером. Проверьте подключение к интернету и попробуйте ещё раз",
@@ -40,8 +51,14 @@ export const CLIENT_ERRORS = {
 
 export type ClientErrorCode = keyof typeof CLIENT_ERRORS;
 
-export const createClientError = (code: ClientErrorCode, status: number, retryAfter: number | null = null) =>
-  new ApiError({ status, code, message: CLIENT_ERRORS[code], field: null, retryAfter });
+export const createClientError = (
+  code: ClientErrorCode,
+  status: number,
+  { retryAfter = null, message = CLIENT_ERRORS[code] }: { retryAfter?: number | null; message?: string } = {},
+) => new ApiError({ status, code, message, field: null, retryAfter });
+
+export const toApiError = (error: unknown): ApiError =>
+  error instanceof ApiError ? error : createClientError("INVALID_RESPONSE", 0);
 
 export const SESSION_ERROR_CODES = ["SESSION_REQUIRED", "SESSION_EXPIRED"] as const;
 

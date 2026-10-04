@@ -1,5 +1,7 @@
+import { historyAdapter } from "@effector/router";
 import { invoke } from "@withease/factories";
-import { allSettled, createWatch, type Scope, scopeBind } from "effector";
+import { allSettled, createWatch, fork, type Scope, scopeBind } from "effector";
+import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
 import { $$login } from "@/pages/login/model";
@@ -7,9 +9,10 @@ import "@/pages/profile/model";
 
 import { $$session } from "@/entities/session";
 
-import { createFileSearchFactory, type FileSearchMode, requestFx, sessionRequired } from "@/shared/api";
+import { createFileSearchFactory, type FileSearchMode, sessionRequired, transportFx, zNoContent } from "@/shared/api";
 import { loginRedirectRequested, router, routes } from "@/shared/routes";
 
+import { sendApiRequestFx } from "../../api-request";
 import { createControlledTransport, jsonResponse } from "../../controlled-transport";
 import { setupSessionScope } from "../../session-scope";
 
@@ -155,6 +158,37 @@ describe("401 on a user action", () => {
     expect(scope.getState(router.$path)).toBe("/login");
   });
 
+  it("401 during the start session check on /profile gives exactly one redirect", async () => {
+    const controlled = createControlledTransport();
+    const scope = fork({ handlers: [[transportFx, controlled.transport]] });
+    const history = createMemoryHistory({ initialEntries: ["/profile"] });
+    const { redirects } = watchCalls(scope);
+
+    await allSettled(router.setHistory, { scope, params: historyAdapter(history) });
+    scopeBind($$session.inputs.sessionCheckRequested, { scope })();
+    await controlled.waitForCalls(1);
+
+    expect(controlled.calls[0].request.path).toBe("/auth/session");
+    expect(scope.getState($$session.outputs.$status)).toBe("unknown");
+
+    const $$search = invoke(createFileSearchFactory, { mode: "image" });
+
+    scopeBind($$search.inputs.started, { scope })(searchFile());
+    await controlled.waitForCalls(2);
+    controlled.calls[1].resolve(sessionError("SESSION_EXPIRED"));
+    await vi.waitFor(() => expect(redirects).toHaveBeenCalled());
+
+    controlled.calls[0].resolve(sessionError("SESSION_REQUIRED"));
+    await allSettled(scope);
+
+    expect(redirects).toHaveBeenCalledTimes(1);
+    expect(redirects).toHaveBeenCalledWith({ path: "/profile", replace: true });
+    expect(scope.getState(router.$path)).toBe("/login");
+    expect(scope.getState(router.$query)).toEqual({ redirect: "/profile" });
+    expect(history.index).toBe(0);
+    expect(scope.getState($$session.outputs.$status)).toBe("guest");
+  });
+
   it("returns to the original page with query after login", async () => {
     const { scope } = await setupSessionScope({
       initialEntry: "/about?ref=main",
@@ -202,9 +236,9 @@ describe("401 on guest requests", () => {
     });
     const { redirects, required } = watchCalls(scope);
 
-    const result = await allSettled(requestFx, {
+    const result = await allSettled(sendApiRequestFx, {
       scope,
-      params: { method, path, schema: null, onUnauthorized: "guest" },
+      params: { method, path, schema: zNoContent, onUnauthorized: "guest" },
     });
 
     expect(result.status).toBe("fail");

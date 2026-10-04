@@ -3,6 +3,7 @@ export {
   type ApiErrorBody,
   CLIENT_ERRORS,
   type ClientErrorCode,
+  getErrorDetails,
   isLoginLockedError,
   isNetworkError,
   isRateLimitError,
@@ -12,8 +13,10 @@ export {
   SEARCH_UNAVAILABLE_CODES,
   SESSION_ERROR_CODES,
   type SessionErrorCode,
+  toApiError,
 } from "./errors";
 export type {
+  AuthLoginError,
   AuthLoginRequest,
   MovieSearchResult,
   SearchErrorCode,
@@ -21,8 +24,19 @@ export type {
   SessionInfo,
   UserSummary,
 } from "./generated";
-export { zSearchResponse, zSessionInfo } from "./generated/zod.gen";
-export { type ApiRequest, callApi, requestFx, sessionRequired, transportFx, type UnauthorizedPolicy } from "./request";
+export { zAuthLoginError, zSearchResponse, zSessionInfo } from "./generated/zod.gen";
+export type { ApiResponse, ErrorMessages } from "./parse-response";
+export {
+  type ApiRequest,
+  type ApiRequestConfig,
+  callApi,
+  requestFx,
+  sendApiRequest,
+  sessionRequired,
+  transportFx,
+  type UnauthorizedPolicy,
+  zNoContent,
+} from "./request";
 export {
   createFileSearchFactory,
   FILE_SEARCH_MODES,

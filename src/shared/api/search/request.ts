@@ -1,6 +1,6 @@
 import type { SearchResponse } from "../generated";
 import { zSearchResponse } from "../generated/zod.gen";
-import { requestFx } from "../request";
+import { sendApiRequest } from "../request";
 import { FILE_SEARCH_MODES, type FileSearchMode } from "./modes";
 
 export type SearchByFileParams = {
@@ -18,20 +18,21 @@ export const searchByFile = ({
   onUploadProgress,
   onUploadComplete,
 }: SearchByFileParams): Promise<SearchResponse> => {
-  const { path, timeouts } = FILE_SEARCH_MODES[mode];
+  const { path, timeouts, fileTooLargeMessage } = FILE_SEARCH_MODES[mode];
   const body = new FormData();
 
   body.append("file", file);
 
-  return requestFx({
+  return sendApiRequest({
     method: "POST",
     path,
     body,
     timeouts,
     schema: zSearchResponse,
     isSearch: true,
+    errorMessages: { FILE_TOO_LARGE: fileTooLargeMessage },
     signal,
     onUploadProgress,
     onUploadComplete,
-  }) as Promise<SearchResponse>;
+  });
 };

@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type FileSearchMode,
   isSearchUnavailableError,
-  requestFx,
   type Transport,
   transportFx,
   zSearchResponse,
@@ -13,10 +12,13 @@ import {
 import {
   createMockStorage,
   createMockTransport,
+  LOGIN_SCENARIOS,
   MOCK_STORAGE_KEYS,
   type MockStorage,
   NO_MOCK_DELAYS,
 } from "@/shared/api/mocks";
+
+import { sendApiRequestFx } from "../../api-request";
 
 const MODE_PREFIX: Record<FileSearchMode, string> = {
   image: "Невозможно выполнить поиск по изображению: ",
@@ -153,7 +155,7 @@ describe("search mocks", () => {
     expect(raw.bodyText).toContain("502 Bad Gateway");
 
     const scope = fork({ handlers: [[transportFx, transport]] });
-    const result = await allSettled(requestFx, {
+    const result = await allSettled(sendApiRequestFx, {
       scope,
       params: { ...searchRequest("image"), schema: zSearchResponse, isSearch: true },
     });
@@ -251,6 +253,7 @@ describe("session mocks", () => {
     timeouts: { response: 1000 },
   };
   const logoutRequest = { method: "POST" as const, path: "/auth/logout", timeouts: { response: 1000 } };
+  const hasSession = () => window.localStorage.getItem(MOCK_STORAGE_KEYS.session) === "authenticated";
 
   it("guest gets 401 SESSION_REQUIRED", async () => {
     const { transport } = setup();
@@ -299,6 +302,71 @@ describe("session mocks", () => {
 
     storage.set(MOCK_STORAGE_KEYS.searchScenario, "empty");
     expect(JSON.parse((await transport(searchRequest("image"))).bodyText)).toEqual({ results: [] });
+  });
+
+  it.each([
+    [
+      "INVALID_CREDENTIALS",
+      400,
+      {
+        code: "AUTH_INVALID_CREDENTIALS",
+        message: "Неверные имя пользователя или пароль",
+        field: null,
+        captcha_required: false,
+      },
+      null,
+    ],
+    [
+      "CAPTCHA_REQUIRED",
+      403,
+      {
+        code: "AUTH_CAPTCHA_REQUIRED",
+        message: "Подтвердите, что вы не робот",
+        field: "captcha_token",
+        captcha_required: true,
+      },
+      null,
+    ],
+    [
+      "EMAIL_NOT_CONFIRMED",
+      403,
+      {
+        code: "AUTH_EMAIL_NOT_CONFIRMED",
+        message: "Email не подтверждён. Проверьте почту или запросите новую ссылку",
+        field: null,
+        captcha_required: false,
+      },
+      null,
+    ],
+    [
+      "LOGIN_LOCKED",
+      429,
+      { code: "AUTH_LOGIN_LOCKED", message: "Слишком много попыток входа. Повторите через 14 минут", field: null },
+      "840",
+    ],
+  ] as const)("login scenario %s answers with the contract example", async (scenario, status, body, retryAfter) => {
+    const { storage, transport } = setup();
+
+    storage.set(MOCK_STORAGE_KEYS.loginScenario, scenario);
+    const response = await transport(loginRequest);
+
+    expect(LOGIN_SCENARIOS).toContain(scenario);
+    expect(response.status).toBe(status);
+    expect(JSON.parse(response.bodyText)).toEqual(body);
+    expect(response.getHeader("Retry-After")).toBe(retryAfter);
+    expect(hasSession()).toBe(false);
+  });
+
+  it("unknown login scenario warns and signs in", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { storage, transport } = setup();
+
+    storage.set(MOCK_STORAGE_KEYS.loginScenario, "WRONG");
+    const response = await transport(loginRequest);
+
+    expect(response.status).toBe(200);
+    expect(hasSession()).toBe(true);
+    expect(warn).toHaveBeenCalledWith("Заглушки: неизвестный сценарий входа «WRONG», вход выполняется успешно");
   });
 });
 
