@@ -1,45 +1,24 @@
-import { createMutation, createQuery } from "@farfetched/core";
-import { createEffect } from "effector";
+import { concurrency, createMutation, createQuery } from "@farfetched/core";
 
-import { ApiError } from "@/shared/api";
-import { zodContract } from "@/shared/lib/contracts";
+import { type AuthLoginRequest, callApi, zNoContent, zSessionInfo } from "@/shared/api";
 
-import { type SessionInfo, sessionInfoSchema } from "./schema";
-
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-
-export const createSessionStub = () => {
-  let hasSession = false;
-
+export const createSessionApi = () => {
   const sessionQuery = createQuery({
-    effect: createEffect(async (): Promise<SessionInfo> => {
-      if (!hasSession) {
-        throw new ApiError({
-          status: 401,
-          code: "SESSION_REQUIRED",
-          message: "Войдите, чтобы продолжить",
-          field: null,
-        });
-      }
-
-      return {
-        user: { username: "demo_user", avatar_url: null, has_password: true },
-        expires_at: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
-      };
-    }),
-    contract: zodContract(sessionInfoSchema),
+    name: "session.get",
+    handler: () => callApi({ method: "GET", path: "/auth/session", schema: zSessionInfo, onUnauthorized: "guest" }),
   });
 
   const signInMutation = createMutation({
-    handler: async () => {
-      hasSession = true;
-    },
+    name: "session.login",
+    handler: (credentials: AuthLoginRequest) =>
+      callApi({ method: "POST", path: "/auth/login", body: credentials, schema: zSessionInfo }),
   });
 
+  concurrency(signInMutation, { strategy: "TAKE_FIRST" });
+
   const signOutMutation = createMutation({
-    handler: async () => {
-      hasSession = false;
-    },
+    name: "session.logout",
+    handler: () => callApi({ method: "POST", path: "/auth/logout", schema: zNoContent, onUnauthorized: "guest" }),
   });
 
   return { sessionQuery, signInMutation, signOutMutation };

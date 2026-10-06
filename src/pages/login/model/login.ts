@@ -10,7 +10,13 @@ export const createLoginPageFactory = createFactory(
   ({ route, session }: { route: Route; session: typeof $$session }) => {
     const stubLoginPressed = createEvent();
 
-    sample({ clock: stubLoginPressed, target: session.inputs.signedIn });
+    if (import.meta.env.DEV) {
+      sample({
+        clock: stubLoginPressed,
+        fn: () => ({ login: "movie_fan_42", password: "Kino#2026" }),
+        target: session.inputs.signedIn,
+      });
+    }
 
     sample({
       clock: session.outputs.statusResolved,

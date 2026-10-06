@@ -1,2 +1,2 @@
 export { $$session, createAuthorizedRouteFactory, createGuestRouteFactory, type SessionStatus } from "./model";
-export { type SessionUser } from "./api";
+export { getLoginErrorDetails, type SessionCredentials, type SessionLoginError, type SessionUser } from "./api";
