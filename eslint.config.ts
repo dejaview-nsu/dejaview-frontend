@@ -21,6 +21,11 @@ export default tseslint.config(
       ...effector.configs.scope.rules,
       ...effector.configs.future.rules,
       ...effector.configs.patronum.rules,
+      // These hooks read a model from React context; they do not create Effector units.
+      "effector/no-units-spawn-in-render": [
+        "error",
+        { detectCustomFactories: { allowlist: ["useMovieSearchModel", "useModel"] } },
+      ],
       "unicorn/filename-case": ["error", { case: "kebabCase" }],
       "unicorn/no-nested-ternary": "error",
       "no-restricted-imports": [
