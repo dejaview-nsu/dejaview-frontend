@@ -2,6 +2,7 @@ import type { Transport } from "../transport/types";
 import { createSearchHandler } from "./search";
 import { getSession, login, logout } from "./session";
 import type { MockStorage } from "./storage";
+import { textSearch } from "./text-search";
 import { type MockDelays, type MockHandler, mockResponse } from "./utils";
 
 const ROUTES: Record<string, MockHandler> = {
@@ -10,6 +11,7 @@ const ROUTES: Record<string, MockHandler> = {
   "POST /auth/logout": logout,
   "POST /search/image": createSearchHandler("image"),
   "POST /search/video": createSearchHandler("video"),
+  "POST /search/text": textSearch,
 };
 
 export const createMockTransport =

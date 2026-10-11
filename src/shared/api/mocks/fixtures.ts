@@ -26,6 +26,40 @@ export const FOUND_RESULTS = {
   },
 } as const satisfies Record<FileSearchMode, SearchResponse>;
 
+export const TEXT_FOUND_RESULTS = {
+  results: [
+    ...FOUND_RESULTS.image.results,
+    {
+      movie_id: 530915,
+      title: "1917",
+      year: 2019,
+      poster_url: null,
+      overview: "Два солдата отправляются через линию фронта, чтобы передать приказ и спасти товарищей.",
+    },
+    {
+      movie_id: 423,
+      title: "Пианист",
+      year: 2002,
+      poster_url: null,
+      overview: "История музыканта, который пытается выжить в оккупированной Варшаве.",
+    },
+    {
+      movie_id: 49046,
+      title: "На Западном фронте без перемен",
+      year: 2022,
+      poster_url: null,
+      overview: "Молодые солдаты сталкиваются с реальностью Первой мировой войны.",
+    },
+    {
+      movie_id: 332562,
+      title: "Звезда родилась",
+      year: 2018,
+      poster_url: null,
+      overview: "Известный музыкант помогает молодой певице найти собственный голос.",
+    },
+  ],
+} as const satisfies SearchResponse;
+
 export const EMPTY_RESULTS = { results: [] } as const satisfies SearchResponse;
 
 export const SESSION_USER = {

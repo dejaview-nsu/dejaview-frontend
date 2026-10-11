@@ -43,6 +43,7 @@ export {
   type FileSearchMode,
   type FileSearchStage,
   searchByFile,
+  searchByText,
   type SearchByFileParams,
 } from "./search";
 export { isAbortError } from "./transport/errors";
