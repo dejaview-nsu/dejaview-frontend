@@ -1,7 +1,20 @@
 import { invoke } from "@withease/factories";
+import { sample } from "effector";
 
-import { routes } from "@/shared/routes";
+import { createMovieSearchFactory } from "@/widgets/movie-search";
 
-import { createHomePageFactory } from "./home";
+import { $$session } from "@/entities/session";
 
-export const $$home = invoke(createHomePageFactory, { route: routes.home });
+import { loginRedirectRequested, routes } from "@/shared/routes";
+
+const $$search = invoke(createMovieSearchFactory, {
+  $isActive: routes.home.$isOpened,
+  $sessionStatus: $$session.outputs.$status,
+});
+
+sample({ clock: $$search.outputs.loginRequested, fn: () => ({ path: "/" }), target: loginRedirectRequested });
+
+export const $$home = {
+  $$search,
+  outputs: { readyRoute: routes.home },
+};
