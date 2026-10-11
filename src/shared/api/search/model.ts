@@ -62,10 +62,15 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
     fn: (callId, file) => ({ file, callId: callId + 1 }),
     target: callStarted,
   });
+
   sample({ clock: callStarted, fn: ({ callId }) => callId, target: $activeCallId });
+
   sample({ clock: callStarted, fn: () => "uploading" as const, target: $stage });
+
   sample({ clock: callStarted, fn: () => 0, target: $progress });
+
   sample({ clock: callStarted, fn: () => null, target: [$results, $error] });
+
   sample({ clock: callStarted, target: searchMutation.start });
 
   sample({
@@ -82,7 +87,9 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
     filter: ({ stage, activeCallId }, upload) => stage === "uploading" && isActiveCall(activeCallId, upload),
     target: processingStarted,
   });
+
   sample({ clock: processingStarted, fn: () => "processing" as const, target: $stage });
+
   sample({ clock: processingStarted, fn: () => 100, target: $progress });
 
   sample({
@@ -92,7 +99,9 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
     fn: (_, { result }) => result.results,
     target: succeeded,
   });
+
   sample({ clock: succeeded, target: $results });
+
   sample({ clock: succeeded, fn: () => "done" as const, target: $stage });
 
   const activeFailure = sample({
@@ -103,11 +112,15 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
   });
 
   sample({ clock: activeFailure, filter: (error) => isSessionError(error), target: sessionLost });
+
   sample({ clock: sessionLost, fn: () => "idle" as const, target: $stage });
+
   sample({ clock: sessionLost, fn: () => 0, target: $progress });
 
   sample({ clock: activeFailure, filter: (error) => !isSessionError(error), fn: toApiError, target: failed });
+
   sample({ clock: failed, target: $error });
+
   sample({ clock: failed, fn: () => "failed" as const, target: $stage });
 
   sample({
@@ -116,9 +129,13 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
     filter: (stage) => ACTIVE_STAGES.includes(stage),
     target: cancelConfirmed,
   });
+
   sample({ clock: cancelConfirmed, source: $activeCallId, fn: (callId) => callId + 1, target: $activeCallId });
+
   sample({ clock: cancelConfirmed, fn: () => "idle" as const, target: $stage });
+
   sample({ clock: cancelConfirmed, fn: () => 0, target: $progress });
+
   sample({ clock: cancelConfirmed, fn: () => null, target: $error });
 
   return {

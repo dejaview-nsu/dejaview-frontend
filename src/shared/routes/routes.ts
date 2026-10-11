@@ -39,4 +39,5 @@ const createBrowserHistoryFx = createEffect(() => {
 });
 
 sample({ clock: appStarted, target: createBrowserHistoryFx });
+
 sample({ clock: createBrowserHistoryFx.doneData, target: router.setHistory });

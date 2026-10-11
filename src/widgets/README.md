@@ -18,6 +18,6 @@
 
 - Импорты только вниз: `widgets → features/entities/shared`, `features → entities/shared`, `entities → shared`.
 - Внутри слоя — относительные пути; между слоями — `@/`.
-- Модели — фабрики `@withease/factories`, инстанцируются `invoke()` один раз на уровне модуля слайса.
-- Тесты — в корневом каталоге `tests/`, зеркально структуре `src` (пример: `tests/pages/home/model.test.ts`).
-- Пример полной страницы-эталона: `src/pages/home`.
+- Модели — фабрики `@withease/factories`. Экземпляры создаются через `invoke()` на уровне модуля владельца: страница подключает widget, widget — вложенные features. При рендере фабрики не вызываются.
+- Тесты — в корневом каталоге `tests/`, зеркально структуре `src` (пример: `tests/widgets/movie-search/model.test.ts`).
+- Пример полной страницы: `src/pages/home`; составной блок с моделью и контекстом: `src/widgets/movie-search`.

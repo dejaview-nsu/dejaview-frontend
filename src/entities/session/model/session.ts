@@ -24,6 +24,7 @@ export const createSessionFactory = createFactory(() => {
   const $isAuthenticated = $status.map((status) => status === "authenticated");
 
   sample({ clock: appStarted, target: sessionCheckRequested });
+
   sample({ clock: sessionCheckRequested, target: sessionQuery.start });
 
   const $loginError = createStore<ApiError | null>(null);
@@ -31,22 +32,30 @@ export const createSessionFactory = createFactory(() => {
   const $isCheckingAfterLogin = createStore(false);
 
   sample({ clock: signedIn, filter: not($isSigningIn), fn: () => null, target: $loginError });
+
   sample({ clock: signedIn, target: signInMutation.start });
+
   sample({ clock: signInMutation.finished.success, fn: () => true, target: $isCheckingAfterLogin });
+
   sample({ clock: signInMutation.finished.success, target: sessionQuery.start });
+
   sample({ clock: signInMutation.finished.failure, fn: ({ error }) => toApiError(error), target: $loginError });
+
   sample({
     clock: sessionQuery.finished.failure,
     filter: $isCheckingAfterLogin,
     fn: ({ error }) => toApiError(error),
     target: $loginError,
   });
+
   sample({ clock: sessionQuery.finished.finally, fn: () => false, target: $isCheckingAfterLogin });
+
   sample({ clock: routes.login.closed, fn: () => null, target: $loginError });
 
   sample({ clock: signedOut, target: signOutMutation.start });
 
   sample({ clock: sessionQuery.finished.success, fn: () => "authenticated" as const, target: statusResolved });
+
   sample({
     clock: [sessionQuery.finished.failure, signOutMutation.finished.finally],
     fn: () => "guest" as const,
@@ -54,7 +63,9 @@ export const createSessionFactory = createFactory(() => {
   });
 
   sample({ clock: statusResolved, target: $status });
+
   sample({ clock: sessionQuery.finished.success, fn: ({ result }) => result.user, target: $user });
+
   sample({ clock: statusResolved, filter: (status) => status === "guest", fn: () => null, target: $user });
 
   sample({
@@ -95,7 +106,9 @@ export const createSessionFactory = createFactory(() => {
   });
 
   sample({ clock: loginRedirectStarted, fn: () => true, target: $isLoginRedirectPending });
+
   sample({ clock: loginRedirectStarted, target: loginRedirectRequested });
+
   sample({ clock: routes.login.opened, fn: () => false, target: $isLoginRedirectPending });
 
   return {
