@@ -1,4 +1,12 @@
 @import "tailwindcss";
+@import "@fontsource/manrope/400.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/800.css";
+@import "@fontsource/oswald/600.css";
+@import "@fontsource/playfair-display/700.css";
+@import "@fontsource/playfair-display/800.css";
+@import "@fontsource/playfair-display/900.css";
+@import "@fontsource/playfair-display/600-italic.css";
 
 :root {
   --surface-page: #f7f8fa;
@@ -28,4 +36,76 @@
   --color-border-base: var(--border-base);
   --color-system-primary: var(--system-primary);
   --color-system-primary-hover: var(--system-primary-hover);
+}
+
+@theme {
+  --font-body: "Manrope", sans-serif;
+  --font-heading: "Playfair Display", serif;
+  --font-label: "Oswald", sans-serif;
+
+  --color-page: #e9dcc1;
+  --color-card: #f1e8d0;
+  --color-input: #ffffff;
+  --color-header: #241812;
+  --color-hover: #e2d4b5;
+  --color-ink: #241812;
+  --color-muted: #6b5b4e;
+  --color-on-dark: #ece0c6;
+  --color-link: #7a4f08;
+  --color-brand-brown: #3a2917;
+  --color-brand-gold: #d8981c;
+  --color-terracotta: #be451f;
+  --color-terracotta-text: #a33a18;
+  --color-button-hover: #241812;
+  --color-button-pressed: #1a120d;
+  --color-border-default: #8c7b64;
+  --color-border-strong: #241812;
+  --color-divider: #c9b99a;
+  --color-disabled-bg: #d9ccb0;
+  --color-disabled-text: #8c7b64;
+  --color-poster-placeholder: #2f2219;
+  --color-poster-border: #4a382a;
+  --color-poster-warm: #5c3a21;
+  --color-success-text: #1e5e22;
+  --color-success-bg: #e3f1e4;
+  --color-error-text: #b3261e;
+  --color-error-bg: #fbe3e1;
+  --color-warning-text: #6e4a06;
+  --color-warning-bg: #fbebc8;
+
+  --breakpoint-desktop: 87.5rem;
+
+  --container-content: 1200px;
+  --container-search: 960px;
+  --container-results: 1312px;
+  --shadow-hard: 4px 4px 0 #241812;
+  --shadow-hard-lg: 6px 6px 0 #241812;
+  --shadow-hard-xl: 8px 8px 0 #241812;
+  --shadow-pressed: 0 1px 0 #241812;
+
+  --text-heading-1: 48px;
+  --text-heading-1--line-height: 1.1;
+  --text-heading-2: 32px;
+  --text-heading-2--line-height: 1.15;
+  --text-heading-3: 24px;
+  --text-heading-3--line-height: 1.25;
+  --text-card-title: 20px;
+  --text-card-title--line-height: 1.25;
+  --text-mobile-heading-1: 32px;
+  --text-mobile-heading-1--line-height: 1.15;
+  --text-mobile-heading-2: 26px;
+  --text-mobile-heading-2--line-height: 1.2;
+  --text-mobile-heading-3: 20px;
+  --text-mobile-heading-3--line-height: 1.25;
+  --text-mobile-card-title: 18px;
+  --text-mobile-card-title--line-height: 1.25;
+  --text-hero: 72px;
+  --text-hero--line-height: 1.1;
+  --text-section: 48px;
+  --text-section--line-height: 1.1;
+}
+
+@utility film-perforations {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='32'%3E%3Crect width='12' height='16' rx='3' fill='%23ece0c6'/%3E%3C/svg%3E")
+    top center / 12px 32px repeat-y;
 }
