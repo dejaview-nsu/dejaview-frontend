@@ -39,6 +39,7 @@ export const chainSessionRoute = ({
   sample({ clock: session.outputs.statusResolved, filter: $isWaiting, target: statusChecked });
 
   sample({ clock: statusChecked, filter: (status) => status === allow, target: accessGranted });
+
   sample({ clock: statusChecked, filter: (status) => status !== allow, target: accessDenied });
 
   return { readyRoute, accessDenied };

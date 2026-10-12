@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_API_PROXY_TARGET?: string;
   readonly VITE_API_MOCKS?: string;
+  readonly VITE_MOCK_SEARCH_SCENARIO?: string;
 }
 
 interface ImportMeta {

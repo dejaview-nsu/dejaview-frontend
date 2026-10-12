@@ -5,6 +5,7 @@ import type { MockStorage } from "./storage";
 
 export type MockDelays = {
   jsonMs: number;
+  textSearchMs: number;
   uploadTickMs: number;
   minUploadMs: number;
   uploadBytesPerSecond: number;
@@ -13,6 +14,7 @@ export type MockDelays = {
 
 export const DEFAULT_MOCK_DELAYS: MockDelays = {
   jsonMs: 300,
+  textSearchMs: 3000,
   uploadTickMs: 100,
   minUploadMs: 1500,
   uploadBytesPerSecond: 2 * 1024 * 1024,
@@ -21,6 +23,7 @@ export const DEFAULT_MOCK_DELAYS: MockDelays = {
 
 export const NO_MOCK_DELAYS: MockDelays = {
   jsonMs: 0,
+  textSearchMs: 0,
   uploadTickMs: 0,
   minUploadMs: 0,
   uploadBytesPerSecond: Number.POSITIVE_INFINITY,

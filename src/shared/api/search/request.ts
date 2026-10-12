@@ -3,6 +3,17 @@ import { zSearchResponse } from "../generated/zod.gen";
 import { sendApiRequest } from "../request";
 import { FILE_SEARCH_MODES, type FileSearchMode } from "./modes";
 
+export const searchByText = ({ query, signal }: { query: string; signal?: AbortSignal }): Promise<SearchResponse> =>
+  sendApiRequest({
+    method: "POST",
+    path: "/search/text",
+    body: { query },
+    timeouts: { response: 10_000 },
+    schema: zSearchResponse,
+    isSearch: true,
+    signal,
+  });
+
 export type SearchByFileParams = {
   mode: FileSearchMode;
   file: File;
