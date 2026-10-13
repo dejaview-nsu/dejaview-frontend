@@ -14,6 +14,8 @@ const $$search = invoke(createMovieSearchFactory, {
 
 sample({ clock: $$search.outputs.loginRequested, fn: () => ({ path: "/" }), target: loginRedirectRequested });
 
+sample({ clock: routes.home.closed, target: $$search.inputs.pageClosed });
+
 export const $$home = {
   $$search,
   outputs: { readyRoute: routes.home },

@@ -83,6 +83,17 @@
   --shadow-hard-xl: 8px 8px 0 #241812;
   --shadow-pressed: 0 1px 0 #241812;
 
+  --animate-progress-indeterminate: progress-indeterminate 1.4s ease-in-out infinite;
+
+  @keyframes progress-indeterminate {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 300% 0;
+    }
+  }
+
   --text-heading-1: 48px;
   --text-heading-1--line-height: 1.1;
   --text-heading-2: 32px;

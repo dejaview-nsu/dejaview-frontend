@@ -7,15 +7,14 @@ import { SearchLoading } from "./search-loading";
 
 export const SearchStatus = () => {
   const $$model = useMovieSearchModel();
-  const { mode, activeMode, pending, progressMessage, error, isEmpty } = useUnit({
+  const { mode, pending, progressMessage, error, isEmpty } = useUnit({
     mode: $$model.outputs.$mode,
-    activeMode: $$model.outputs.$activeSearchMode,
     pending: $$model.outputs.$pending,
     progressMessage: $$model.outputs.$progressMessage,
     error: $$model.outputs.$error,
     isEmpty: $$model.outputs.$isEmpty,
   });
-  if (pending) return <SearchLoading mode={activeMode} message={progressMessage} />;
+  if (pending) return <SearchLoading mode={mode} message={progressMessage} />;
   if (error)
     return (
       <div

@@ -1,5 +1,5 @@
 import { FolderUp, Image, Video, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "../../lib/cn";
 import { type FileConstraints } from "../../lib/files";
@@ -14,6 +14,10 @@ type FileUploadProps = {
   allowPaste?: boolean;
   appearance?: "default" | "brand";
   actionId?: string;
+  prompt?: ReactNode;
+  hint?: ReactNode;
+  renderSelected?: (files: readonly File[], openPicker: () => void) => ReactNode;
+  inputId?: string;
 };
 
 export const FileUpload = ({
@@ -25,6 +29,10 @@ export const FileUpload = ({
   allowPaste,
   appearance = "default",
   actionId,
+  prompt,
+  hint,
+  renderSelected,
+  inputId,
 }: FileUploadProps) => {
   const input = useRef<HTMLInputElement>(null);
   const hintId = useId();
@@ -32,6 +40,8 @@ export const FileUpload = ({
   const isImage = constraints.kind === "image";
   const label = isImage ? "изображение" : "видеофрагмент";
   const Icon = isImage ? Image : Video;
+  const isCustomSelection = renderSelected !== undefined && files.length > 0;
+  const openPicker = () => input.current?.click();
 
   useEffect(() => {
     if (!allowPaste || isDisabled) return;
@@ -48,10 +58,14 @@ export const FileUpload = ({
   return (
     <div
       className={cn(
-        "flex min-h-[235px] flex-col items-center justify-center gap-3 border-2 border-dashed p-2.5 text-center",
-        appearance === "brand"
-          ? "border-border-default bg-input text-ink"
-          : "rounded-xl border-border-base bg-surface-page",
+        isCustomSelection
+          ? "border-2 border-border-strong bg-input text-ink"
+          : [
+              "flex min-h-[235px] flex-col items-center justify-center gap-3 border-2 border-dashed p-2.5 text-center",
+              appearance === "brand"
+                ? "border-border-default bg-input text-ink"
+                : "rounded-xl border-border-base bg-surface-page",
+            ],
         isDragging && !isDisabled && "border-link bg-hover",
         isDisabled && "cursor-wait",
       )}
@@ -73,10 +87,11 @@ export const FileUpload = ({
       }}
       role="group"
       aria-label={`Загрузка: ${label}`}
-      aria-describedby={hintId}
+      aria-describedby={isCustomSelection ? undefined : hintId}
     >
       <input
         ref={input}
+        id={inputId}
         type="file"
         className="sr-only"
         tabIndex={-1}
@@ -89,46 +104,66 @@ export const FileUpload = ({
           event.currentTarget.value = "";
         }}
       />
-      {appearance === "brand" && (
-        <span className="flex size-14 items-center justify-center bg-header text-brand-gold" aria-hidden="true">
-          <Icon size={28} strokeWidth={1.75} />
-        </span>
-      )}
-      {files.length === 0 ? (
-        <p className="text-base leading-[1.55] font-semibold">
-          Перетащи {label} сюда
-          <br />
-          или выбери файл
-        </p>
+      {isCustomSelection ? (
+        renderSelected(files, openPicker)
       ) : (
-        <div className="flex w-full min-w-0 flex-col items-center gap-1.5" aria-live="polite">
-          <p className="max-w-full break-all text-base leading-[1.55] font-semibold">{files[0].name}</p>
-          <p className="text-sm text-muted">{(files[0].size / (1024 * 1024)).toFixed(2)} МБ</p>
-          {files.length > 1 && <p className="text-sm">Выбрано файлов: {files.length}. Оставьте один файл.</p>}
-        </div>
-      )}
-      <Button
-        id={actionId}
-        variant={appearance === "brand" ? "brand-secondary" : "secondary"}
-        isDisabled={isDisabled}
-        onPress={() => input.current?.click()}
-      >
-        <FolderUp size={24} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
-        {files.length ? "Заменить файл" : "Выбрать файл"}
-      </Button>
-      <p
-        id={hintId}
-        className={cn("text-sm leading-[1.5]", appearance === "brand" ? "text-muted" : "text-text-caption")}
-      >
-        {constraints.extensions.join(", ").toUpperCase()} ·{" "}
-        {constraints.maxDurationSeconds && `до ${constraints.maxDurationSeconds} секунд и `}
-        до {constraints.maxBytes / (1024 * 1024)} МБ
-        {allowPaste && <span className="mt-1 block">Можно вставить изображение с помощью Ctrl+V или Cmd+V</span>}
-      </p>
-      {files.length > 0 && (
-        <Button variant={appearance === "brand" ? "brand-ghost" : "ghost"} isDisabled={isDisabled} onPress={onRemove}>
-          <X size={16} strokeWidth={1.75} aria-hidden="true" /> Удалить файл
-        </Button>
+        <>
+          {appearance === "brand" && (
+            <span className="flex size-14 items-center justify-center bg-header text-brand-gold" aria-hidden="true">
+              <Icon size={28} strokeWidth={1.75} />
+            </span>
+          )}
+          {files.length === 0 ? (
+            <p className="text-base leading-[1.55] font-semibold">
+              {prompt ?? (
+                <>
+                  Перетащи {label} сюда
+                  <br />
+                  или выбери файл
+                </>
+              )}
+            </p>
+          ) : (
+            <div className="flex w-full min-w-0 flex-col items-center gap-1.5" aria-live="polite">
+              <p className="max-w-full break-all text-base leading-[1.55] font-semibold">{files[0].name}</p>
+              <p className="text-sm text-muted">{(files[0].size / (1024 * 1024)).toFixed(2)} МБ</p>
+              {files.length > 1 && <p className="text-sm">Выбрано файлов: {files.length}. Оставьте один файл.</p>}
+            </div>
+          )}
+          <Button
+            id={actionId}
+            variant={appearance === "brand" ? "brand-secondary" : "secondary"}
+            isDisabled={isDisabled}
+            onPress={openPicker}
+          >
+            <FolderUp size={24} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+            {files.length ? "Заменить файл" : "Выбрать файл"}
+          </Button>
+          <p
+            id={hintId}
+            className={cn("text-sm leading-[1.5]", appearance === "brand" ? "text-muted" : "text-text-caption")}
+          >
+            {hint ?? (
+              <>
+                {constraints.extensions.join(", ").toUpperCase()} ·{" "}
+                {constraints.maxDurationSeconds && `до ${constraints.maxDurationSeconds} секунд и `}
+                до {constraints.maxBytes / (1024 * 1024)} МБ
+                {allowPaste && (
+                  <span className="mt-1 block">Можно вставить изображение с помощью Ctrl+V или Cmd+V</span>
+                )}
+              </>
+            )}
+          </p>
+          {files.length > 0 && (
+            <Button
+              variant={appearance === "brand" ? "brand-ghost" : "ghost"}
+              isDisabled={isDisabled}
+              onPress={onRemove}
+            >
+              <X size={16} strokeWidth={1.75} aria-hidden="true" /> Удалить файл
+            </Button>
+          )}
+        </>
       )}
     </div>
   );
