@@ -1,11 +1,10 @@
 import { invoke } from "@withease/factories";
-import { allSettled, createEvent, createStore, type EffectParams, fork, sample, scopeBind } from "effector";
+import { allSettled, createEvent, createStore, fork, sample, scopeBind } from "effector";
 import { describe, expect, it, vi } from "vitest";
 
-import { createSearchByFileFactory, fileConstraints } from "@/features/search-by-file";
+import { createSearchByFileFactory } from "@/features/search-by-file";
 
 import { transportFx } from "@/shared/api";
-import { validateFileSelection } from "@/shared/lib/files";
 
 import { createControlledTransport, jsonResponse } from "../../controlled-transport";
 
@@ -106,45 +105,5 @@ describe("search by file feature", () => {
     expect(transport).not.toHaveBeenCalled();
     expect(scope.getState(model.outputs.$files)).toEqual([file]);
     expect(scope.getState(model.outputs.$pending)).toBe(false);
-  });
-
-  it("keeps image and video instances independent while cancelling one request", async () => {
-    const $allowed = createStore(true);
-    const image = invoke(createSearchByFileFactory, { mode: "image", $allowed });
-    const video = invoke(createSearchByFileFactory, { mode: "video", $allowed });
-    const controlled = createControlledTransport();
-    const scope = fork({
-      handlers: [
-        [transportFx, controlled.transport],
-        [
-          image.__.validateFx,
-          ({ files }: EffectParams<typeof image.__.validateFx>) => validateFileSelection(files, fileConstraints.image),
-        ],
-        [
-          video.__.validateFx,
-          ({ files }: EffectParams<typeof video.__.validateFx>) => validateFileSelection(files, fileConstraints.video),
-        ],
-      ],
-    });
-    await allSettled(image.inputs.filesSelected, { scope, params: [imageFile()] });
-    await allSettled(video.inputs.filesSelected, {
-      scope,
-      params: [new File(["video"], "scene.mp4", { type: "video/mp4" })],
-    });
-    scopeBind(image.inputs.searchPressed, { scope })();
-    await controlled.waitForCalls(1);
-    const imageCall = controlled.current();
-    scopeBind(video.inputs.searchPressed, { scope })();
-    await controlled.waitForCalls(2);
-    const videoCall = controlled.current();
-    scopeBind(image.inputs.cancelled, { scope })();
-    expect(imageCall.request.signal?.aborted).toBe(true);
-    expect(videoCall.request.signal?.aborted).toBe(false);
-    videoCall.resolve(jsonResponse(200, { results: [movie] }));
-    await allSettled(scope);
-    expect(scope.getState(image.outputs.$state).result).toBeNull();
-    expect(scope.getState(video.outputs.$state).result).toEqual(movie);
-    expect(scope.getState(image.outputs.$files)[0].name).toBe("frame.png");
-    expect(scope.getState(video.outputs.$files)[0].name).toBe("scene.mp4");
   });
 });

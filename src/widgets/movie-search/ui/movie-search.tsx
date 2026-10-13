@@ -5,7 +5,7 @@ import { cn } from "@/shared/lib/cn";
 import { movieSearchModelView, useMovieSearchModel } from "../model";
 import { MovieSearchForm } from "./search-form";
 
-export const MovieSearch = movieSearchModelView(() => {
+export const MovieSearch = movieSearchModelView(({ fileInputId }: { fileInputId: string }) => {
   const $$model = useMovieSearchModel();
   const { mode, authenticated } = useUnit({
     mode: $$model.outputs.$mode,
@@ -20,7 +20,7 @@ export const MovieSearch = movieSearchModelView(() => {
       )}
       aria-label="Поиск фильма"
     >
-      <MovieSearchForm />
+      <MovieSearchForm fileInputId={fileInputId} />
     </section>
   );
 });

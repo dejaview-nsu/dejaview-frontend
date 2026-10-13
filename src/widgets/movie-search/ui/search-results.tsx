@@ -4,10 +4,11 @@ import { MovieCard } from "@/entities/movie";
 
 import { movieSearchModelView, useMovieSearchModel } from "../model";
 import { SearchStatus } from "./search-status";
+import { VideoSearchOutput } from "./video-search-output";
 
 const pluralRules = new Intl.PluralRules("ru");
 
-const ResultsView = () => {
+const ResultsView = ({ fileInputId }: { fileInputId: string }) => {
   const $$model = useMovieSearchModel();
   const { results, pending, error, isEmpty, mode, submittedQuery, hasSearchOutput } = useUnit({
     results: $$model.outputs.$results,
@@ -24,7 +25,9 @@ const ResultsView = () => {
   if (!hasSearchOutput) return null;
   return (
     <section aria-label="Результаты поиска" aria-busy={pending} className="mx-auto mt-12 w-full max-w-results md:mt-16">
-      {pending || error || isEmpty ? (
+      {mode === "video" ? (
+        <VideoSearchOutput fileInputId={fileInputId} />
+      ) : pending || error || isEmpty ? (
         <SearchStatus />
       ) : (
         <>

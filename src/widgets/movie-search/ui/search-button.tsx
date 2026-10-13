@@ -4,10 +4,12 @@ import { Button } from "@/shared/ui/button";
 
 export const SearchButton = ({
   pending,
+  pendingLabel = "Ищем…",
   isDisabled,
   onPress,
 }: {
   pending: boolean;
+  pendingLabel?: string;
   isDisabled?: boolean;
   onPress: () => void;
 }) => (
@@ -23,6 +25,6 @@ export const SearchButton = ({
     ) : (
       <Search size={20} strokeWidth={1.75} aria-hidden="true" />
     )}
-    {pending ? "Ищем…" : "Начать поиск"}
+    {pending ? pendingLabel : "Начать поиск"}
   </Button>
 );
