@@ -16,6 +16,8 @@ export const createSearchByFileFactory = createFactory(
     const filesSelected = createEvent<File[]>();
     const searchPressed = createEvent();
     const cancelled = createEvent();
+    const accessLost = createEvent();
+    const resumed = createEvent();
     const validationRequested = createEvent<ValidationRequest>();
     const validationSucceeded = createEvent<File>();
     const validationFailed = createEvent<Error>();
@@ -29,6 +31,7 @@ export const createSearchByFileFactory = createFactory(
     const $validating = createStore(false);
     const $validationError = createStore<string | null>(null);
     const $showResponse = createStore(false);
+    const $retryAfterLogin = createStore(false);
 
     const $pending = combine(
       $validating,
@@ -39,7 +42,7 @@ export const createSearchByFileFactory = createFactory(
     sample({ clock: filesSelected, target: $files });
 
     sample({
-      clock: [filesSelected, cancelled],
+      clock: [filesSelected, cancelled, accessLost],
       source: $revision,
       fn: (revision) => revision + 1,
       target: $revision,
@@ -48,7 +51,7 @@ export const createSearchByFileFactory = createFactory(
     sample({ clock: validationRequested, fn: () => true, target: $validating });
 
     sample({
-      clock: [filesSelected, cancelled, validationSucceeded, validationFailed],
+      clock: [filesSelected, cancelled, accessLost, validationSucceeded, validationFailed],
       fn: () => false,
       target: $validating,
     });
@@ -63,7 +66,7 @@ export const createSearchByFileFactory = createFactory(
     });
 
     sample({
-      clock: [filesSelected, cancelled, validationRequested],
+      clock: [filesSelected, cancelled, accessLost, validationRequested],
       fn: () => null,
       target: $validationError,
     });
@@ -72,9 +75,22 @@ export const createSearchByFileFactory = createFactory(
 
     sample({ clock: [filesSelected, validationRequested], fn: () => false, target: $showResponse });
 
-    sample({ clock: [filesSelected, cancelled], target: $$request.inputs.cancelled });
+    sample({ clock: [filesSelected, cancelled, accessLost], target: $$request.inputs.cancelled });
 
-    sample({ clock: $allowed, filter: (allowed) => !allowed, target: cancelled });
+    sample({ clock: $allowed, filter: (allowed) => !allowed, target: accessLost });
+
+    sample({ clock: $$request.outputs.sessionLost, fn: () => true, target: $retryAfterLogin });
+
+    sample({ clock: [filesSelected, cancelled, validationRequested], fn: () => false, target: $retryAfterLogin });
+
+    sample({
+      clock: $allowed,
+      source: $retryAfterLogin,
+      filter: (retry, allowed) => retry && allowed,
+      target: resumed,
+    });
+
+    sample({ clock: resumed, target: searchPressed });
 
     sample({
       clock: searchPressed,
@@ -130,7 +146,7 @@ export const createSearchByFileFactory = createFactory(
 
       inputs: { filesSelected, searchPressed, cancelled },
 
-      outputs: { $files: readonly($files), $state, $pending },
+      outputs: { $files: readonly($files), $state, $pending, resumed: readonly(resumed) },
     };
   },
 );

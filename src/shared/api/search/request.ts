@@ -1,6 +1,6 @@
 import type { SearchResponse } from "../generated";
 import { zSearchResponse } from "../generated/zod.gen";
-import { sendApiRequest } from "../request";
+import { sendApiRequest, type UnauthorizedPolicy } from "../request";
 import { FILE_SEARCH_MODES, type FileSearchMode } from "./modes";
 
 export const searchByText = ({ query, signal }: { query: string; signal?: AbortSignal }): Promise<SearchResponse> =>
@@ -20,6 +20,7 @@ export type SearchByFileParams = {
   signal?: AbortSignal;
   onUploadProgress?: (fraction: number | null) => void;
   onUploadComplete?: () => void;
+  onUnauthorized?: UnauthorizedPolicy;
 };
 
 export const searchByFile = ({
@@ -28,6 +29,7 @@ export const searchByFile = ({
   signal,
   onUploadProgress,
   onUploadComplete,
+  onUnauthorized,
 }: SearchByFileParams): Promise<SearchResponse> => {
   const { path, timeouts, fileTooLargeMessage } = FILE_SEARCH_MODES[mode];
   const body = new FormData();
@@ -45,5 +47,6 @@ export const searchByFile = ({
     signal,
     onUploadProgress,
     onUploadComplete,
+    onUnauthorized,
   });
 };

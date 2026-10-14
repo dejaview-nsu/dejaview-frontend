@@ -7,6 +7,7 @@ import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
 import { $$home, HomePage } from "@/pages/home";
+import { $$login } from "@/pages/login";
 
 import { fileConstraints } from "@/features/search-by-file";
 
@@ -185,5 +186,34 @@ describe("home search through the backend mock transport", () => {
     expect(storage.get(MOCK_STORAGE_KEYS.session)).toBeNull();
     expect(screen.queryByRole("heading", { name: "Матрица" })).not.toBeInTheDocument();
     expect(scope.getState($$home.$$search.outputs.$pending)).toBe(false);
+  });
+
+  it.each([
+    ["image", "Матрица"],
+    ["video", "Начало"],
+  ] as const)("%s search resumes once with the same file after signing in again", async (mode, title) => {
+    const { scope, storage, selectFile, search, transport } = await setup("SESSION_EXPIRED");
+    const file = await selectFile(mode);
+
+    await search();
+    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+    expect(scope.getState($$home.$$search.outputs.$pending)).toBe(false);
+
+    storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
+    await allSettled($$login.inputs.stubLoginPressed, { scope });
+
+    expect(scope.getState(router.$path)).toBe("/");
+    expect(scope.getState($$home.$$search.outputs.$mode)).toBe(mode);
+    expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
+
+    const requests = transport.mock.calls.map(([request]) => request).filter(({ path }) => path.startsWith("/search/"));
+    expect(requests).toHaveLength(2);
+    for (const request of requests) {
+      expect(request.path).toBe(`/search/${mode}`);
+      expect((request.body as FormData).getAll("file")).toEqual([file]);
+    }
+
+    await allSettled($$session.inputs.sessionCheckRequested, { scope });
+    expect(transport.mock.calls.filter(([request]) => request.path.startsWith("/search/"))).toHaveLength(2);
   });
 });

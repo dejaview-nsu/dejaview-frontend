@@ -5,6 +5,7 @@ import { readonly } from "patronum";
 
 import { type ApiError, isSessionError, toApiError } from "../errors";
 import type { MovieSearchResult } from "../generated";
+import { sessionRequired } from "../request";
 import type { FileSearchMode } from "./modes";
 import { searchByFile } from "./request";
 
@@ -24,7 +25,7 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
   const processingStarted = createEvent();
   const succeeded = createEvent<MovieSearchResult[]>();
   const failed = createEvent<ApiError>();
-  const sessionLost = createEvent();
+  const sessionLost = createEvent<ApiError>();
 
   const searchMutation = createMutation({
     name: `fileSearch.${mode}`,
@@ -41,6 +42,7 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
         signal: controller.signal,
         onUploadProgress: (fraction) => reportProgress({ callId, fraction }),
         onUploadComplete: () => reportUploadComplete({ callId }),
+        onUnauthorized: "guest",
       });
     },
   });
@@ -111,11 +113,13 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
     fn: (_, { error }) => error,
   });
 
-  sample({ clock: activeFailure, filter: (error) => isSessionError(error), target: sessionLost });
+  sample({ clock: activeFailure, filter: isSessionError, target: sessionLost });
 
   sample({ clock: sessionLost, fn: () => "idle" as const, target: $stage });
 
   sample({ clock: sessionLost, fn: () => 0, target: $progress });
+
+  sample({ clock: sessionLost, target: sessionRequired });
 
   sample({ clock: activeFailure, filter: (error) => !isSessionError(error), fn: toApiError, target: failed });
 
@@ -149,6 +153,7 @@ export const createFileSearchFactory = createFactory(({ mode }: { mode: FileSear
       $error: readonly($error),
       succeeded: readonly(succeeded),
       failed: readonly(failed),
+      sessionLost: readonly(sessionLost),
     },
   };
 });

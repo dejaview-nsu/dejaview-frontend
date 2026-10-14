@@ -81,6 +81,8 @@ export const createMovieSearchFactory = createFactory(
       });
 
       sample({ clock: searchCancelled, target: media.inputs.cancelled });
+
+      sample({ clock: media.outputs.resumed, fn: () => mode, target: modeAccepted });
     }
 
     sample({
