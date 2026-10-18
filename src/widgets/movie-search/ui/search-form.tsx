@@ -11,7 +11,7 @@ import { SearchActions } from "./search-actions";
 import { SearchInput } from "./search-input";
 import { SearchModes } from "./search-modes";
 
-export const MovieSearchForm = () => {
+export const MovieSearchForm = ({ fileInputId }: { fileInputId: string }) => {
   const $$model = useMovieSearchModel();
   const { mode, authenticated, selectMode } = useUnit({
     mode: $$model.outputs.$mode,
@@ -31,7 +31,7 @@ export const MovieSearchForm = () => {
           id={mode}
           className="mt-4 border-t border-dashed border-divider pt-4 focus-visible:outline-2 focus-visible:outline-link md:mt-[22px] md:pt-[22px]"
         >
-          <SearchInput />
+          <SearchInput fileInputId={fileInputId} />
           <SearchActions />
         </TabPanel>
       </Tabs>

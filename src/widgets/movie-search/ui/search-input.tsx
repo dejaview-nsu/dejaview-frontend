@@ -1,17 +1,30 @@
 import { useUnit } from "effector-react";
 
 import { fileConstraints } from "@/features/search-by-file";
+import { type VideoCheck, videoCheckChips, videoConstraints, videoUploadTexts } from "@/features/search-by-video";
 
 import { FileUpload } from "@/shared/ui/file-upload";
 
 import { useMovieSearchModel } from "../model";
 import { TextDescription } from "./text-description";
+import { VideoFileCard, type VideoFileStatus } from "./video-file-card";
 
-export const SearchInput = () => {
+type VideoState = { stage: string; check: VideoCheck };
+
+const videoFileStatus = ({ stage, check }: VideoState): VideoFileStatus => {
+  if (stage === "validating" || check.status === "checking") return "checking";
+  if (stage === "uploading" || stage === "processing") return stage;
+  if (check.status === "valid") return "ready";
+  if (check.status === "invalid") return "invalid";
+  return "none";
+};
+
+export const SearchInput = ({ fileInputId }: { fileInputId: string }) => {
   const $$model = useMovieSearchModel();
-  const { mode, media, pending, selectFiles, previewLoaded } = useUnit({
+  const { mode, image, video, pending, selectFiles, previewLoaded } = useUnit({
     mode: $$model.outputs.$mode,
-    media: $$model.outputs.$currentMedia,
+    image: $$model.outputs.$image,
+    video: $$model.outputs.$video,
     pending: $$model.outputs.$pending,
     selectFiles: $$model.inputs.filesSelected,
     previewLoaded: $$model.inputs.imagePreviewLoaded,
@@ -23,20 +36,66 @@ export const SearchInput = () => {
         Шаг 2: {mode === "text" ? "опиши" : "загрузи"}
       </p>
       {mode === "text" && <TextDescription />}
-      {(mode === "image" || mode === "video") && (
+      {mode === "image" && (
         <FileUpload
           appearance="brand"
           actionId="search-file-action"
           key={mode}
           constraints={fileConstraints[mode]}
-          files={media.files}
+          files={image.files}
           onFilesSelected={(files) => selectFiles({ mode, files })}
           onRemove={() => selectFiles({ mode, files: [] })}
           isDisabled={pending}
-          allowPaste={mode === "image"}
-          fileReady={media.fileReady}
-          onPreviewLoaded={mode === "image" ? previewLoaded : undefined}
+          allowPaste
+          fileReady={image.fileReady}
+          onPreviewLoaded={previewLoaded}
         />
+      )}
+      {mode === "video" && (
+        <>
+          <FileUpload
+            appearance="brand"
+            actionId="search-file-action"
+            key={mode}
+            constraints={videoConstraints}
+            files={video.files}
+            onFilesSelected={(files) => selectFiles({ mode, files })}
+            onRemove={() => selectFiles({ mode, files: [] })}
+            isDisabled={pending}
+            inputId={fileInputId}
+            prompt={
+              <>
+                <span className="md:hidden">{videoUploadTexts.promptMobile}</span>
+                <span className="hidden md:inline">{videoUploadTexts.prompt}</span>
+              </>
+            }
+            hint={
+              <>
+                <span className="md:hidden">
+                  {videoUploadTexts.hintMobile[0]}
+                  <br />
+                  {videoUploadTexts.hintMobile[1]}
+                </span>
+                <span className="hidden md:inline">{videoUploadTexts.hint}</span>
+              </>
+            }
+            renderSelected={(files, openPicker) => (
+              <VideoFileCard
+                file={files[0]}
+                durationSeconds={video.durationSeconds}
+                status={videoFileStatus(video)}
+                message={video.check.status === "invalid" ? videoCheckChips[video.check.reason] : undefined}
+                isBusy={pending}
+                actionId="search-file-action"
+                onReplace={openPicker}
+                onRemove={() => selectFiles({ mode, files: [] })}
+              />
+            )}
+          />
+          {video.files.length > 0 && !pending && (
+            <p className="mt-3 hidden text-sm leading-[1.5] text-muted md:block">{videoUploadTexts.replaceHint}</p>
+          )}
+        </>
       )}
       {mode === "audio" && (
         <p className="mt-3 text-sm leading-normal text-muted">

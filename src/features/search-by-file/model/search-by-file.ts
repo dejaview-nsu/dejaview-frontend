@@ -2,7 +2,7 @@ import { createFactory, invoke } from "@withease/factories";
 import { combine, createEffect, createEvent, createStore, sample, type Store } from "effector";
 import { readonly } from "patronum";
 
-import { createFileSearchFactory, type FileSearchMode } from "@/shared/api";
+import { createFileSearchFactory } from "@/shared/api";
 import { FileValidationError, validateFileSelection, validateMediaFile } from "@/shared/lib/files";
 
 import { fileConstraints } from "../config/files";
@@ -11,7 +11,7 @@ import { imageSearchNotice } from "../config/messages";
 type ValidationRequest = { files: File[]; revision: number };
 
 export const createSearchByFileFactory = createFactory(
-  ({ mode, $allowed }: { mode: FileSearchMode; $allowed: Store<boolean> }) => {
+  ({ mode, $allowed }: { mode: "image"; $allowed: Store<boolean> }) => {
     const $$request = invoke(createFileSearchFactory, { mode });
 
     const filesSelected = createEvent<File[]>();

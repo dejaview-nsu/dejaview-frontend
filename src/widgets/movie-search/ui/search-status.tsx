@@ -10,19 +10,18 @@ import { SearchLoading } from "./search-loading";
 
 export const SearchStatus = () => {
   const $$model = useMovieSearchModel();
-  const { mode, activeMode, pending, progressMessage, error, isEmpty, media, search } = useUnit({
+  const { mode, pending, progressMessage, error, isEmpty, image, search } = useUnit({
     mode: $$model.outputs.$mode,
-    activeMode: $$model.outputs.$activeSearchMode,
     pending: $$model.outputs.$pending,
     progressMessage: $$model.outputs.$progressMessage,
     error: $$model.outputs.$error,
     isEmpty: $$model.outputs.$isEmpty,
-    media: $$model.outputs.$currentMedia,
+    image: $$model.outputs.$image,
     search: $$model.inputs.searchPressed,
   });
-  if (pending) return <SearchLoading mode={activeMode} message={progressMessage} />;
-  if (mode === "image" && media.notice) {
-    const { title, message, kind } = media.notice;
+  if (pending) return <SearchLoading mode={mode} message={progressMessage} />;
+  if (mode === "image" && image.notice) {
+    const { title, message, kind } = image.notice;
     const unavailable = kind === "unavailable";
     const Icon = unavailable ? TriangleAlert : CircleAlert;
 

@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createMovieSearchFactory } from "@/widgets/movie-search";
 
 import { fileConstraints } from "@/features/search-by-file";
+import { checkVideo } from "@/features/search-by-video";
 
 import { type SessionStatus } from "@/entities/session";
 
@@ -40,12 +41,7 @@ const setup = async (status: SessionStatus = "authenticated", validate?: () => P
             validateFileSelection(files, fileConstraints.image);
           }),
       ],
-      [
-        home.__.$$videoSearch.__.validateFx,
-        ({ files }: { files: File[] }) => {
-          validateFileSelection(files, fileConstraints.video);
-        },
-      ],
+      [home.__.$$videoSearch.__.checkFx, ({ files }: { files: File[] }) => checkVideo(files, async () => 24)],
     ],
   });
   await allSettled(router.setHistory, {
@@ -64,6 +60,12 @@ const startImage = async ({ home, scope, controlled }: Awaited<ReturnType<typeof
 };
 
 describe("movie search model", () => {
+  it.each(["а", "😀"])("limits the text draft to 250 Unicode characters on input for %s", async (character) => {
+    const { home, scope } = await setup();
+    await allSettled(home.inputs.textChanged, { scope, params: character.repeat(260) });
+    expect(scope.getState(home.outputs.$text)).toBe(character.repeat(250));
+  });
+
   it("marks a decoded image ready only when the current single file meets constraints", async () => {
     const { home, scope } = await setup();
     const file = imageFile();
@@ -175,8 +177,9 @@ describe("movie search model", () => {
     expect(scope.getState(home.outputs.$image).stage).toBe("processing");
     expect(scope.getState(home.outputs.$progressMessage)).toBe("Файл загружен. Ищем фильм…");
     scopeBind(home.inputs.modeSelected, { scope })("video");
-    expect(scope.getState(home.outputs.$activeSearchMode)).toBe("image");
-    expect(scope.getState(home.outputs.$hasSearchOutput)).toBe(true);
+    expect(scope.getState(home.outputs.$pending)).toBe(false);
+    expect(scope.getState(home.outputs.$hasSearchOutput)).toBe(false);
+    expect(scope.getState(home.outputs.$image).stage).toBe("processing");
     call.resolve(jsonResponse(200, { results: [movie] }));
     await allSettled(scope);
     expect(scope.getState(home.outputs.$image).result).toEqual(movie);
@@ -230,6 +233,50 @@ describe("movie search model", () => {
     expect(scope.getState(home.outputs.$pending)).toBe(false);
     expect(scope.getState(home.outputs.$image).files).toHaveLength(1);
     if (action === "logout") expect(scope.getState(home.outputs.$mode)).toBe("text");
+  });
+
+  it("page closing cancels only the video search", async () => {
+    const context = await setup();
+    const { home, scope, controlled } = context;
+    const imageCall = await startImage(context);
+    scopeBind(home.inputs.filesSelected, { scope })({ mode: "video", files: [videoFile()] });
+    scopeBind(home.__.$$videoSearch.inputs.searchPressed, { scope })();
+    await controlled.waitForCalls(2);
+    const videoCall = controlled.current();
+    scopeBind(home.inputs.pageClosed, { scope })();
+    expect(videoCall.request.signal?.aborted).toBe(true);
+    expect(imageCall.request.signal?.aborted).toBe(false);
+    expect(scope.getState(home.outputs.$image).stage).toBe("uploading");
+    expect(scope.getState(home.outputs.$video).files).toHaveLength(1);
+  });
+
+  it("keeps image and video searches independent while cancelling one of them", async () => {
+    const context = await setup();
+    const { home, scope, controlled } = context;
+    const imageCall = await startImage(context);
+    scopeBind(home.inputs.filesSelected, { scope })({ mode: "video", files: [videoFile()] });
+    scopeBind(home.__.$$videoSearch.inputs.searchPressed, { scope })();
+    await controlled.waitForCalls(2);
+    const videoCall = controlled.current();
+    scopeBind(home.__.$$imageSearch.inputs.cancelled, { scope })();
+    expect(imageCall.request.signal?.aborted).toBe(true);
+    expect(videoCall.request.signal?.aborted).toBe(false);
+    videoCall.resolve(jsonResponse(200, { results: [movie] }));
+    await allSettled(scope);
+    expect(scope.getState(home.outputs.$image).result).toBeNull();
+    expect(scope.getState(home.outputs.$video).result).toEqual(movie);
+    expect(scope.getState(home.outputs.$image).files[0].name).toBe("frame.png");
+    expect(scope.getState(home.outputs.$video).files[0].name).toBe("scene.mp4");
+  });
+
+  it("cancelling in one mode leaves a search in another mode running", async () => {
+    const context = await setup();
+    const { home, scope } = context;
+    const call = await startImage(context);
+    scopeBind(home.inputs.modeSelected, { scope })("text");
+    scopeBind(home.inputs.searchCancelled, { scope })();
+    expect(call.request.signal?.aborted).toBe(false);
+    expect(scope.getState(home.outputs.$image).stage).toBe("uploading");
   });
 
   it("ignores late validation after replacing file or leaving page", async () => {

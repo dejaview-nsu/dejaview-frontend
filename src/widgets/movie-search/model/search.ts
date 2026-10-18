@@ -4,6 +4,7 @@ import { readonly } from "patronum";
 
 import { createSearchByDescriptionFactory } from "@/features/search-by-description";
 import { createSearchByFileFactory } from "@/features/search-by-file";
+import { createSearchByVideoFactory } from "@/features/search-by-video";
 
 import { type SessionStatus } from "@/entities/session";
 
@@ -18,8 +19,10 @@ export const createMovieSearchFactory = createFactory(
     const modeAccepted = createEvent<SearchMode>();
     const filesSelected = createEvent<{ mode: FileSearchMode; files: File[] }>();
     const imagePreviewLoaded = createEvent<File>();
+    const textChanged = createEvent<string>();
     const searchPressed = createEvent();
     const searchCancelled = createEvent();
+    const pageClosed = createEvent();
     const loginRequested = createEvent();
     const becameGuest = createEvent();
 
@@ -27,19 +30,18 @@ export const createMovieSearchFactory = createFactory(
     const $allowed = combine($isAuthenticated, $isActive, (authenticated, opened) => authenticated && opened);
 
     const $$imageSearch = invoke(createSearchByFileFactory, { mode: "image", $allowed });
-    const $$videoSearch = invoke(createSearchByFileFactory, { mode: "video", $allowed });
+    const $$videoSearch = invoke(createSearchByVideoFactory, { $allowed });
     const $$textSearch = invoke(createSearchByDescriptionFactory, { $allowed: $isActive });
-
-    const textChanged = $$textSearch.inputs.queryChanged;
 
     const $mode = createStore<SearchMode>("text");
     const $text = $$textSearch.outputs.$query;
 
     const $pending = combine(
+      $mode,
       $$imageSearch.outputs.$pending,
       $$videoSearch.outputs.$pending,
       $$textSearch.outputs.$pending,
-      (image, video, text) => image || video || text,
+      (mode, image, video, text) => ({ text, image, video, audio: false })[mode],
     );
 
     sample({ clock: $sessionStatus, filter: (status) => status === "guest", target: becameGuest });
@@ -47,6 +49,12 @@ export const createMovieSearchFactory = createFactory(
     sample({ clock: modeAccepted, target: $mode });
 
     sample({ clock: imagePreviewLoaded, target: $$imageSearch.inputs.previewLoaded });
+
+    sample({
+      clock: textChanged,
+      fn: (text) => [...text].slice(0, 250).join(""),
+      target: $$textSearch.inputs.queryChanged,
+    });
 
     sample({ clock: becameGuest, fn: () => "text" as const, target: $mode });
 
@@ -76,26 +84,30 @@ export const createMovieSearchFactory = createFactory(
         target: media.inputs.filesSelected,
       });
 
-      sample({
-        clock: searchPressed,
-        source: { mode: $mode, pending: $pending },
-        filter: (state) => state.mode === mode && !state.pending,
-        target: media.inputs.searchPressed,
-      });
-
-      sample({ clock: searchCancelled, target: media.inputs.cancelled });
-
       sample({ clock: media.outputs.resumed, fn: () => mode, target: modeAccepted });
     }
 
-    sample({
-      clock: searchPressed,
-      source: { mode: $mode, pending: $pending },
-      filter: ({ mode, pending }) => mode === "text" && !pending,
-      target: $$textSearch.inputs.searchPressed,
-    });
+    for (const [mode, search] of [
+      ["text", $$textSearch],
+      ["image", $$imageSearch],
+      ["video", $$videoSearch],
+    ] as const) {
+      sample({
+        clock: searchPressed,
+        source: $mode,
+        filter: (current) => current === mode,
+        target: search.inputs.searchPressed,
+      });
 
-    sample({ clock: searchCancelled, target: $$textSearch.inputs.cancelled });
+      sample({
+        clock: searchCancelled,
+        source: $mode,
+        filter: (current) => current === mode,
+        target: search.inputs.cancelled,
+      });
+    }
+
+    sample({ clock: pageClosed, target: $$videoSearch.inputs.deactivated });
 
     const $isStubMode = $mode.map((mode) => mode === "audio");
 
@@ -126,36 +138,28 @@ export const createMovieSearchFactory = createFactory(
       (pending, results, error, isEmpty) => pending || results !== null || error !== null || isEmpty,
     );
 
-    const $activeSearchMode = combine(
-      $mode,
-      $$imageSearch.outputs.$pending,
-      $$videoSearch.outputs.$pending,
-      $$textSearch.outputs.$pending,
-      (mode, image, video, text): SearchMode => (image ? "image" : video ? "video" : text ? "text" : mode),
-    );
+    const $progressMessage = combine($mode, $currentMedia, (mode, media) => {
+      if (mode === "text") return "Ищем фильм по описанию…";
 
-    const $progressMessage = combine(
-      $$imageSearch.outputs.$state,
-      $$videoSearch.outputs.$state,
-      $$textSearch.outputs.$pending,
-      (image, video, textPending) => {
-        if (textPending) return "Ищем фильм по описанию…";
+      if (media.stage === "uploading") return `Загружаем файл${media.progress === null ? "…" : `: ${media.progress}%`}`;
 
-        const activeMedia = ["idle", "done", "failed"].includes(image.stage) ? video : image;
+      if (media.stage === "processing") return "Файл загружен. Ищем фильм…";
 
-        if (activeMedia.stage === "uploading")
-          return `Загружаем файл${activeMedia.progress === null ? "…" : `: ${activeMedia.progress}%`}`;
-
-        if (activeMedia.stage === "processing") return "Файл загружен. Ищем фильм…";
-
-        return "Проверяем файл…";
-      },
-    );
+      return "Проверяем файл…";
+    });
 
     return {
       __: { $$imageSearch, $$videoSearch },
 
-      inputs: { modeSelected, textChanged, filesSelected, imagePreviewLoaded, searchPressed, searchCancelled },
+      inputs: {
+        modeSelected,
+        textChanged,
+        filesSelected,
+        imagePreviewLoaded,
+        searchPressed,
+        searchCancelled,
+        pageClosed,
+      },
 
       outputs: {
         loginRequested: readonly(loginRequested),
@@ -171,7 +175,6 @@ export const createMovieSearchFactory = createFactory(
         $error,
         $isEmpty,
         $hasSearchOutput,
-        $activeSearchMode,
         $progressMessage,
         $isAuthenticated,
       },
