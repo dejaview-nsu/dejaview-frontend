@@ -11,7 +11,7 @@ import { fileConstraints } from "@/features/search-by-file";
 import { type SessionStatus } from "@/entities/session";
 
 import { transportFx } from "@/shared/api";
-import { validateFileSelection } from "@/shared/lib/files";
+import { FileValidationError, validateFileSelection } from "@/shared/lib/files";
 
 import { createControlledTransport, jsonResponse } from "../../controlled-transport";
 
@@ -64,6 +64,54 @@ const startImage = async ({ home, scope, controlled }: Awaited<ReturnType<typeof
 };
 
 describe("movie search model", () => {
+  it("marks a decoded image ready only when the current single file meets constraints", async () => {
+    const { home, scope } = await setup();
+    const file = imageFile();
+    const replacement = imageFile();
+    await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files: [file] } });
+    expect(scope.getState(home.outputs.$image).fileReady).toBe(false);
+    await allSettled(home.inputs.imagePreviewLoaded, { scope, params: file });
+    expect(scope.getState(home.outputs.$image).fileReady).toBe(true);
+
+    await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files: [replacement] } });
+    await allSettled(home.inputs.imagePreviewLoaded, { scope, params: file });
+    expect(scope.getState(home.outputs.$image).fileReady).toBe(false);
+
+    await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files: [file, replacement] } });
+    await allSettled(home.inputs.imagePreviewLoaded, { scope, params: file });
+    expect(scope.getState(home.outputs.$image).fileReady).toBe(false);
+    expect(scope.getState(home.outputs.$image).error).toBeNull();
+  });
+
+  it("ignores a late validation failure after cancellation and a successful restart", async () => {
+    let rejectFirst!: (error: Error) => void;
+    const validate = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_, reject) => {
+            rejectFirst = reject;
+          }),
+      )
+      .mockResolvedValue(undefined);
+    const context = await setup("authenticated", validate);
+    const { home, scope, controlled } = context;
+    await allSettled(home.inputs.modeSelected, { scope, params: "image" });
+    await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files: [imageFile()] } });
+    scopeBind(home.inputs.searchPressed, { scope })();
+    await vi.waitFor(() => expect(rejectFirst).toBeDefined());
+    scopeBind(home.inputs.searchCancelled, { scope })();
+    scopeBind(home.inputs.searchPressed, { scope })();
+    await controlled.waitForCalls(1);
+    controlled.current().resolve(jsonResponse(200, { results: [movie] }));
+    rejectFirst(new FileValidationError("Повреждён старый файл"));
+    await allSettled(scope);
+
+    expect(scope.getState(home.outputs.$image)).toMatchObject({ result: movie, error: null, fileReady: true });
+    expect(scope.getState(home.outputs.$pending)).toBe(false);
+    expect(controlled.calls).toHaveLength(1);
+  });
+
   it("opens immediately in text mode without a demonstration request", async () => {
     const { route, home, scope, controlled } = await setup("guest");
     expect(scope.getState(route.$isOpened)).toBe(true);
@@ -104,7 +152,10 @@ describe("movie search model", () => {
       await allSettled(home.inputs.modeSelected, { scope, params: "image" });
       await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files } });
       await allSettled(home.inputs.searchPressed, { scope });
-      expect(scope.getState(home.outputs.$image).error).toContain("Поиск не запущен");
+      expect(scope.getState(home.outputs.$image).notice).toMatchObject({
+        title: "Не получилось начать поиск",
+        kind: "validation",
+      });
       expect(controlled.calls).toHaveLength(0);
       expect(scope.getState(home.outputs.$pending)).toBe(false);
     },
@@ -154,7 +205,11 @@ describe("movie search model", () => {
     await allSettled(scope);
     expect(scope.getState(home.outputs.$image).result).toBeNull();
     if (kind === "empty") expect(scope.getState(home.outputs.$image).isEmpty).toBe(true);
-    else expect(scope.getState(home.outputs.$image).error).toContain("временно недоступен");
+    else
+      expect(scope.getState(home.outputs.$image).notice).toMatchObject({
+        title: "Поиск временно недоступен",
+        kind: "unavailable",
+      });
     await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files: [imageFile()] } });
     expect(scope.getState(home.outputs.$image)).toMatchObject({ error: null, isEmpty: false });
     scopeBind(home.inputs.searchPressed, { scope })();

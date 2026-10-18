@@ -21,6 +21,7 @@ const button = cva(
         "brand-loading": `${brandStyle} h-12 border-2 border-border-strong bg-brand-brown px-6 text-[15px]/none text-brand-gold shadow-hard`,
         "brand-secondary": `${brandStyle} min-h-12 border-2 border-border-strong bg-card px-6 text-[15px]/none text-ink hover:bg-hover disabled:opacity-50`,
         "brand-ghost": `${brandStyle} min-h-11 px-4 py-2 text-sm disabled:opacity-50 text-ink hover:bg-page`,
+        "brand-danger": `${brandStyle} min-h-11 px-4 py-2 text-sm disabled:opacity-50 text-error-text hover:bg-error-bg`,
       },
     },
     defaultVariants: {

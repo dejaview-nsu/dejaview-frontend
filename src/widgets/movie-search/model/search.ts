@@ -17,6 +17,7 @@ export const createMovieSearchFactory = createFactory(
     const modeSelected = createEvent<SearchMode>();
     const modeAccepted = createEvent<SearchMode>();
     const filesSelected = createEvent<{ mode: FileSearchMode; files: File[] }>();
+    const imagePreviewLoaded = createEvent<File>();
     const searchPressed = createEvent();
     const searchCancelled = createEvent();
     const loginRequested = createEvent();
@@ -44,6 +45,8 @@ export const createMovieSearchFactory = createFactory(
     sample({ clock: $sessionStatus, filter: (status) => status === "guest", target: becameGuest });
 
     sample({ clock: modeAccepted, target: $mode });
+
+    sample({ clock: imagePreviewLoaded, target: $$imageSearch.inputs.previewLoaded });
 
     sample({ clock: becameGuest, fn: () => "text" as const, target: $mode });
 
@@ -152,7 +155,7 @@ export const createMovieSearchFactory = createFactory(
     return {
       __: { $$imageSearch, $$videoSearch },
 
-      inputs: { modeSelected, textChanged, filesSelected, searchPressed, searchCancelled },
+      inputs: { modeSelected, textChanged, filesSelected, imagePreviewLoaded, searchPressed, searchCancelled },
 
       outputs: {
         loginRequested: readonly(loginRequested),

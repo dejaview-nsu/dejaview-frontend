@@ -9,11 +9,12 @@ import { TextDescription } from "./text-description";
 
 export const SearchInput = () => {
   const $$model = useMovieSearchModel();
-  const { mode, media, pending, selectFiles } = useUnit({
+  const { mode, media, pending, selectFiles, previewLoaded } = useUnit({
     mode: $$model.outputs.$mode,
     media: $$model.outputs.$currentMedia,
     pending: $$model.outputs.$pending,
     selectFiles: $$model.inputs.filesSelected,
+    previewLoaded: $$model.inputs.imagePreviewLoaded,
   });
 
   return (
@@ -33,6 +34,8 @@ export const SearchInput = () => {
           onRemove={() => selectFiles({ mode, files: [] })}
           isDisabled={pending}
           allowPaste={mode === "image"}
+          fileReady={media.fileReady}
+          onPreviewLoaded={mode === "image" ? previewLoaded : undefined}
         />
       )}
       {mode === "audio" && (

@@ -6,19 +6,36 @@ export type FileConstraints = {
   maxDurationSeconds?: number;
 };
 
-export class FileValidationError extends Error {}
+export type FileValidationCode =
+  "FILE_REQUIRED" | "TOO_MANY_FILES" | "UNSUPPORTED_FORMAT" | "FILE_TOO_LARGE" | "FILE_CORRUPTED" | "VIDEO_TOO_LONG";
+
+export class FileValidationError extends Error {
+  constructor(
+    message: string,
+    readonly code: FileValidationCode = "FILE_CORRUPTED",
+  ) {
+    super(message);
+  }
+}
 
 export const validateFileSelection = (files: readonly File[], constraints: FileConstraints): File => {
-  if (files.length === 0) throw new FileValidationError("Выберите файл перед началом поиска.");
-  if (files.length !== 1) throw new FileValidationError("Для поиска можно загрузить только один файл.");
+  if (files.length === 0) throw new FileValidationError("Выберите файл перед началом поиска.", "FILE_REQUIRED");
+  if (files.length !== 1)
+    throw new FileValidationError("Для поиска можно загрузить только один файл.", "TOO_MANY_FILES");
   const file = files[0];
   const extension = file.name.split(".").at(-1)?.toLowerCase() ?? "";
   if (!constraints.extensions.includes(extension) || (file.type && !constraints.mimeTypes.includes(file.type))) {
-    throw new FileValidationError(`Поддерживаемые форматы: ${constraints.extensions.join(", ").toUpperCase()}.`);
+    throw new FileValidationError(
+      `Поддерживаемые форматы: ${constraints.extensions.join(", ").toUpperCase()}.`,
+      "UNSUPPORTED_FORMAT",
+    );
   }
   if (file.size === 0) throw new FileValidationError("Файл пуст. Выберите другой файл.");
   if (file.size > constraints.maxBytes) {
-    throw new FileValidationError(`Размер файла не должен превышать ${constraints.maxBytes / (1024 * 1024)} МБ.`);
+    throw new FileValidationError(
+      `Размер файла не должен превышать ${constraints.maxBytes / (1024 * 1024)} МБ.`,
+      "FILE_TOO_LARGE",
+    );
   }
   return file;
 };
@@ -47,6 +64,7 @@ export const validateMediaFile = async (files: readonly File[], constraints: Fil
             finish(
               new FileValidationError(
                 `Длительность видео не должна превышать ${constraints.maxDurationSeconds} секунд.`,
+                "VIDEO_TOO_LONG",
               ),
             );
           } else finish();
