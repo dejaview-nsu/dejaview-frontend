@@ -60,6 +60,29 @@ VITE_API_PROXY_TARGET=http://localhost:8080
 | `VITE_API_PROXY_TARGET`     | куда dev-сервер пересылает `/api/v1`                           | не задана, proxy выключен           | `http://localhost:8080`              |
 | `OPENAPI_SPEC`              | путь к контракту для `pnpm api:generate`, задаётся в терминале | `../dejaview-docs/api/openapi.yaml` | `D:\docs\api\openapi.yaml`           |
 
+## Запуск в Docker
+
+Соберите образ и запустите контейнер:
+
+```sh
+docker build -t dejaview-frontend .
+docker run --rm -p 5173:5173 dejaview-frontend
+```
+
+Приложение откроется на `http://localhost:5173`. Сборка выполняется через pnpm с версиями Node.js из `.nvmrc` и pnpm из `package.json`. В итоговом образе находятся Nginx и собранная статика. Nginx слушает порт `5173` и отдаёт `index.html` для маршрутов приложения, поэтому прямые ссылки и обновление страницы работают. Отсутствующие файлы в `/assets/` возвращают 404.
+
+Адрес API задаётся **при сборке** через `VITE_API_BASE_URL`, по умолчанию `/api/v1`:
+
+```sh
+docker build --build-arg VITE_API_BASE_URL=https://dejaview.example.ru/api/v1 -t dejaview-frontend .
+```
+
+Параметры `docker run -e` не меняют адрес API в готовой статике: для изменения нужна повторная сборка. Локальные `.env`-файлы исключены из контекста Docker, заглушки API в образе выключены.
+
+Для `/api/v1` нужен внешний reverse proxy, который направляет API-запросы в backend, а страницы — в контейнер frontend на порт `5173`. Nginx в образе обслуживает только статику; `VITE_API_PROXY_TARGET` применяется только к локальному серверу Vite. При открытии контейнера напрямую без такого proxy страницы доступны, но API-запросы не работают.
+
+В `dejaview-infra` frontend запускается командой `docker compose --profile infra --profile app up frontend` и по умолчанию доступен на `http://localhost:57437`. Оба профиля нужны для валидации текущего `compose.yaml`: с одним `--profile app` он выдаёт ошибку зависимости `db-migrate` от отключённого `postgres`. Сервис использует образ `ghcr.io/dejaview-nsu/dejaview-frontend` с тегом из `FRONTEND_TAG` (по умолчанию `latest`); публикацией образов занимается шаг `build-image` в CI.
+
 ## Главная страница и поиск
 
 Текст, изображение и видео запускают поиск через API-клиент. При `VITE_API_MOCKS=true` HTTP-отправка заменяется mock transport, а разбор ответа, обработка ошибок и логика экрана остаются общими. Аудио отображается как недоступный для запуска режим.
