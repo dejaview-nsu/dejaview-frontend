@@ -18,3 +18,5 @@ coverage
 *.local
 *.log
 **/.DS_Store
+
+# tests/ и tooling/ нужны для tsc --noEmit: они включены в tsconfig.json.
