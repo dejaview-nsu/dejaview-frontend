@@ -60,6 +60,31 @@ VITE_API_PROXY_TARGET=http://localhost:8080
 | `VITE_API_PROXY_TARGET`     | куда dev-сервер пересылает `/api/v1`                           | не задана, proxy выключен           | `http://localhost:8080`              |
 | `OPENAPI_SPEC`              | путь к контракту для `pnpm api:generate`, задаётся в терминале | `../dejaview-docs/api/openapi.yaml` | `D:\docs\api\openapi.yaml`           |
 
+## Запуск в Docker
+
+Соберите образ и запустите контейнер:
+
+```sh
+docker build -t dejaview-frontend .
+docker run --rm -p 5173:5173 dejaview-frontend
+```
+
+Приложение откроется на `http://localhost:5173`. Сборка выполняется через pnpm версии из `package.json`; Node.js 22.18.0 и Nginx 1.30.6 зафиксированы в `Dockerfile` вместе с digest образов. Имена базовых образов содержат реестр `docker.io`, поэтому для Podman/Buildah не требуется настройка поиска коротких имён. В итоговом образе находятся Nginx и собранная статика; контейнер запускается от пользователя `nginx` без root. Nginx слушает IPv4-порт `5173` и отдаёт `index.html` для маршрутов приложения, поэтому прямые ссылки и обновление страницы работают. Отсутствующие файлы в `/assets/` возвращают 404.
+
+HTML отдаётся с `Cache-Control: no-cache`, хешированные файлы из `/assets/` — с `public, max-age=31536000, immutable`. Для CSS, JavaScript, JSON и SVG включено gzip-сжатие, если клиент его поддерживает и размер ответа не меньше 1024 байт. Все ответы содержат `X-Content-Type-Options: nosniff`; версия Nginx скрыта.
+
+Адрес API задаётся **при сборке** через `VITE_API_BASE_URL`, по умолчанию `/api/v1`:
+
+```sh
+docker build --build-arg VITE_API_BASE_URL=https://dejaview.example.ru/api/v1 -t dejaview-frontend .
+```
+
+Параметры `docker run -e` не меняют адрес API в готовой статике: для изменения нужна повторная сборка. Локальные `.env`-файлы исключены из контекста Docker, заглушки API в образе выключены.
+
+Для `/api/v1` нужен внешний reverse proxy, который направляет API-запросы в backend, а страницы — в контейнер frontend на порт `5173`. Nginx в образе обслуживает только статику; `VITE_API_PROXY_TARGET` применяется только к локальному серверу Vite. Запросы к `/api` и `/api/…`, попавшие напрямую во frontend, получают 502, чтобы ошибка настройки proxy не маскировалась HTML-страницей с кодом 200.
+
+В `dejaview-infra` frontend запускается командой `docker compose --profile infra --profile app up frontend` и по умолчанию доступен на `http://localhost:57437`. Оба профиля нужны для валидации текущего `compose.yaml`: с одним `--profile app` он выдаёт ошибку зависимости `db-migrate` от отключённого `postgres`. Сервис использует образ `ghcr.io/dejaview-nsu/dejaview-frontend` с тегом из `FRONTEND_TAG` (по умолчанию `latest`); публикацией образов занимается шаг `build-image` в CI.
+
 ## Главная страница и поиск
 
 Текст, изображение и видео запускают поиск через API-клиент. При `VITE_API_MOCKS=true` HTTP-отправка заменяется mock transport, а разбор ответа, обработка ошибок и логика экрана остаются общими. Аудио отображается как недоступный для запуска режим.
