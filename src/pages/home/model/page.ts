@@ -16,6 +16,13 @@ sample({ clock: $$search.outputs.loginRequested, fn: () => ({ path: "/" }), targ
 
 sample({ clock: routes.home.closed, target: $$search.inputs.pageClosed });
 
+sample({
+  clock: routes.login.closed,
+  source: $$session.outputs.$status,
+  filter: (status) => status !== "authenticated",
+  target: $$search.inputs.loginCancelled,
+});
+
 export const $$home = {
   $$search,
   outputs: { readyRoute: routes.home },
