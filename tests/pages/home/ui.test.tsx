@@ -29,7 +29,7 @@ describe("search page UI", () => {
     expect(screen.getByRole("button", { name: "Начать поиск" })).toBeEnabled();
     await user.click(screen.getByRole("tab", { name: /Изображение/ }));
     expect(scope.getState(router.$path)).toBe("/login");
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/" });
+    expect(scope.getState(router.$query)).toEqual({ redirect: "/?mode=image" });
     await allSettled($$login.inputs.stubLoginPressed, { scope });
     expect(scope.getState(router.$path)).toBe("/");
     expect(scope.getState($$home.$$search.outputs.$text)).toBe("Сцена из фильма");
