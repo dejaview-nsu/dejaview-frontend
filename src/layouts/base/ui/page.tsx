@@ -6,15 +6,19 @@ import { type ReactNode } from "react";
 import { $$session } from "@/entities/session";
 
 import { cn } from "@/shared/lib/cn";
-import { routes } from "@/shared/routes";
+import { router, routes } from "@/shared/routes";
 
 import { HomeFooter } from "./home-footer";
 import { HomeHeader } from "./home-header";
 import { NotificationBanner } from "./notification-banner";
 import { UserMenu } from "./user-menu";
 
+const $registerQuery = combine(routes.login.$isOpened, router.$query, (opened, query) =>
+  opened && typeof query.redirect === "string" ? { redirect: query.redirect } : {},
+);
+
 const StandardHeader = () => {
-  const status = useUnit($$session.outputs.$status);
+  const { status, registerQuery } = useUnit({ status: $$session.outputs.$status, registerQuery: $registerQuery });
 
   const linkStyle = "text-sm font-medium text-text-base hover:text-system-primary";
 
@@ -33,7 +37,7 @@ const StandardHeader = () => {
               <Link to={routes.login} className={linkStyle}>
                 Войти
               </Link>
-              <Link to={routes.register} className={linkStyle}>
+              <Link to={routes.register} query={registerQuery} className={linkStyle}>
                 Зарегистрироваться
               </Link>
             </>

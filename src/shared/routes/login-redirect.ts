@@ -39,9 +39,9 @@ sample({
 
 sample({
   clock: routes.login.closed,
-  source: router.$query,
-  filter: (query) => "redirect" in query,
-  fn: (query) => ({
+  source: { query: router.$query, path: router.$path },
+  filter: ({ query, path }) => "redirect" in query && path !== routes.register.path,
+  fn: ({ query }) => ({
     query: Object.fromEntries(Object.entries(query).filter(([key]) => key !== "redirect")),
     replace: true,
   }),

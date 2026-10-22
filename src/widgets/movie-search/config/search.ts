@@ -6,3 +6,5 @@ export const searchModes: { id: SearchMode; label: string; hint: string }[] = [
   { id: "video", label: "Видео", hint: "Фрагмент до 30 секунд" },
   { id: "audio", label: "Аудио", hint: "Звук до 10 секунд" },
 ];
+
+export const isSearchMode = (value: unknown): value is SearchMode => searchModes.some(({ id }) => id === value);

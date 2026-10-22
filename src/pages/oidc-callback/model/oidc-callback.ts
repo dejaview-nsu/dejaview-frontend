@@ -151,7 +151,7 @@ export const createOidcCallbackPageFactory = createFactory(() => {
     target: signedIn,
   });
 
-  sample({ clock: signedIn, fn: () => ({ replace: true, query: {} }), target: routes.home.open });
+  sample({ clock: signedIn, target: takeReturnPathFx });
 
   sample({
     clock: failed,
