@@ -77,3 +77,6 @@ export const wait = (ms: number, signal?: AbortSignal) =>
 
     signal?.addEventListener("abort", handleAbort, { once: true });
   });
+
+export const mockNotFound = (route: string) =>
+  mockResponse(404, { code: "MOCK_NOT_FOUND", message: `Для запроса ${route} нет заглушки`, field: null });

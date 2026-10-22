@@ -8,7 +8,22 @@ export const MOCK_STORAGE_KEYS = {
   session: "dejaview:mocks:session",
   searchScenario: "dejaview:mocks:search",
   loginScenario: "dejaview:mocks:login",
+  authScenario: "dejaview:mocks:auth",
 } as const;
+
+export const withScenarioEnv = (
+  storage: MockStorage,
+  { search, auth }: { search?: string; auth?: string },
+): MockStorage => ({
+  ...storage,
+  get: (key) => {
+    if (key === MOCK_STORAGE_KEYS.searchScenario && search) return search;
+
+    if (key === MOCK_STORAGE_KEYS.authScenario) return storage.get(key) ?? (auth || null);
+
+    return storage.get(key);
+  },
+});
 
 export const createMockStorage = (resolveStorage: () => Storage | null | undefined): MockStorage => {
   const memory = new Map<string, string>();

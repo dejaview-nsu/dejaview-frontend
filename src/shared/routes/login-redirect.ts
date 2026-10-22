@@ -7,7 +7,7 @@ type ReturnTarget = { path: string; query: Query };
 
 const HOME_TARGET: ReturnTarget = { path: "/", query: {} };
 
-const parseReturnPath = (value: QueryValue | undefined): ReturnTarget => {
+export const parseReturnPath = (value: QueryValue | undefined): ReturnTarget => {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
     return HOME_TARGET;
   }

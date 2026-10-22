@@ -1,0 +1,1 @@
+export { revealElement } from "./reveal";

@@ -1,4 +1,5 @@
 import { Link } from "@effector/router-react";
+import { combine } from "effector";
 import { useUnit } from "effector-react";
 import { type ReactNode } from "react";
 
@@ -6,16 +7,14 @@ import { $$session } from "@/entities/session";
 
 import { cn } from "@/shared/lib/cn";
 import { routes } from "@/shared/routes";
-import { Button } from "@/shared/ui/button";
 
 import { HomeFooter } from "./home-footer";
 import { HomeHeader } from "./home-header";
+import { NotificationBanner } from "./notification-banner";
+import { UserMenu } from "./user-menu";
 
 const StandardHeader = () => {
-  const { status, signOut } = useUnit({
-    status: $$session.outputs.$status,
-    signOut: $$session.inputs.signedOut,
-  });
+  const status = useUnit($$session.outputs.$status);
 
   const linkStyle = "text-sm font-medium text-text-base hover:text-system-primary";
 
@@ -39,35 +38,36 @@ const StandardHeader = () => {
               </Link>
             </>
           )}
-          {status === "authenticated" && (
-            <>
-              <Link to={routes.profile} className={linkStyle}>
-                Профиль
-              </Link>
-              <Button variant="ghost" onPress={() => signOut()}>
-                Выйти
-              </Button>
-            </>
-          )}
+          {status === "authenticated" && <UserMenu className="text-text-base hover:text-system-primary" />}
         </div>
       </nav>
     </header>
   );
 };
 
+const $isBrandShell = combine(
+  [routes.home.$isOpened, routes.register.$isOpened, routes.confirmEmail.$isOpened, routes.oidcCallback.$isOpened],
+  (opened) => opened.some(Boolean),
+);
+
+const $isAuthPage = combine(
+  [routes.register.$isOpened, routes.confirmEmail.$isOpened, routes.oidcCallback.$isOpened],
+  (opened) => opened.some(Boolean),
+);
+
 export const BaseLayout = ({ children }: { children: ReactNode }) => {
-  const isHome = useUnit(routes.home.$isOpened);
+  const { isBrandShell, isAuthPage } = useUnit({ isBrandShell: $isBrandShell, isAuthPage: $isAuthPage });
 
   return (
     <div
       className={cn(
-        "min-h-dvh",
-        isHome
-          ? "relative bg-page font-body text-ink md:border-x-[28px] md:border-brand-brown"
+        "relative flex min-h-dvh flex-col",
+        isBrandShell
+          ? "bg-page font-body text-ink md:border-x-[28px] md:border-brand-brown"
           : "bg-surface-page text-text-base",
       )}
     >
-      {isHome && (
+      {isBrandShell && (
         <>
           <span
             aria-hidden="true"
@@ -79,9 +79,10 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
           />
         </>
       )}
-      {isHome ? <HomeHeader /> : <StandardHeader />}
-      <main className={cn("mx-auto w-full", !isHome && "max-w-4xl p-6")}>{children}</main>
-      {isHome && <HomeFooter />}
+      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} /> : <StandardHeader />}
+      <NotificationBanner />
+      <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
+      {isBrandShell && <HomeFooter />}
     </div>
   );
 };
