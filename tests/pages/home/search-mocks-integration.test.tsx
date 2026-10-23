@@ -417,6 +417,7 @@ describe("home search through the backend mock transport", () => {
     await user.click(screen.getByRole("tab", { name: "Видео, после входа" }));
     await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
     expect(scope.getState(router.$query)).toEqual({ redirect: "/?mode=video" });
+    expect(scope.getState(router.$query)).toEqual({ redirect: "/" });
     expect(scope.getState($$home.$$search.outputs.$mode)).toBe("text");
     expect(scope.getState($$home.$$search.outputs.$pendingMode)).toBe("video");
 
