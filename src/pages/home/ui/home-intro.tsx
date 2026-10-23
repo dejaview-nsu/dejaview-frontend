@@ -1,4 +1,4 @@
-import { PosterWall } from "./poster-wall";
+import { PosterWall } from "@/shared/ui";
 
 export const HomeIntro = () => (
   <section className="relative h-96 overflow-hidden bg-header px-4 pt-[84px] text-on-dark md:h-[488px] md:px-8 md:pt-[106px]">

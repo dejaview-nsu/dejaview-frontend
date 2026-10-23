@@ -7,7 +7,7 @@ type ReturnTarget = { path: string; query: Query };
 
 const HOME_TARGET: ReturnTarget = { path: "/", query: {} };
 
-const parseReturnPath = (value: QueryValue | undefined): ReturnTarget => {
+export const parseReturnPath = (value: QueryValue | undefined): ReturnTarget => {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
     return HOME_TARGET;
   }
@@ -39,9 +39,9 @@ sample({
 
 sample({
   clock: routes.login.closed,
-  source: router.$query,
-  filter: (query) => "redirect" in query,
-  fn: (query) => ({
+  source: { query: router.$query, path: router.$path },
+  filter: ({ query, path }) => "redirect" in query && path !== routes.register.path,
+  fn: ({ query }) => ({
     query: Object.fromEntries(Object.entries(query).filter(([key]) => key !== "redirect")),
     replace: true,
   }),

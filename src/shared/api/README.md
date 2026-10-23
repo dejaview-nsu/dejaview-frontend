@@ -156,6 +156,55 @@ localStorage.removeItem("dejaview:mocks:session"); // выйти без кноп
 
 Для текстового поиска тот же ключ `dejaview:mocks:search` поддерживает `found`, `empty`, `QUERY_EMPTY`, `QUERY_TOO_SHORT`, `QUERY_TOO_LONG`, `QUERY_NOT_ALLOWED`, `SEARCH_UNAVAILABLE`, `SERVER_BUSY`, `NGINX_502`, `RATE_LIMITED`, `INTERNAL_ERROR`, `NETWORK_ERROR`, `TIMEOUT`. Мок также проверяет фактическую длину запроса. По умолчанию возвращает фиксированный список из пяти фильмов, независимо от введённого описания. Сценарии ошибок файла и сессии к текстовому режиму не применяются.
 
+### Сценарии регистрации, входа и OIDC
+
+Сценарий задаётся ключом localStorage `dejaview:mocks:auth` или переменной `VITE_MOCK_AUTH_SCENARIO` в `.env.development.local`. Если заданы оба, действует localStorage. Ошибки чтения localStorage перехватываются: тогда значение хранится в памяти вкладки, а переменная продолжает работать.
+
+```js
+localStorage.setItem("dejaview:mocks:auth", "register_email_taken"); // один сценарий
+localStorage.setItem("dejaview:mocks:auth", "confirm_expired,resend_too_early"); // по сценарию на несколько эндпоинтов
+localStorage.removeItem("dejaview:mocks:auth"); // вернуть поведение по умолчанию
+```
+
+Префикс имени определяет эндпоинт. Эндпоинт без своего сценария работает по умолчанию: регистрация, повторная отправка, подтверждение и OIDC отвечают успехом, а сессия, вход и выход используют сохранённый вход из `dejaview:mocks:session` и старый ключ `dejaview:mocks:login`. Неизвестное имя с префиксом эндпоинта — 404 `MOCK_NOT_FOUND` и предупреждение в консоли. Успешные `confirm_ok`, `login_ok` и `oidc_complete_ok` сохраняют вход, `logout_ok` его удаляет.
+
+| Сценарий                                   | Эндпоинт                         | Ответ                                                                 |
+| ------------------------------------------ | -------------------------------- | --------------------------------------------------------------------- |
+| `register_ok` (по умолчанию)               | `POST /auth/register`            | 201, `resend_after: 60`                                               |
+| `register_username_taken`                  | `POST /auth/register`            | 409 `AUTH_USERNAME_TAKEN`, `field: username`                          |
+| `register_email_taken`                     | `POST /auth/register`            | 409 `AUTH_EMAIL_TAKEN`, `field: email`                                |
+| `register_birth_year_invalid`              | `POST /auth/register`            | 400 `AUTH_BIRTH_YEAR_INVALID`, `field: birth_year`                    |
+| `register_validation_error`                | `POST /auth/register`            | 400 `AUTH_VALIDATION_ERROR`, `field: email`                           |
+| `register_rate_limited`                    | `POST /auth/register`            | 429 `RATE_LIMITED`                                                    |
+| `register_server_error`                    | `POST /auth/register`            | 500 `INTERNAL_ERROR`                                                  |
+| `resend_ok` (по умолчанию)                 | `POST /auth/resend-confirmation` | 202, `resend_after: 60`                                               |
+| `resend_too_early`                         | `POST /auth/resend-confirmation` | 202, `resend_after: 42`                                               |
+| `resend_validation_error`                  | `POST /auth/resend-confirmation` | 400 `AUTH_VALIDATION_ERROR`, `field: login`                           |
+| `confirm_ok` (по умолчанию)                | `POST /auth/confirm-email`       | 200, `SessionInfo` пользователя `movie_fan_42`                        |
+| `confirm_expired`                          | `POST /auth/confirm-email`       | 410 `AUTH_CONFIRMATION_LINK_EXPIRED`                                  |
+| `session_guest`                            | `GET /auth/session`              | 401 `SESSION_REQUIRED`                                                |
+| `session_user`                             | `GET /auth/session`              | 200, `SessionInfo`                                                    |
+| `login_ok`                                 | `POST /auth/login`               | 200, `SessionInfo`                                                    |
+| `login_invalid_email`                      | `POST /auth/login`               | 400 `AUTH_INVALID_CREDENTIALS`; текст про email или имя по виду login |
+| `login_captcha_required`                   | `POST /auth/login`               | 403 `AUTH_CAPTCHA_REQUIRED`, `captcha_required: true`                 |
+| `login_captcha_invalid`                    | `POST /auth/login`               | 403 `AUTH_CAPTCHA_INVALID`, `captcha_required: true`                  |
+| `login_email_not_confirmed`                | `POST /auth/login`               | 403 `AUTH_EMAIL_NOT_CONFIRMED`                                        |
+| `login_blocked`                            | `POST /auth/login`               | 403 `AUTH_ACCOUNT_BLOCKED`                                            |
+| `login_locked`                             | `POST /auth/login`               | 429 `AUTH_LOGIN_LOCKED`, `Retry-After: 781` (14 минут)                |
+| `login_rate_limited`                       | `POST /auth/login`               | 429 `RATE_LIMITED`                                                    |
+| `logout_ok`                                | `POST /auth/logout`              | 204                                                                   |
+| `oidc_pending_registration` (по умолчанию) | `GET /auth/oidc/pending`         | 200, `kind: registration`, Google, `ivan_petrov`                      |
+| `oidc_pending_link`                        | `GET /auth/oidc/pending`         | 200, `kind: link`, VK, `ivan@example.com`                             |
+| `oidc_pending_expired`                     | `GET /auth/oidc/pending`         | 410 `AUTH_OIDC_EXPIRED`                                               |
+| `oidc_pending_server_error`                | `GET /auth/oidc/pending`         | 500 `INTERNAL_ERROR`                                                  |
+| `oidc_complete_ok` (по умолчанию)          | `POST /auth/oidc/complete`       | 201, `SessionInfo`                                                    |
+| `oidc_complete_username_taken`             | `POST /auth/oidc/complete`       | 409 `AUTH_USERNAME_TAKEN`, `field: username`                          |
+| `oidc_complete_email_taken`                | `POST /auth/oidc/complete`       | 409 `AUTH_EMAIL_TAKEN`, `field: null`                                 |
+| `oidc_complete_validation_error`           | `POST /auth/oidc/complete`       | 400 `AUTH_VALIDATION_ERROR`, `field: username`                        |
+| `oidc_complete_expired`                    | `POST /auth/oidc/complete`       | 410 `AUTH_OIDC_EXPIRED`                                               |
+
+Страницу `/auth/oidc` в режиме моков можно открыть напрямую: `/auth/oidc?provider=google&result=registration_required`. Значения `result`: `success`, `registration_required`, `link_required`, `account_blocked`, `error`.
+
 ## Работа с настоящим backend локально
 
 Cookie сессии работает, только когда API на том же адресе, что и сайт. Поэтому dev-сервер пересылает `/api/v1` на backend — в `.env.development.local`:

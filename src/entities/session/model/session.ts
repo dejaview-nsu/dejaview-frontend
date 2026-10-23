@@ -6,7 +6,7 @@ import { type ApiError, sessionRequired, toApiError } from "@/shared/api";
 import { appStarted } from "@/shared/config/init";
 import { loginRedirectRequested, router, routes } from "@/shared/routes";
 
-import { createSessionApi, type SessionCredentials, type SessionUser } from "../api";
+import { createSessionApi, type SessionCredentials, type SessionInfo, type SessionUser } from "../api";
 import { toLocationPath } from "./location";
 
 export type SessionStatus = "unknown" | "guest" | "authenticated";
@@ -17,6 +17,7 @@ export const createSessionFactory = createFactory(() => {
   const sessionCheckRequested = createEvent();
   const signedIn = createEvent<SessionCredentials>();
   const signedOut = createEvent();
+  const sessionCreated = createEvent<SessionInfo>();
   const statusResolved = createEvent<Exclude<SessionStatus, "unknown">>();
 
   const $status = createStore<SessionStatus>("unknown");
@@ -66,6 +67,10 @@ export const createSessionFactory = createFactory(() => {
 
   sample({ clock: sessionQuery.finished.success, fn: ({ result }) => result.user, target: $user });
 
+  sample({ clock: sessionCreated, fn: ({ user }) => user, target: $user });
+
+  sample({ clock: sessionCreated, fn: () => "authenticated" as const, target: statusResolved });
+
   sample({ clock: statusResolved, filter: (status) => status === "guest", fn: () => null, target: $user });
 
   sample({
@@ -114,7 +119,7 @@ export const createSessionFactory = createFactory(() => {
   return {
     __: { sessionQuery, signInMutation, signOutMutation },
     registry: { protectedRoutes },
-    inputs: { sessionCheckRequested, signedIn, signedOut, loginRequired },
+    inputs: { sessionCheckRequested, signedIn, signedOut, sessionCreated, loginRequired },
     outputs: {
       $status: readonly($status),
       $user: readonly($user),

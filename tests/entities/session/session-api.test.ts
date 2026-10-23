@@ -57,6 +57,20 @@ const start = async (initialEntry: string, transport: Transport) => {
 };
 
 describe("session requests with onUnauthorized guest", () => {
+  it("200 on GET /auth/session makes the user authenticated without opening login", async () => {
+    const { scope, required, transport } = await start(
+      "/about",
+      route({ "GET /auth/session": async () => jsonResponse(200, sessionInfo) }),
+    );
+
+    expect(transport).toHaveBeenCalledOnce();
+    expect(transport).toHaveBeenCalledWith(expect.objectContaining({ method: "GET", path: "/auth/session" }));
+    expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
+    expect(scope.getState($$session.outputs.$user)).toEqual(sessionInfo.user);
+    expect(required).not.toHaveBeenCalled();
+    expect(scope.getState(router.$path)).toBe("/about");
+  });
+
   it("401 on GET /auth/session makes a guest without opening login", async () => {
     const { scope, required, transport } = await start(
       "/about",
