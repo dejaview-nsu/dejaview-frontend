@@ -108,7 +108,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
         env:
-          VITE_API_URL: /api/v1
+          VITE_API_BASE_URL: /api/v1
 
   detect:
     name: detect
@@ -163,6 +163,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VITE_API_URL=/api/v1
+            VITE_API_BASE_URL=/api/v1
           cache-from: type=gha
           cache-to: type=gha,mode=max

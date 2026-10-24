@@ -7,7 +7,7 @@ import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
 import { $$home, HomePage } from "@/pages/home";
-import { $$login } from "@/pages/login";
+import "@/pages/login/model";
 
 import { fileConstraints } from "@/features/search-by-file";
 import { checkVideo } from "@/features/search-by-video";
@@ -491,7 +491,7 @@ describe("home search through the backend mock transport", () => {
     expect(scope.getState($$home.$$search.outputs.$pending)).toBe(false);
 
     storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState(router.$path)).toBe("/");
     expect(scope.getState($$home.$$search.outputs.$mode)).toBe(mode);
@@ -506,5 +506,45 @@ describe("home search through the backend mock transport", () => {
 
     await allSettled($$session.inputs.sessionCheckRequested, { scope });
     expect(transport.mock.calls.filter(([request]) => request.path.startsWith("/search/"))).toHaveLength(2);
+  });
+
+  it("guest who picks video and signs in returns to the video mode with text and file kept", async () => {
+    const { scope, transport, selectFile, user } = await setup("found", false);
+    await user.type(screen.getByLabelText(INPUT_LABELS.text), "Хакер выбирает таблетку");
+    await user.click(screen.getByRole("tab", { name: "Видео, после входа" }));
+    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+    expect(scope.getState(router.$query)).toEqual({ redirect: "/?mode=video" });
+    expect(scope.getState($$home.$$search.outputs.$mode)).toBe("text");
+    expect(scope.getState($$home.$$search.outputs.$pendingMode)).toBe("video");
+
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
+    await waitFor(() => expect(scope.getState(router.$path)).toBe("/"));
+
+    expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
+    expect(screen.getByRole("tab", { name: "Видео" })).toHaveAttribute("aria-selected", "true");
+    expect(scope.getState($$home.$$search.outputs.$pendingMode)).toBeNull();
+    expect(transport.mock.calls.some(([request]) => request.path.startsWith("/search/"))).toBe(false);
+
+    await selectFile("video");
+    await user.click(screen.getByRole("tab", { name: "Текст" }));
+    expect(screen.getByLabelText(INPUT_LABELS.text)).toHaveValue("Хакер выбирает таблетку");
+    await user.click(screen.getByRole("tab", { name: "Видео" }));
+    expect(screen.getByText("scene.mp4")).toBeInTheDocument();
+  });
+
+  it("guest who leaves the login page without signing in keeps the current mode", async () => {
+    const { scope, user } = await setup("found", false);
+    await user.type(screen.getByLabelText(INPUT_LABELS.text), "Хакер");
+    await user.click(screen.getByRole("tab", { name: "Видео, после входа" }));
+    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+
+    await allSettled(routes.home.open, { scope, params: {} });
+
+    expect(scope.getState(router.$path)).toBe("/");
+    expect(scope.getState($$session.outputs.$status)).toBe("guest");
+    expect(scope.getState($$home.$$search.outputs.$mode)).toBe("text");
+    expect(scope.getState($$home.$$search.outputs.$pendingMode)).toBeNull();
+    expect(screen.getByRole("tab", { name: "Текст" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText(INPUT_LABELS.text)).toHaveValue("Хакер");
   });
 });

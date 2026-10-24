@@ -16,15 +16,32 @@ export {
   toApiError,
 } from "./errors";
 export type {
+  AuthConfirmationSent,
   AuthLoginError,
   AuthLoginRequest,
+  AuthOidcCompleteRequest,
+  AuthOidcPending,
+  AuthOidcProvider,
+  AuthRegisterRequest,
+  AuthResendConfirmationRequest,
   MovieSearchResult,
   SearchErrorCode,
   SearchResponse,
   SessionInfo,
   UserSummary,
 } from "./generated";
-export { zAuthLoginError, zSearchResponse, zSessionInfo } from "./generated/zod.gen";
+export {
+  zAuthConfirmationSent,
+  zAuthEmail,
+  zAuthLoginError,
+  zAuthOidcPending,
+  zAuthOidcProvider,
+  zAuthPassword,
+  zAuthUsername,
+  zSearchResponse,
+  zSessionInfo,
+} from "./generated/zod.gen";
+export { API_BASE_URL } from "./config";
 export type { ApiResponse, ErrorMessages } from "./parse-response";
 export {
   type ApiRequest,

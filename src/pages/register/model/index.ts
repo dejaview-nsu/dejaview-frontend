@@ -1,1 +1,1 @@
-export { $$register } from "./page";
+export { $$oidcStart, $$register, $$registerForm, $$resendConfirmation } from "./page";

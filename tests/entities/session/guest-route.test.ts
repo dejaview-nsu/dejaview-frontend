@@ -27,11 +27,15 @@ describe("guest-only routes", () => {
     expect(scope.getState(router.$path)).toBe("/about");
   });
 
-  it("waits for unknown session status before redirecting from /login", async () => {
-    const { scope } = await setupSessionScope({ initialEntry: "/login", authenticated: true });
+  it.each(["/login", "/register"])(
+    "waits for unknown session status before redirecting from %s",
+    async (initialEntry) => {
+      const { scope } = await setupSessionScope({ initialEntry, authenticated: true });
 
-    expect(scope.getState(router.$path)).toBe("/");
-  });
+      expect(scope.getState(router.$path)).toBe("/");
+      expect(scope.getState($$register.outputs.readyRoute.$isOpened)).toBe(false);
+    },
+  );
 
   it("opens /login and /register for guest", async () => {
     const { scope } = await setupSessionScope();

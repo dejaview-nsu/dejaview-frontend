@@ -1,4 +1,4 @@
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../../lib/cn";
 
 const posters = [
   ["Джокер", "2019", "bg-brand-brown"],

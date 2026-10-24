@@ -25,6 +25,7 @@ export const createMovieSearchFactory = createFactory(
     const pageClosed = createEvent();
     const loginRequested = createEvent();
     const becameGuest = createEvent();
+    const loginCancelled = createEvent();
 
     const $isAuthenticated = $sessionStatus.map((status) => status === "authenticated");
     const $allowed = combine($isAuthenticated, $isActive, (authenticated, opened) => authenticated && opened);
@@ -35,6 +36,7 @@ export const createMovieSearchFactory = createFactory(
 
     const $mode = createStore<SearchMode>("text");
     const $text = $$textSearch.outputs.$query;
+    const $pendingMode = createStore<SearchMode | null>(null);
 
     const $pending = combine(
       $mode,
@@ -72,6 +74,23 @@ export const createMovieSearchFactory = createFactory(
       filter: (authenticated, mode) => !authenticated && mode !== "text",
       target: loginRequested,
     });
+
+    sample({
+      clock: modeSelected,
+      source: $isAuthenticated,
+      filter: (authenticated, mode) => !authenticated && mode !== "text",
+      fn: (_, mode) => mode,
+      target: $pendingMode,
+    });
+
+    sample({
+      clock: $sessionStatus,
+      source: $pendingMode,
+      filter: (pending, status): pending is SearchMode => status === "authenticated" && pending !== null,
+      target: modeAccepted,
+    });
+
+    sample({ clock: [modeAccepted, loginCancelled], fn: () => null, target: $pendingMode });
 
     for (const [mode, media] of [
       ["image", $$imageSearch],
@@ -159,11 +178,13 @@ export const createMovieSearchFactory = createFactory(
         searchPressed,
         searchCancelled,
         pageClosed,
+        loginCancelled,
       },
 
       outputs: {
         loginRequested: readonly(loginRequested),
         $mode: readonly($mode),
+        $pendingMode: readonly($pendingMode),
         $text: readonly($text),
         $submittedQuery: $$textSearch.outputs.$submittedQuery,
         $image: $$imageSearch.outputs.$state,

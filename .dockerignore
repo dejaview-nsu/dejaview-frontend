@@ -1,0 +1,22 @@
+.git
+.github
+.husky
+.agents
+.codex
+.aws
+.claude
+.superpowers
+.idea
+.vscode
+node_modules
+dist
+build
+coverage
+.vite
+.env
+.env.*
+*.local
+*.log
+**/.DS_Store
+
+# tests/ и tooling/ нужны для tsc --noEmit: они включены в tsconfig.json.

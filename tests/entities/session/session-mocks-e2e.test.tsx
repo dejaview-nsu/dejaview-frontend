@@ -49,10 +49,12 @@ describe("session on mock transport", () => {
       </Provider>,
     );
 
-    expect(screen.getByText("Профиль")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Меню пользователя movie_fan_42" })).toBeInTheDocument();
     expect(screen.queryByText("Войти")).not.toBeInTheDocument();
 
-    await userEventSetup().click(screen.getByRole("button", { name: "Выйти" }));
+    const user = userEventSetup();
+    await user.click(screen.getByRole("button", { name: "Меню пользователя movie_fan_42" }));
+    await user.click(screen.getByRole("menuitem", { name: /Выйти/ }));
 
     await waitFor(() => expect(screen.getByText("Войти")).toBeInTheDocument());
     expect(screen.getByText("Зарегистрироваться")).toBeInTheDocument();
