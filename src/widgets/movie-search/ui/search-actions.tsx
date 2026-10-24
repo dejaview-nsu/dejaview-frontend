@@ -7,11 +7,11 @@ import { SearchButton } from "./search-button";
 
 export const SearchActions = () => {
   const $$model = useMovieSearchModel();
-  const { mode, video, pending, isStub, search, cancel } = useUnit({
+  const { mode, video, pending, recordingBusy, search, cancel } = useUnit({
     mode: $$model.outputs.$mode,
     video: $$model.outputs.$video,
     pending: $$model.outputs.$pending,
-    isStub: $$model.outputs.$isStubMode,
+    recordingBusy: $$model.outputs.$recordingBusy,
     search: $$model.inputs.searchPressed,
     cancel: $$model.inputs.searchCancelled,
   });
@@ -22,10 +22,10 @@ export const SearchActions = () => {
       <SearchButton
         pending={pending}
         pendingLabel={isVideo && video.stage === "uploading" ? "Загружаем…" : undefined}
-        isDisabled={isStub}
+        isDisabled={mode === "audio" && recordingBusy}
         onPress={search}
       />
-      {pending && (!isVideo || video.stage === "validating") && (
+      {pending && mode !== "audio" && (!isVideo || video.stage === "validating") && (
         <Button variant="brand-ghost" onPress={cancel}>
           Отменить поиск
         </Button>

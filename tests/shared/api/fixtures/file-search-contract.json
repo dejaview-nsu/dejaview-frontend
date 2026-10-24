@@ -259,5 +259,140 @@
         }
       }
     ]
+  },
+  "audio": {
+    "path": "/search/audio",
+    "mimeTypes": ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"],
+    "responses": [
+      {
+        "name": "found",
+        "status": 200,
+        "body": {
+          "results": [
+            {
+              "movie_id": 157336,
+              "title": "Интерстеллар",
+              "year": 2014,
+              "poster_url": "https://image.tmdb.org/t/p/w500/poster-157336.jpg",
+              "overview": "Группа исследователей отправляется через червоточину искать планету для человечества."
+            }
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "status": 200,
+        "body": {
+          "results": []
+        }
+      },
+      {
+        "name": "FILE_REQUIRED",
+        "status": 400,
+        "body": {
+          "code": "FILE_REQUIRED",
+          "message": "Невозможно выполнить поиск по аудиофрагменту: аудиофрагмент не загружен и не записан",
+          "field": "file"
+        }
+      },
+      {
+        "name": "TOO_MANY_FILES",
+        "status": 400,
+        "body": {
+          "code": "TOO_MANY_FILES",
+          "message": "Невозможно выполнить поиск по аудиофрагменту: загружено больше одного файла",
+          "field": "file"
+        }
+      },
+      {
+        "name": "session_required",
+        "status": 401,
+        "body": {
+          "code": "SESSION_REQUIRED",
+          "message": "Войдите, чтобы продолжить",
+          "field": null
+        }
+      },
+      {
+        "name": "session_expired",
+        "status": 401,
+        "body": {
+          "code": "SESSION_EXPIRED",
+          "message": "Сессия истекла. Войдите снова",
+          "field": null
+        }
+      },
+      {
+        "name": "FILE_TOO_LARGE",
+        "status": 413,
+        "body": {
+          "code": "FILE_TOO_LARGE",
+          "message": "Невозможно выполнить поиск по аудиофрагменту: размер файла больше 20 МБ",
+          "field": "file"
+        }
+      },
+      {
+        "name": "UNSUPPORTED_FORMAT",
+        "status": 415,
+        "body": {
+          "code": "UNSUPPORTED_FORMAT",
+          "message": "Невозможно выполнить поиск по аудиофрагменту: поддерживаются только MP3, WAV, OGG и M4A",
+          "field": "file"
+        }
+      },
+      {
+        "name": "AUDIO_TOO_LONG",
+        "status": 422,
+        "body": {
+          "code": "AUDIO_TOO_LONG",
+          "message": "Невозможно выполнить поиск по аудиофрагменту: аудиофрагмент длиннее 10 секунд",
+          "field": "file"
+        }
+      },
+      {
+        "name": "FILE_CORRUPTED",
+        "status": 422,
+        "body": {
+          "code": "FILE_CORRUPTED",
+          "message": "Невозможно выполнить поиск по аудиофрагменту: файл поврежден или не может быть обработан",
+          "field": "file"
+        }
+      },
+      {
+        "name": "default",
+        "status": 429,
+        "body": {
+          "code": "RATE_LIMITED",
+          "message": "Слишком много запросов. Попробуйте позже"
+        },
+        "headers": {
+          "Retry-After": "60"
+        }
+      },
+      {
+        "name": "default",
+        "status": 500,
+        "body": {
+          "code": "INTERNAL_ERROR",
+          "message": "Произошла ошибка. Попробуйте позже"
+        }
+      },
+      {
+        "name": "SEARCH_UNAVAILABLE",
+        "status": 503,
+        "body": {
+          "code": "SEARCH_UNAVAILABLE",
+          "message": "Поиск временно недоступен. Попробуйте позже"
+        }
+      },
+      {
+        "name": "SERVER_BUSY",
+        "status": 503,
+        "body": {
+          "code": "SERVER_BUSY",
+          "message": "Сервис перегружен. Попробуйте позже"
+        }
+      }
+    ]
   }
 }

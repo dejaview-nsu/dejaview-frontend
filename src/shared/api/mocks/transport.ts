@@ -7,6 +7,7 @@ import { type MockDelays, type MockHandler, mockNotFound } from "./utils";
 
 const ROUTES: Record<string, MockHandler> = {
   ...AUTH_ROUTES,
+  "POST /search/audio": createSearchHandler("audio"),
   "POST /search/image": createSearchHandler("image"),
   "POST /search/video": createSearchHandler("video"),
   "POST /search/text": textSearch,

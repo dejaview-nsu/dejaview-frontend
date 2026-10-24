@@ -23,6 +23,7 @@ import { sendApiRequestFx } from "../../api-request";
 const MODE_PREFIX: Record<FileSearchMode, string> = {
   image: "Невозможно выполнить поиск по изображению: ",
   video: "Невозможно выполнить поиск по видеофрагменту: ",
+  audio: "Невозможно выполнить поиск по аудиофрагменту: ",
 };
 
 const setup = (storage: MockStorage = createMockStorage(() => window.localStorage)) => ({
@@ -71,6 +72,7 @@ describe("search mocks", () => {
   it.each([
     ["image", "Матрица"],
     ["video", "Начало"],
+    ["audio", "Интерстеллар"],
   ] as const)("found in %s mode returns a movie from contract examples", async (mode, title) => {
     const { response, body } = await search(mode);
 
@@ -85,7 +87,7 @@ describe("search mocks", () => {
     expect(body).toEqual({ results: [] });
   });
 
-  describe.each(["image", "video"] as const)("file errors in %s mode", (mode) => {
+  describe.each(["image", "video", "audio"] as const)("file errors in %s mode", (mode) => {
     it.each([
       ["FILE_REQUIRED", 400],
       ["TOO_MANY_FILES", 400],

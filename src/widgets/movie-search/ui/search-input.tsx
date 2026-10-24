@@ -6,6 +6,7 @@ import { type VideoCheck, videoCheckChips, videoConstraints, videoUploadTexts } 
 import { FileUpload } from "@/shared/ui/file-upload";
 
 import { useMovieSearchModel } from "../model";
+import { AudioInput } from "./audio-input";
 import { TextDescription } from "./text-description";
 import { VideoFileCard, type VideoFileStatus } from "./video-file-card";
 
@@ -33,7 +34,7 @@ export const SearchInput = ({ fileInputId }: { fileInputId: string }) => {
   return (
     <>
       <p className="mb-4 font-label text-sm leading-[1.2] font-semibold tracking-widest text-terracotta-text uppercase md:mb-[22px]">
-        Шаг 2: {mode === "text" ? "опиши" : "загрузи"}
+        Шаг 2: {{ text: "опиши", image: "загрузи", video: "загрузи", audio: "загрузи или запиши" }[mode]}
       </p>
       {mode === "text" && <TextDescription />}
       {mode === "image" && (
@@ -97,11 +98,7 @@ export const SearchInput = ({ fileInputId }: { fileInputId: string }) => {
           )}
         </>
       )}
-      {mode === "audio" && (
-        <p className="mt-3 text-sm leading-normal text-muted">
-          Поиск по аудиофрагменту появится в следующем обновлении.
-        </p>
-      )}
+      {mode === "audio" && <AudioInput fileInputId={fileInputId} />}
     </>
   );
 };

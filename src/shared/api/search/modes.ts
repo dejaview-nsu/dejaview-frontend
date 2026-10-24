@@ -7,6 +7,11 @@ type FileSearchModeConfig = {
 };
 
 export const FILE_SEARCH_MODES = {
+  audio: {
+    path: "/search/audio",
+    timeouts: { upload: 30_000, response: 20_000 },
+    fileTooLargeMessage: "Невозможно выполнить поиск по аудиофрагменту: размер файла больше 20 МБ",
+  },
   image: {
     path: "/search/image",
     timeouts: { upload: 15_000, response: 20_000 },

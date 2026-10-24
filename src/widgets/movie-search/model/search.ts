@@ -2,6 +2,7 @@ import { createFactory, invoke } from "@withease/factories";
 import { combine, createEvent, createStore, sample, type Store } from "effector";
 import { readonly } from "patronum";
 
+import { createSearchByAudioFactory } from "@/features/search-by-audio";
 import { createSearchByDescriptionFactory } from "@/features/search-by-description";
 import { createSearchByFileFactory } from "@/features/search-by-file";
 import { createSearchByVideoFactory } from "@/features/search-by-video";
@@ -30,6 +31,7 @@ export const createMovieSearchFactory = createFactory(
     const $isAuthenticated = $sessionStatus.map((status) => status === "authenticated");
     const $allowed = combine($isAuthenticated, $isActive, (authenticated, opened) => authenticated && opened);
 
+    const $$audioSearch = invoke(createSearchByAudioFactory, { $allowed });
     const $$imageSearch = invoke(createSearchByFileFactory, { mode: "image", $allowed });
     const $$videoSearch = invoke(createSearchByVideoFactory, { $allowed });
     const $$textSearch = invoke(createSearchByDescriptionFactory, { $allowed: $isActive });
@@ -43,7 +45,8 @@ export const createMovieSearchFactory = createFactory(
       $$imageSearch.outputs.$pending,
       $$videoSearch.outputs.$pending,
       $$textSearch.outputs.$pending,
-      (mode, image, video, text) => ({ text, image, video, audio: false })[mode],
+      $$audioSearch.outputs.$pending,
+      (mode, image, video, text, audio) => ({ text, image, video, audio })[mode],
     );
 
     sample({ clock: $sessionStatus, filter: (status) => status === "guest", target: becameGuest });
@@ -95,6 +98,7 @@ export const createMovieSearchFactory = createFactory(
     for (const [mode, media] of [
       ["image", $$imageSearch],
       ["video", $$videoSearch],
+      ["audio", $$audioSearch],
     ] as const) {
       sample({
         clock: filesSelected,
@@ -110,6 +114,7 @@ export const createMovieSearchFactory = createFactory(
       ["text", $$textSearch],
       ["image", $$imageSearch],
       ["video", $$videoSearch],
+      ["audio", $$audioSearch],
     ] as const) {
       sample({
         clock: searchPressed,
@@ -128,25 +133,32 @@ export const createMovieSearchFactory = createFactory(
 
     sample({ clock: pageClosed, target: $$videoSearch.inputs.deactivated });
 
-    const $isStubMode = $mode.map((mode) => mode === "audio");
+    sample({ clock: pageClosed, target: $$audioSearch.inputs.deactivated });
+
+    sample({
+      clock: modeAccepted,
+      filter: (mode) => mode !== "audio",
+      target: $$audioSearch.inputs.recordingCancelled,
+    });
 
     const $currentMedia = combine(
       $mode,
       $$imageSearch.outputs.$state,
       $$videoSearch.outputs.$state,
-      (mode, image, video) => (mode === "video" ? video : image),
+      $$audioSearch.outputs.$state,
+      (mode, image, video, audio) => ({ image, video, audio, text: image })[mode],
     );
 
     const $results = combine($mode, $currentMedia, $$textSearch.outputs.$results, (mode, media, text) =>
-      mode === "text" ? text : mode === "audio" || !media.result ? null : [media.result],
+      mode === "text" ? text : !media.result ? null : [media.result],
     );
 
     const $error = combine($mode, $currentMedia, $$textSearch.outputs.$error, (mode, media, text) =>
-      mode === "text" ? text : mode === "audio" ? null : media.error,
+      mode === "text" ? text : media.error,
     );
 
     const $isEmpty = combine($mode, $currentMedia, $$textSearch.outputs.$isEmpty, (mode, media, text) =>
-      mode === "text" ? text : mode !== "audio" && media.isEmpty,
+      mode === "text" ? text : media.isEmpty,
     );
 
     const $hasSearchOutput = combine(
@@ -168,7 +180,7 @@ export const createMovieSearchFactory = createFactory(
     });
 
     return {
-      __: { $$imageSearch, $$videoSearch },
+      __: { $$imageSearch, $$videoSearch, $$audioSearch },
 
       inputs: {
         modeSelected,
@@ -179,6 +191,9 @@ export const createMovieSearchFactory = createFactory(
         searchCancelled,
         pageClosed,
         loginCancelled,
+        recordingStarted: $$audioSearch.inputs.recordingStarted,
+        recordingStopped: $$audioSearch.inputs.recordingStopped,
+        recordingCancelled: $$audioSearch.inputs.recordingCancelled,
       },
 
       outputs: {
@@ -189,8 +204,10 @@ export const createMovieSearchFactory = createFactory(
         $submittedQuery: $$textSearch.outputs.$submittedQuery,
         $image: $$imageSearch.outputs.$state,
         $video: $$videoSearch.outputs.$state,
+        $audio: $$audioSearch.outputs.$state,
+        $recording: $$audioSearch.outputs.$recording,
+        $recordingBusy: $$audioSearch.outputs.$recordingBusy,
         $pending,
-        $isStubMode,
         $currentMedia,
         $results,
         $error,

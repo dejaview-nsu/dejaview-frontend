@@ -103,6 +103,8 @@ describe("search page UI", () => {
     expect(screen.getByRole("textbox")).toHaveValue("Герой в поезде");
     await user.click(screen.getByRole("tab", { name: "Аудио" }));
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Начать поиск" })).toBeDisabled();
+    expect(screen.getByLabelText("Выберите аудиофрагмент")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Записать с микрофона" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Начать поиск" })).toBeEnabled();
   });
 });

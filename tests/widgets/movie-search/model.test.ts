@@ -193,7 +193,6 @@ describe("movie search model", () => {
     await allSettled(home.inputs.modeSelected, { scope, params: "text" });
     expect(scope.getState(home.outputs.$results)).toBeNull();
     expect(scope.getState(home.outputs.$error)).toBeNull();
-    expect(scope.getState(home.outputs.$isStubMode)).toBe(false);
   });
 
   it.each(["empty", "unavailable"])("handles %s and allows replacing file and retrying", async (kind) => {
