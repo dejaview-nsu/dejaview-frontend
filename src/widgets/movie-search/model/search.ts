@@ -18,6 +18,8 @@ export const createMovieSearchFactory = createFactory(
     const modeSelected = createEvent<SearchMode>();
     const modeAccepted = createEvent<SearchMode>();
     const filesSelected = createEvent<{ mode: FileSearchMode; files: File[] }>();
+    const imagePreviewLoaded = createEvent<File>();
+    const textChanged = createEvent<string>();
     const searchPressed = createEvent();
     const searchCancelled = createEvent();
     const pageClosed = createEvent();
@@ -31,8 +33,6 @@ export const createMovieSearchFactory = createFactory(
     const $$imageSearch = invoke(createSearchByFileFactory, { mode: "image", $allowed });
     const $$videoSearch = invoke(createSearchByVideoFactory, { $allowed });
     const $$textSearch = invoke(createSearchByDescriptionFactory, { $allowed: $isActive });
-
-    const textChanged = $$textSearch.inputs.queryChanged;
 
     const $mode = createStore<SearchMode>("text");
     const $text = $$textSearch.outputs.$query;
@@ -49,6 +49,14 @@ export const createMovieSearchFactory = createFactory(
     sample({ clock: $sessionStatus, filter: (status) => status === "guest", target: becameGuest });
 
     sample({ clock: modeAccepted, target: $mode });
+
+    sample({ clock: imagePreviewLoaded, target: $$imageSearch.inputs.previewLoaded });
+
+    sample({
+      clock: textChanged,
+      fn: (text) => [...text].slice(0, 250).join(""),
+      target: $$textSearch.inputs.queryChanged,
+    });
 
     sample({ clock: becameGuest, fn: () => "text" as const, target: $mode });
 
@@ -94,6 +102,8 @@ export const createMovieSearchFactory = createFactory(
         fn: ({ files }) => files,
         target: media.inputs.filesSelected,
       });
+
+      sample({ clock: media.outputs.resumed, fn: () => mode, target: modeAccepted });
     }
 
     for (const [mode, search] of [
@@ -116,7 +126,7 @@ export const createMovieSearchFactory = createFactory(
       });
     }
 
-    sample({ clock: pageClosed, target: $$videoSearch.inputs.cancelled });
+    sample({ clock: pageClosed, target: $$videoSearch.inputs.deactivated });
 
     const $isStubMode = $mode.map((mode) => mode === "audio");
 
@@ -160,7 +170,16 @@ export const createMovieSearchFactory = createFactory(
     return {
       __: { $$imageSearch, $$videoSearch },
 
-      inputs: { modeSelected, textChanged, filesSelected, searchPressed, searchCancelled, pageClosed, loginCancelled },
+      inputs: {
+        modeSelected,
+        textChanged,
+        filesSelected,
+        imagePreviewLoaded,
+        searchPressed,
+        searchCancelled,
+        pageClosed,
+        loginCancelled,
+      },
 
       outputs: {
         loginRequested: readonly(loginRequested),

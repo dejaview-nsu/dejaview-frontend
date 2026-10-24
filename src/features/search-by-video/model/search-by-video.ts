@@ -40,6 +40,9 @@ export const createSearchByVideoFactory = createFactory(({ $allowed }: { $allowe
   const filesSelected = createEvent<File[]>();
   const searchPressed = createEvent();
   const cancelled = createEvent();
+  const deactivated = createEvent();
+  const stopped = createEvent();
+  const resumed = createEvent();
   const checkRequested = createEvent<CheckRequest>();
   const checkSettled = createEvent<CheckSettled>();
 
@@ -51,6 +54,7 @@ export const createSearchByVideoFactory = createFactory(({ $allowed }: { $allowe
   const $submitting = createStore(false);
   const $submitError = createStore<VideoCheckReason | null>(null);
   const $showResponse = createStore(false);
+  const $retryAfterLogin = createStore(false);
 
   const $pending = combine(
     $submitting,
@@ -60,11 +64,13 @@ export const createSearchByVideoFactory = createFactory(({ $allowed }: { $allowe
 
   sample({ clock: filesSelected, target: $files });
 
-  sample({ clock: [filesSelected, cancelled], source: $checkId, fn: (id) => id + 1, target: $checkId });
+  sample({ clock: [cancelled, deactivated], target: stopped });
 
-  sample({ clock: [filesSelected, cancelled], target: $$videoSearch.inputs.cancelled });
+  sample({ clock: [filesSelected, stopped], source: $checkId, fn: (id) => id + 1, target: $checkId });
 
-  sample({ clock: [filesSelected, cancelled], fn: () => false, target: $submitting });
+  sample({ clock: [filesSelected, stopped], target: $$videoSearch.inputs.cancelled });
+
+  sample({ clock: [filesSelected, stopped], fn: () => false, target: $submitting });
 
   sample({ clock: filesSelected, fn: () => null, target: $submitError });
 
@@ -85,14 +91,25 @@ export const createSearchByVideoFactory = createFactory(({ $allowed }: { $allowe
   });
 
   sample({
-    clock: cancelled,
+    clock: stopped,
     source: $check,
     filter: (check) => check.status === "checking",
     fn: (): VideoCheck => ({ status: "idle" }),
     target: $check,
   });
 
-  sample({ clock: $allowed, filter: (allowed) => !allowed, target: cancelled });
+  sample({ clock: $allowed, filter: (allowed) => !allowed, target: deactivated });
+
+  sample({ clock: $$videoSearch.outputs.sessionLost, fn: () => true, target: $retryAfterLogin });
+
+  sample({
+    clock: $allowed,
+    source: $retryAfterLogin,
+    filter: (retry, allowed) => retry && allowed,
+    target: resumed,
+  });
+
+  sample({ clock: resumed, target: searchPressed });
 
   const searchAccepted = sample({
     clock: searchPressed,
@@ -100,6 +117,8 @@ export const createSearchByVideoFactory = createFactory(({ $allowed }: { $allowe
     filter: ({ allowed, pending }) => allowed && !pending,
     fn: ({ files }) => files,
   });
+
+  sample({ clock: [filesSelected, cancelled, searchAccepted], fn: () => false, target: $retryAfterLogin });
 
   sample({ clock: searchAccepted, fn: (files) => ({ files, submit: true }), target: checkRequested });
 
@@ -220,9 +239,9 @@ export const createSearchByVideoFactory = createFactory(({ $allowed }: { $allowe
   return {
     __: { $$videoSearch, checkFx },
 
-    inputs: { filesSelected, searchPressed, cancelled },
+    inputs: { filesSelected, searchPressed, cancelled, deactivated },
 
-    outputs: { $files: readonly($files), $check: readonly($check), $state, $pending },
+    outputs: { $files: readonly($files), $check: readonly($check), $state, $pending, resumed: readonly(resumed) },
   };
 });
 

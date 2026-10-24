@@ -13,6 +13,36 @@ const imageFile = () => new File(["image"], "frame.png", { type: "image/png" });
 const movie = { movie_id: 1, title: "Фильм", year: null, poster_url: null, overview: null };
 
 describe("search by file feature", () => {
+  it.each(["cancel", "replace"] as const)("%s clears the search waiting for login", async (action) => {
+    const accessChanged = createEvent<boolean>();
+    const $allowed = createStore(true);
+
+    sample({ clock: accessChanged, target: $allowed });
+
+    const model = invoke(createSearchByFileFactory, { mode: "image", $allowed });
+    const controlled = createControlledTransport();
+    const scope = fork({
+      handlers: [
+        [model.__.validateFx, () => {}],
+        [transportFx, controlled.transport],
+      ],
+    });
+
+    await allSettled(model.inputs.filesSelected, { scope, params: [imageFile()] });
+    scopeBind(model.inputs.searchPressed, { scope })();
+    await controlled.waitForCalls(1);
+    controlled.current().resolve(jsonResponse(401, { code: "SESSION_EXPIRED", message: "Сессия истекла" }));
+    await allSettled(scope);
+    await allSettled(accessChanged, { scope, params: false });
+
+    if (action === "cancel") await allSettled(model.inputs.cancelled, { scope });
+    else await allSettled(model.inputs.filesSelected, { scope, params: [imageFile()] });
+
+    await allSettled(accessChanged, { scope, params: true });
+    expect(controlled.calls).toHaveLength(1);
+    expect(scope.getState(model.outputs.$pending)).toBe(false);
+  });
+
   it("losing access cancels an upload without relying on a widget", async () => {
     const accessChanged = createEvent<boolean>();
     const $allowed = createStore(true);

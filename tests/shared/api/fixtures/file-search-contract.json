@@ -1,0 +1,263 @@
+{
+  "image": {
+    "path": "/search/image",
+    "mimeTypes": ["image/jpeg", "image/png", "image/webp"],
+    "responses": [
+      {
+        "name": "found",
+        "status": 200,
+        "body": {
+          "results": [
+            {
+              "movie_id": 603,
+              "title": "Матрица",
+              "year": 1999,
+              "poster_url": "https://image.tmdb.org/t/p/w500/poster-603.jpg",
+              "overview": "Хакер Нео узнает, что мир вокруг - компьютерная симуляция."
+            }
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "status": 200,
+        "body": {
+          "results": []
+        }
+      },
+      {
+        "name": "FILE_REQUIRED",
+        "status": 400,
+        "body": {
+          "code": "FILE_REQUIRED",
+          "message": "Невозможно выполнить поиск по изображению: изображение не загружено",
+          "field": "file"
+        }
+      },
+      {
+        "name": "TOO_MANY_FILES",
+        "status": 400,
+        "body": {
+          "code": "TOO_MANY_FILES",
+          "message": "Невозможно выполнить поиск по изображению: загружено больше одного файла",
+          "field": "file"
+        }
+      },
+      {
+        "name": "session_required",
+        "status": 401,
+        "body": {
+          "code": "SESSION_REQUIRED",
+          "message": "Войдите, чтобы продолжить",
+          "field": null
+        }
+      },
+      {
+        "name": "session_expired",
+        "status": 401,
+        "body": {
+          "code": "SESSION_EXPIRED",
+          "message": "Сессия истекла. Войдите снова",
+          "field": null
+        }
+      },
+      {
+        "name": "FILE_TOO_LARGE",
+        "status": 413,
+        "body": {
+          "code": "FILE_TOO_LARGE",
+          "message": "Невозможно выполнить поиск по изображению: размер файла больше 10 МБ",
+          "field": "file"
+        }
+      },
+      {
+        "name": "UNSUPPORTED_FORMAT",
+        "status": 415,
+        "body": {
+          "code": "UNSUPPORTED_FORMAT",
+          "message": "Невозможно выполнить поиск по изображению: поддерживаются только JPG, JPEG, PNG и WEBP",
+          "field": "file"
+        }
+      },
+      {
+        "name": "FILE_CORRUPTED",
+        "status": 422,
+        "body": {
+          "code": "FILE_CORRUPTED",
+          "message": "Невозможно выполнить поиск по изображению: файл поврежден или не может быть обработан",
+          "field": "file"
+        }
+      },
+      {
+        "name": "default",
+        "status": 429,
+        "body": {
+          "code": "RATE_LIMITED",
+          "message": "Слишком много запросов. Попробуйте позже"
+        },
+        "headers": {
+          "Retry-After": "60"
+        }
+      },
+      {
+        "name": "default",
+        "status": 500,
+        "body": {
+          "code": "INTERNAL_ERROR",
+          "message": "Произошла ошибка. Попробуйте позже"
+        }
+      },
+      {
+        "name": "SEARCH_UNAVAILABLE",
+        "status": 503,
+        "body": {
+          "code": "SEARCH_UNAVAILABLE",
+          "message": "Поиск временно недоступен. Попробуйте позже"
+        }
+      },
+      {
+        "name": "SERVER_BUSY",
+        "status": 503,
+        "body": {
+          "code": "SERVER_BUSY",
+          "message": "Сервис перегружен. Попробуйте позже"
+        }
+      }
+    ]
+  },
+  "video": {
+    "path": "/search/video",
+    "mimeTypes": ["video/mp4", "video/quicktime", "video/webm"],
+    "responses": [
+      {
+        "name": "found",
+        "status": 200,
+        "body": {
+          "results": [
+            {
+              "movie_id": 27205,
+              "title": "Начало",
+              "year": 2010,
+              "poster_url": "https://image.tmdb.org/t/p/w500/poster-27205.jpg",
+              "overview": "Кобб крадет идеи из снов, а теперь должен внедрить идею в чужое подсознание."
+            }
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "status": 200,
+        "body": {
+          "results": []
+        }
+      },
+      {
+        "name": "FILE_REQUIRED",
+        "status": 400,
+        "body": {
+          "code": "FILE_REQUIRED",
+          "message": "Невозможно выполнить поиск по видеофрагменту: видеофрагмент не загружен",
+          "field": "file"
+        }
+      },
+      {
+        "name": "TOO_MANY_FILES",
+        "status": 400,
+        "body": {
+          "code": "TOO_MANY_FILES",
+          "message": "Невозможно выполнить поиск по видеофрагменту: загружено больше одного файла",
+          "field": "file"
+        }
+      },
+      {
+        "name": "session_required",
+        "status": 401,
+        "body": {
+          "code": "SESSION_REQUIRED",
+          "message": "Войдите, чтобы продолжить",
+          "field": null
+        }
+      },
+      {
+        "name": "session_expired",
+        "status": 401,
+        "body": {
+          "code": "SESSION_EXPIRED",
+          "message": "Сессия истекла. Войдите снова",
+          "field": null
+        }
+      },
+      {
+        "name": "FILE_TOO_LARGE",
+        "status": 413,
+        "body": {
+          "code": "FILE_TOO_LARGE",
+          "message": "Невозможно выполнить поиск по видеофрагменту: размер файла больше 50 МБ",
+          "field": "file"
+        }
+      },
+      {
+        "name": "UNSUPPORTED_FORMAT",
+        "status": 415,
+        "body": {
+          "code": "UNSUPPORTED_FORMAT",
+          "message": "Невозможно выполнить поиск по видеофрагменту: поддерживаются только MP4, MOV и WEBM",
+          "field": "file"
+        }
+      },
+      {
+        "name": "VIDEO_TOO_LONG",
+        "status": 422,
+        "body": {
+          "code": "VIDEO_TOO_LONG",
+          "message": "Невозможно выполнить поиск по видеофрагменту: видео длиннее 30 секунд",
+          "field": "file"
+        }
+      },
+      {
+        "name": "FILE_CORRUPTED",
+        "status": 422,
+        "body": {
+          "code": "FILE_CORRUPTED",
+          "message": "Невозможно выполнить поиск по видеофрагменту: файл поврежден или не может быть обработан",
+          "field": "file"
+        }
+      },
+      {
+        "name": "default",
+        "status": 429,
+        "body": {
+          "code": "RATE_LIMITED",
+          "message": "Слишком много запросов. Попробуйте позже"
+        },
+        "headers": {
+          "Retry-After": "60"
+        }
+      },
+      {
+        "name": "default",
+        "status": 500,
+        "body": {
+          "code": "INTERNAL_ERROR",
+          "message": "Произошла ошибка. Попробуйте позже"
+        }
+      },
+      {
+        "name": "SEARCH_UNAVAILABLE",
+        "status": 503,
+        "body": {
+          "code": "SEARCH_UNAVAILABLE",
+          "message": "Поиск временно недоступен. Попробуйте позже"
+        }
+      },
+      {
+        "name": "SERVER_BUSY",
+        "status": 503,
+        "body": {
+          "code": "SERVER_BUSY",
+          "message": "Сервис перегружен. Попробуйте позже"
+        }
+      }
+    ]
+  }
+}

@@ -3,9 +3,10 @@ import { combine, createEffect, createEvent, createStore, sample, type Store } f
 import { readonly } from "patronum";
 
 import { createFileSearchFactory } from "@/shared/api";
-import { FileValidationError, validateMediaFile } from "@/shared/lib/files";
+import { FileValidationError, validateFileSelection, validateMediaFile } from "@/shared/lib/files";
 
 import { fileConstraints } from "../config/files";
+import { imageSearchNotice } from "../config/messages";
 
 type ValidationRequest = { files: File[]; revision: number };
 
@@ -14,8 +15,11 @@ export const createSearchByFileFactory = createFactory(
     const $$request = invoke(createFileSearchFactory, { mode });
 
     const filesSelected = createEvent<File[]>();
+    const previewLoaded = createEvent<File>();
     const searchPressed = createEvent();
     const cancelled = createEvent();
+    const accessLost = createEvent();
+    const resumed = createEvent();
     const validationRequested = createEvent<ValidationRequest>();
     const validationSucceeded = createEvent<File>();
     const validationFailed = createEvent<Error>();
@@ -27,8 +31,10 @@ export const createSearchByFileFactory = createFactory(
     const $files = createStore<File[]>([]);
     const $revision = createStore(0);
     const $validating = createStore(false);
-    const $validationError = createStore<string | null>(null);
+    const $validationError = createStore<Error | null>(null);
+    const $fileReady = createStore(false);
     const $showResponse = createStore(false);
+    const $retryAfterLogin = createStore(false);
 
     const $pending = combine(
       $validating,
@@ -39,7 +45,7 @@ export const createSearchByFileFactory = createFactory(
     sample({ clock: filesSelected, target: $files });
 
     sample({
-      clock: [filesSelected, cancelled],
+      clock: [filesSelected, cancelled, accessLost],
       source: $revision,
       fn: (revision) => revision + 1,
       target: $revision,
@@ -48,7 +54,7 @@ export const createSearchByFileFactory = createFactory(
     sample({ clock: validationRequested, fn: () => true, target: $validating });
 
     sample({
-      clock: [filesSelected, cancelled, validationSucceeded, validationFailed],
+      clock: [filesSelected, cancelled, accessLost, validationSucceeded, validationFailed],
       fn: () => false,
       target: $validating,
     });
@@ -57,24 +63,58 @@ export const createSearchByFileFactory = createFactory(
       clock: validationFailed,
       fn: (error) =>
         error instanceof FileValidationError
-          ? `Поиск не запущен. ${error.message}`
-          : "Не удалось прочитать файл. Выберите другой файл.",
+          ? error
+          : new FileValidationError("Не удалось прочитать файл. Выберите другой файл."),
       target: $validationError,
     });
 
     sample({
-      clock: [filesSelected, cancelled, validationRequested],
+      clock: [filesSelected, cancelled, accessLost, validationRequested],
       fn: () => null,
       target: $validationError,
     });
 
     sample({ clock: validationSucceeded, fn: () => true, target: $showResponse });
 
+    sample({ clock: validationSucceeded, fn: () => true, target: $fileReady });
+
+    sample({
+      clock: previewLoaded,
+      source: $files,
+      filter: (files, file) => {
+        if (mode !== "image" || files[0] !== file) return false;
+
+        try {
+          validateFileSelection(files, fileConstraints[mode]);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      fn: () => true,
+      target: $fileReady,
+    });
+
+    sample({ clock: [filesSelected, validationFailed], fn: () => false, target: $fileReady });
+
     sample({ clock: [filesSelected, validationRequested], fn: () => false, target: $showResponse });
 
-    sample({ clock: [filesSelected, cancelled], target: $$request.inputs.cancelled });
+    sample({ clock: [filesSelected, cancelled, accessLost], target: $$request.inputs.cancelled });
 
-    sample({ clock: $allowed, filter: (allowed) => !allowed, target: cancelled });
+    sample({ clock: $allowed, filter: (allowed) => !allowed, target: accessLost });
+
+    sample({ clock: $$request.outputs.sessionLost, fn: () => true, target: $retryAfterLogin });
+
+    sample({ clock: [filesSelected, cancelled, validationRequested], fn: () => false, target: $retryAfterLogin });
+
+    sample({
+      clock: $allowed,
+      source: $retryAfterLogin,
+      filter: (retry, allowed) => retry && allowed,
+      target: resumed,
+    });
+
+    sample({ clock: resumed, target: searchPressed });
 
     sample({
       clock: searchPressed,
@@ -107,6 +147,7 @@ export const createSearchByFileFactory = createFactory(
     const $state = combine(
       {
         files: $files,
+        fileReady: $fileReady,
         validating: $validating,
         validationError: $validationError,
         showResponse: $showResponse,
@@ -115,22 +156,37 @@ export const createSearchByFileFactory = createFactory(
         results: $$request.outputs.$results,
         error: $$request.outputs.$error,
       },
-      ({ files, validating, validationError, showResponse, stage, progress, results, error }) => ({
-        files,
-        stage: validating ? ("validating" as const) : stage,
-        progress,
-        result: showResponse ? (results?.[0] ?? null) : null,
-        isEmpty: showResponse && results !== null && results.length === 0,
-        error: validationError ?? (showResponse ? (error?.message ?? null) : null),
-      }),
+      ({ files, fileReady, validating, validationError, showResponse, stage, progress, results, error }) => {
+        const activeError = validationError ?? (showResponse ? error : null);
+        const notice = mode === "image" && activeError ? imageSearchNotice(activeError) : null;
+
+        return {
+          files,
+          fileReady: fileReady && notice?.kind !== "validation",
+          stage: validating ? ("validating" as const) : stage,
+          progress,
+          result: showResponse ? (results?.[0] ?? null) : null,
+          isEmpty: showResponse && results !== null && results.length === 0,
+          notice,
+          error:
+            notice?.message ??
+            (validationError
+              ? validationError instanceof FileValidationError
+                ? `Поиск не запущен. ${validationError.message}`
+                : "Не удалось прочитать файл. Выберите другой файл."
+              : showResponse
+                ? (error?.message ?? null)
+                : null),
+        };
+      },
     );
 
     return {
       __: { $$request, validateFx },
 
-      inputs: { filesSelected, searchPressed, cancelled },
+      inputs: { filesSelected, previewLoaded, searchPressed, cancelled },
 
-      outputs: { $files: readonly($files), $state, $pending },
+      outputs: { $files: readonly($files), $state, $pending, resumed: readonly(resumed) },
     };
   },
 );

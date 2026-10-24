@@ -21,12 +21,13 @@ const videoFileStatus = ({ stage, check }: VideoState): VideoFileStatus => {
 
 export const SearchInput = ({ fileInputId }: { fileInputId: string }) => {
   const $$model = useMovieSearchModel();
-  const { mode, media, video, pending, selectFiles } = useUnit({
+  const { mode, image, video, pending, selectFiles, previewLoaded } = useUnit({
     mode: $$model.outputs.$mode,
-    media: $$model.outputs.$currentMedia,
+    image: $$model.outputs.$image,
     video: $$model.outputs.$video,
     pending: $$model.outputs.$pending,
     selectFiles: $$model.inputs.filesSelected,
+    previewLoaded: $$model.inputs.imagePreviewLoaded,
   });
 
   return (
@@ -41,11 +42,13 @@ export const SearchInput = ({ fileInputId }: { fileInputId: string }) => {
           actionId="search-file-action"
           key={mode}
           constraints={fileConstraints[mode]}
-          files={media.files}
+          files={image.files}
           onFilesSelected={(files) => selectFiles({ mode, files })}
           onRemove={() => selectFiles({ mode, files: [] })}
           isDisabled={pending}
           allowPaste
+          fileReady={image.fileReady}
+          onPreviewLoaded={previewLoaded}
         />
       )}
       {mode === "video" && (

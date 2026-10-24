@@ -7,6 +7,7 @@ import {
   createFileSearchFactory,
   type FileSearchMode,
   isSearchUnavailableError,
+  sessionRequired,
   transportFx,
 } from "@/shared/api";
 
@@ -212,6 +213,20 @@ describe("file search restart", () => {
 });
 
 describe("file search cancel", () => {
+  it("ignores a late 401 after cancellation without opening login", async () => {
+    const { scope, startSearch, cancel, state } = setup("image", { ignoreAbort: true });
+    const requireLogin = vi.fn();
+    createWatch({ unit: sessionRequired, scope, fn: requireLogin });
+
+    const call = await startSearch();
+    cancel();
+    call.resolve(jsonResponse(401, { code: "SESSION_EXPIRED", message: "Сессия истекла" }));
+    await allSettled(scope);
+
+    expect(requireLogin).not.toHaveBeenCalled();
+    expect(state()).toMatchObject({ stage: "idle", error: null, results: null });
+  });
+
   it("cancel during uploading aborts request and returns to idle without error", async () => {
     const { scope, startSearch, cancel, state, succeeded, failed } = setup();
 

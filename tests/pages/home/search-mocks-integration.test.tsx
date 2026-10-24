@@ -1,6 +1,6 @@
 import { historyAdapter } from "@effector/router";
 import { RouterProvider } from "@effector/router-react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { allSettled, type EffectParams, fork } from "effector";
 import { Provider } from "effector-react";
 import { createMemoryHistory } from "history";
@@ -16,7 +16,7 @@ import { $$session } from "@/entities/session";
 
 import { type FileSearchMode, transportFx, type TransportRequest } from "@/shared/api";
 import { createMockTransport, MOCK_STORAGE_KEYS, NO_MOCK_DELAYS, type SearchScenario } from "@/shared/api/mocks";
-import { validateFileSelection } from "@/shared/lib/files";
+import { FileValidationError, validateFileSelection } from "@/shared/lib/files";
 import { router, routes } from "@/shared/routes";
 
 import { createControlledTransport } from "../../controlled-transport";
@@ -40,7 +40,8 @@ const setup = async (
     durationSeconds = 24,
     holdVideo = false,
     holdMode = null,
-  }: { durationSeconds?: number; holdVideo?: boolean; holdMode?: SearchMode | null } = {},
+    decodingError,
+  }: { durationSeconds?: number; holdVideo?: boolean; holdMode?: SearchMode | null; decodingError?: Error } = {},
 ) => {
   const storage = createTestMockStorage();
   if (authenticated) storage.set(MOCK_STORAGE_KEYS.session, "authenticated");
@@ -59,8 +60,10 @@ const setup = async (
       // jsdom cannot decode media; only browser decoding is replaced, the API flow stays real.
       [
         $$imageSearch.__.validateFx,
-        ({ files }: EffectParams<typeof $$imageSearch.__.validateFx>) =>
-          validateFileSelection(files, fileConstraints.image),
+        ({ files }: EffectParams<typeof $$imageSearch.__.validateFx>) => {
+          validateFileSelection(files, fileConstraints.image);
+          if (decodingError) throw decodingError;
+        },
       ],
       [
         $$videoSearch.__.checkFx,
@@ -144,13 +147,14 @@ describe("home search through the backend mock transport", () => {
   });
 
   it.each([
-    ["image", "Матрица", 603, "Подробнее о фильме «Матрица»"],
+    ["image", "Матрица", 603, "Открыть карточку фильма «Матрица»"],
     ["video", "Начало", 27205, "Открыть карточку фильма"],
   ] as const)("%s sends one multipart file and renders the contract response", async (mode, title, movieId, link) => {
     const { transport, selectFile, search } = await setup();
     const file = await selectFile(mode);
     await search();
     expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
+    if (mode === "image") expect(screen.getByRole("heading", { name: "Похоже, это этот фильм" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: link })).toHaveAttribute("href", `/movies/${movieId}`);
     const requests = transport.mock.calls.map(([request]) => request).filter(({ path }) => path.startsWith("/search/"));
     expect(requests).toHaveLength(1);
@@ -193,13 +197,13 @@ describe("home search through the backend mock transport", () => {
     },
   );
 
-  it("image result keeps the shared results header", async () => {
+  it("image result shows the image match layout", async () => {
     const { selectFile, search } = await setup();
     await selectFile("image");
     await search();
     await screen.findByRole("heading", { name: "Матрица" });
-    expect(screen.getByText("Найден 1 фильм")).toBeInTheDocument();
-    expect(screen.queryByText("этот фильм")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Похоже, это этот фильм" })).toBeInTheDocument();
+    expect(screen.queryByText("Найден 1 фильм")).not.toBeInTheDocument();
   });
 
   it("video shows the selected file card and the single result layout", async () => {
@@ -376,9 +380,14 @@ describe("home search through the backend mock transport", () => {
   });
 
   it.each([
-    ["SEARCH_UNAVAILABLE", "Поиск временно недоступен. Попробуйте позже"],
-    ["SERVER_BUSY", "Сервис перегружен. Попробуйте позже"],
-    ["FILE_CORRUPTED", "Невозможно выполнить поиск по изображению: файл поврежден или не может быть обработан"],
+    ["SEARCH_UNAVAILABLE", "Мы уже разбираемся. Попробуй ещё раз через несколько минут - изображение сохранится"],
+    ["SERVER_BUSY", "Мы уже разбираемся. Попробуй ещё раз через несколько минут - изображение сохранится"],
+    ["NGINX_502", "Мы уже разбираемся. Попробуй ещё раз через несколько минут - изображение сохранится"],
+    ["FILE_REQUIRED", "Сначала добавь изображение: выбери файл или вставь его из буфера обмена."],
+    ["TOO_MANY_FILES", "Можно искать только по одному изображению. Выбери один файл."],
+    ["UNSUPPORTED_FORMAT", "Этот формат не подходит. Загрузи изображение в формате JPG, JPEG, PNG или WEBP."],
+    ["FILE_TOO_LARGE", "Файл больше 10 МБ. Уменьши изображение или выбери другое."],
+    ["FILE_CORRUPTED", "Не удалось открыть изображение — возможно, файл повреждён. Попробуй другой файл."],
   ] as const)("%s replaces the old result with a backend message and allows retry", async (scenario, message) => {
     const { storage, selectFile, search } = await setup();
     await selectFile("image");
@@ -396,6 +405,65 @@ describe("home search through the backend mock transport", () => {
     expect(screen.queryByText(message)).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["missing", "Сначала добавь изображение: выбери файл или вставь его из буфера обмена."],
+    ["multiple", "Можно искать только по одному изображению. Выбери один файл."],
+    ["format", "Этот формат не подходит. Загрузи изображение в формате JPG, JPEG, PNG или WEBP."],
+    ["large", "Файл больше 10 МБ. Уменьши изображение или выбери другое."],
+    ["corrupted", "Не удалось открыть изображение — возможно, файл повреждён. Попробуй другой файл."],
+  ] as const)(
+    "%s is rejected before sending, with the design message and preserved selection",
+    async (kind, message) => {
+      const { transport, search, user, scope } = await setup("found", true, {
+        decodingError: kind === "corrupted" ? new FileValidationError("Ошибка декодирования") : undefined,
+      });
+      await user.click(screen.getByRole("tab", { name: "Изображение" }));
+      const file = new File(["image"], kind === "format" ? "frame.gif" : "frame.png", {
+        type: kind === "format" ? "image/gif" : "image/png",
+      });
+      if (kind === "large") Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });
+      const files = kind === "missing" ? [] : kind === "multiple" ? [file, file] : [file];
+      fireEvent.drop(screen.getByRole("group", { name: "Загрузка: изображение" }), { dataTransfer: { files } });
+
+      await search();
+
+      expect(await screen.findByRole("heading", { name: "Не получилось начать поиск" })).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent(message);
+      expect(transport.mock.calls.filter(([request]) => request.path === "/search/image")).toHaveLength(0);
+      expect(scope.getState($$home.$$search.outputs.$image).files).toEqual(files);
+      expect(screen.getByRole("button", { name: "Начать поиск" })).toBeEnabled();
+
+      await search();
+      expect(screen.getByRole("alert")).toHaveTextContent(message);
+    },
+  );
+
+  it("503 retry button searches with the same file and removes the warning", async () => {
+    const { storage, selectFile, search, user, transport } = await setup("SEARCH_UNAVAILABLE");
+    const file = await selectFile("image");
+    await search();
+    expect(await screen.findByRole("heading", { name: "Поиск временно недоступен" })).toBeInTheDocument();
+    storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
+
+    await user.click(screen.getByRole("button", { name: "Повторить" }));
+
+    expect(await screen.findByRole("heading", { name: "Матрица" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const requests = transport.mock.calls.filter(([request]) => request.path === "/search/image");
+    expect(requests).toHaveLength(2);
+    expect((requests[1][0].body as FormData).get("file")).toBe(file);
+  });
+
+  it("image result opens the movie placeholder route", async () => {
+    const { scope, selectFile, search, user } = await setup();
+    await selectFile("image");
+    await search();
+    await user.click(await screen.findByRole("link", { name: "Открыть карточку фильма «Матрица»" }));
+
+    expect(scope.getState(router.$path)).toBe("/movies/603");
+    expect(scope.getState($$home.$$search.outputs.$image).files).toHaveLength(1);
+  });
+
   it("expired backend session opens login and removes the previous film", async () => {
     const { scope, storage, selectFile, search } = await setup();
     await selectFile("image");
@@ -409,6 +477,35 @@ describe("home search through the backend mock transport", () => {
     expect(storage.get(MOCK_STORAGE_KEYS.session)).toBeNull();
     expect(screen.queryByRole("heading", { name: "Матрица" })).not.toBeInTheDocument();
     expect(scope.getState($$home.$$search.outputs.$pending)).toBe(false);
+  });
+
+  it.each([
+    ["image", "Матрица"],
+    ["video", "Начало"],
+  ] as const)("%s search resumes once with the same file after signing in again", async (mode, title) => {
+    const { scope, storage, selectFile, search, transport } = await setup("SESSION_EXPIRED");
+    const file = await selectFile(mode);
+
+    await search();
+    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+    expect(scope.getState($$home.$$search.outputs.$pending)).toBe(false);
+
+    storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
+
+    expect(scope.getState(router.$path)).toBe("/");
+    expect(scope.getState($$home.$$search.outputs.$mode)).toBe(mode);
+    expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
+
+    const requests = transport.mock.calls.map(([request]) => request).filter(({ path }) => path.startsWith("/search/"));
+    expect(requests).toHaveLength(2);
+    for (const request of requests) {
+      expect(request.path).toBe(`/search/${mode}`);
+      expect((request.body as FormData).getAll("file")).toEqual([file]);
+    }
+
+    await allSettled($$session.inputs.sessionCheckRequested, { scope });
+    expect(transport.mock.calls.filter(([request]) => request.path.startsWith("/search/"))).toHaveLength(2);
   });
 
   it("guest who picks video and signs in returns to the video mode with text and file kept", async () => {

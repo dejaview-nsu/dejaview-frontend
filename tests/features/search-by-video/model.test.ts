@@ -60,6 +60,21 @@ const startSearch = async (context: ReturnType<typeof setup>) => {
 };
 
 describe("video search model", () => {
+  it.each(["cancel", "replace"] as const)("%s clears a video search waiting for login", async (action) => {
+    const context = setup();
+    const call = await startSearch(context);
+    call.resolve(jsonResponse(401, { code: "SESSION_EXPIRED", message: "Сессия истекла" }));
+    await allSettled(context.scope);
+    scopeBind(context.accessChanged, { scope: context.scope })(false);
+
+    if (action === "cancel") context.cancel();
+    else await context.select([video("replacement.mp4")]);
+
+    await allSettled(context.accessChanged, { scope: context.scope, params: true });
+    expect(context.controlled.calls).toHaveLength(1);
+    expect(context.scope.getState(context.model.outputs.$pending)).toBe(false);
+  });
+
   it("checks the file on selection without sending it", async () => {
     const { select, state, controlled, check } = setup();
     await select([video()]);

@@ -22,6 +22,7 @@ export const TextDescription = () => {
           id="film-description"
           className="block h-[120px] w-full resize-none border-[1.5px] border-border-default bg-input px-4 pt-3 pb-11 text-base leading-[1.55] text-ink outline-link placeholder:text-muted disabled:cursor-wait"
           value={text}
+          maxLength={250}
           disabled={pending}
           onChange={(event) => changeText(event.currentTarget.value)}
           placeholder="Например: солдат в окопе, за кадром играет скрипка"

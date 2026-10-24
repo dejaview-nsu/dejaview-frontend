@@ -3,6 +3,7 @@ import { useUnit } from "effector-react";
 import { MovieCard } from "@/entities/movie";
 
 import { movieSearchModelView, useMovieSearchModel } from "../model";
+import { ImageSearchResult } from "./image-search-result";
 import { SearchStatus } from "./search-status";
 import { VideoSearchOutput } from "./video-search-output";
 
@@ -29,6 +30,8 @@ const ResultsView = ({ fileInputId }: { fileInputId: string }) => {
         <VideoSearchOutput fileInputId={fileInputId} />
       ) : pending || error || isEmpty ? (
         <SearchStatus />
+      ) : mode === "image" && results?.[0] ? (
+        <ImageSearchResult movie={results[0]} />
       ) : (
         <>
           <div className="mx-auto mb-7 max-w-content border-b-2 border-border-strong pb-6 md:mb-12">
