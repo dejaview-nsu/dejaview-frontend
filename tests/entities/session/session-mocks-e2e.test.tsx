@@ -5,7 +5,7 @@ import { allSettled, scopeBind } from "effector";
 import { Provider } from "effector-react";
 import { describe, expect, it } from "vitest";
 
-import { $$login, $$loginRoute } from "@/pages/login/model";
+import { $$loginRoute } from "@/pages/login/model";
 import { $$profile } from "@/pages/profile/model";
 import { $$register } from "@/pages/register/model";
 
@@ -32,7 +32,7 @@ describe("session on mock transport", () => {
     expect(scope.getState(router.$query)).toEqual({ redirect: "/profile" });
     expect(scope.getState($$loginRoute.outputs.readyRoute.$isOpened)).toBe(true);
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
     expect(scope.getState($$session.outputs.$user)?.username).toBe("movie_fan_42");
@@ -81,7 +81,10 @@ describe("session on mock transport", () => {
     const storage = createTestMockStorage();
     const first = await setupMockApiScope({ initialEntry: "/login", storage });
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope: first.scope });
+    await allSettled($$session.inputs.signedIn, {
+      scope: first.scope,
+      params: { login: "movie_fan_42", password: "Kino#2026" },
+    });
     expect(first.scope.getState($$session.outputs.$status)).toBe("authenticated");
 
     const reloaded = await setupMockApiScope({ initialEntry: "/profile", storage });
@@ -103,8 +106,8 @@ describe("session on mock transport", () => {
     await allSettled(scope);
 
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
-    expect(scope.getState(router.$path)).toBe("/login");
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/about" });
+    expect(scope.getState(router.$path)).toBe("/about");
+    expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/about");
     expect(scope.getState($$search.outputs.$error)).toBeNull();
 
     const reloaded = await setupMockApiScope({ storage });

@@ -77,7 +77,7 @@ export const createOidcLinkFactory = createFactory(() => {
   sample({
     clock: loginFailed,
     filter: (error) => error.code !== "AUTH_OIDC_EXPIRED",
-    fn: getLoginErrorMessages,
+    fn: (error) => getLoginErrorMessages(error),
     target: $serverMessages,
   });
 

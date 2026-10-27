@@ -11,9 +11,10 @@ import { BrandLogo } from "./brand-logo";
 import { UserMenu, userMenuItemStyle, userMenuPopoverStyle, userMenuTriggerStyle } from "./user-menu";
 
 export const HomeHeader = ({ showGuestActions = true }: { showGuestActions?: boolean }) => {
-  const { status, openRegister } = useUnit({
+  const { status, openRegister, openLogin } = useUnit({
     status: $$session.outputs.$status,
     openRegister: routes.register.open,
+    openLogin: $$session.inputs.loginPressed,
   });
 
   return (
@@ -27,12 +28,12 @@ export const HomeHeader = ({ showGuestActions = true }: { showGuestActions?: boo
         </Link>
         {showGuestActions && status === "guest" && (
           <div className="flex items-center gap-4 md:gap-5">
-            <Link
-              to={routes.login}
+            <Button
+              onPress={() => openLogin()}
               className="flex min-h-11 items-center font-label text-[15px] leading-none font-semibold tracking-widest uppercase outline-link hover:text-brand-gold"
             >
               Войти
-            </Link>
+            </Button>
             <Link
               to={routes.register}
               className="hidden h-12 items-center border-2 border-brand-gold px-6 font-label text-[15px] leading-none font-semibold tracking-widest text-brand-gold uppercase outline-link hover:bg-brand-brown md:inline-flex"

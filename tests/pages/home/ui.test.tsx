@@ -5,9 +5,11 @@ import { Provider } from "effector-react";
 import { describe, expect, it } from "vitest";
 
 import { $$home, HomePage } from "@/pages/home";
-import { $$login } from "@/pages/login/model";
+import "@/pages/login/model";
 
 import { BaseLayout } from "@/layouts/base";
+
+import { $$session } from "@/entities/session";
 
 import { router } from "@/shared/routes";
 
@@ -28,9 +30,9 @@ describe("search page UI", () => {
     await user.type(screen.getByLabelText("Опиши, что помнишь о фильме"), "Сцена из фильма");
     expect(screen.getByRole("button", { name: "Начать поиск" })).toBeEnabled();
     await user.click(screen.getByRole("tab", { name: /Изображение/ }));
-    expect(scope.getState(router.$path)).toBe("/login");
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/?mode=image" });
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    expect(scope.getState(router.$path)).toBe("/");
+    expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/?mode=image");
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
     expect(scope.getState(router.$path)).toBe("/");
     expect(scope.getState($$home.$$search.outputs.$text)).toBe("Сцена из фильма");
   });
@@ -72,7 +74,7 @@ describe("search page UI", () => {
     expect(screen.getByRole("menuitem", { name: /Выйти/ })).toHaveFocus();
     await user.keyboard("{Enter}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Войти" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Войти" })).toBeInTheDocument();
   });
   it("only selected input is visible; drafts survive mode switches", async () => {
     const { scope } = await setupSessionScope({ authenticated: true });

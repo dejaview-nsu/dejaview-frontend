@@ -13,7 +13,10 @@ export const CONFIRMATION_MESSAGES = {
 } as const;
 
 export const LOGIN_MESSAGES = {
+  loginRequired: "Введите имя пользователя или email",
+  loginInvalid: "Введите корректные имя пользователя или email",
   passwordRequired: "Введите пароль",
+  invalidUsernameCredentials: "Неверные имя пользователя или пароль",
   invalidEmailCredentials: "Неверные email или пароль",
   emailNotConfirmed: "Email не подтверждён. Проверьте почту или запросите новую ссылку",
   sendNewLink: CONFIRMATION_MESSAGES.sendNewLink,

@@ -1,4 +1,4 @@
-import { concurrency, createMutation } from "@farfetched/core";
+import { createMutation } from "@farfetched/core";
 
 import { type AuthResendConfirmationRequest, callApi, zAuthConfirmationSent } from "@/shared/api";
 
@@ -14,8 +14,6 @@ export const createResendConfirmationApi = () => {
         onUnauthorized: "guest",
       }),
   });
-
-  concurrency(resendMutation, { strategy: "TAKE_FIRST" });
 
   return { resendMutation };
 };
