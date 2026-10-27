@@ -16,8 +16,9 @@ export const userMenuPopoverStyle =
   "z-50 border-2 border-border-strong bg-card p-3.5 font-body text-ink shadow-hard-lg";
 
 export const UserMenu = ({ className }: { className?: string }) => {
-  const { user, signOut, openProfile } = useUnit({
+  const { user, isSigningOut, signOut, openProfile } = useUnit({
     user: $$session.outputs.$user,
+    isSigningOut: $$session.outputs.$isSigningOut,
     signOut: $$session.inputs.signedOut,
     openProfile: routes.profile.open,
   });
@@ -29,7 +30,9 @@ export const UserMenu = ({ className }: { className?: string }) => {
     <MenuTrigger>
       <Button
         aria-label={`Меню пользователя ${username}`}
-        className={cn(userMenuTriggerStyle, "group min-w-0", className)}
+        aria-busy={isSigningOut}
+        isDisabled={isSigningOut}
+        className={cn(userMenuTriggerStyle, "group min-w-0 disabled:cursor-wait disabled:opacity-60", className)}
       >
         <span
           aria-hidden="true"
@@ -37,7 +40,9 @@ export const UserMenu = ({ className }: { className?: string }) => {
         >
           {initials}
         </span>
-        <span className="max-w-24 truncate font-body text-sm font-normal md:max-w-48 md:text-base">{username}</span>
+        <span className="max-w-24 truncate font-body text-sm font-normal md:max-w-48 md:text-base">
+          {isSigningOut ? "Выходим…" : username}
+        </span>
         <ChevronDown
           size={18}
           strokeWidth={1.75}
