@@ -5,12 +5,19 @@ import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-compone
 
 import { $$session } from "@/entities/session";
 
+import { cn } from "@/shared/lib/cn";
 import { routes } from "@/shared/routes";
 
 import { BrandLogo } from "./brand-logo";
 import { UserMenu, userMenuItemStyle, userMenuPopoverStyle, userMenuTriggerStyle } from "./user-menu";
 
-export const HomeHeader = ({ showGuestActions = true }: { showGuestActions?: boolean }) => {
+export const HomeHeader = ({
+  showGuestActions = true,
+  loginPage = false,
+}: {
+  showGuestActions?: boolean;
+  loginPage?: boolean;
+}) => {
   const { status, openRegister, openLogin } = useUnit({
     status: $$session.outputs.$status,
     openRegister: routes.register.open,
@@ -18,7 +25,12 @@ export const HomeHeader = ({ showGuestActions = true }: { showGuestActions?: boo
   });
 
   return (
-    <header className="relative z-20 h-14 border-b border-on-dark/40 bg-header px-4 text-on-dark md:h-[72px] md:px-12">
+    <header
+      className={cn(
+        "relative z-20 h-14 bg-header text-on-dark md:h-[72px] md:px-12",
+        loginPage ? "px-2.5 md:border-b md:border-on-dark/40" : "border-b border-on-dark/40 px-4",
+      )}
+    >
       <nav
         aria-label="Главная навигация"
         className="mx-auto flex h-full w-full max-w-results items-center justify-between gap-4"

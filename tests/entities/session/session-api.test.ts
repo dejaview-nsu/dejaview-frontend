@@ -255,7 +255,8 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
+    scopeBind($$session.inputs.signedIn, { scope })(credentials);
+    await vi.waitFor(() => expect(scope.getState($$session.outputs.$loginError)).not.toBeNull());
 
     const error = scope.getState($$session.outputs.$loginError);
 
@@ -265,6 +266,7 @@ describe("login errors", () => {
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
     expect(scope.getState(router.$path)).toBe("/login");
     expect(required).not.toHaveBeenCalled();
+    await allSettled(routes.about.open, { scope, params: {} });
   });
 
   it("AUTH_LOGIN_LOCKED is not a general rate limit", async () => {
@@ -281,12 +283,14 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
+    scopeBind($$session.inputs.signedIn, { scope })(credentials);
+    await vi.waitFor(() => expect(scope.getState($$session.outputs.$loginError)).not.toBeNull());
 
     const error = scope.getState($$session.outputs.$loginError);
 
     expect(isLoginLockedError(error)).toBe(true);
     expect(isRateLimitError(error)).toBe(false);
+    await allSettled(routes.about.open, { scope, params: {} });
   });
 
   it("second signedIn while signing in is ignored", async () => {

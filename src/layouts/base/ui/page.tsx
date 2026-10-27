@@ -73,7 +73,11 @@ const $isAuthPage = combine(
 );
 
 export const BaseLayout = ({ children }: { children: ReactNode }) => {
-  const { isBrandShell, isAuthPage } = useUnit({ isBrandShell: $isBrandShell, isAuthPage: $isAuthPage });
+  const { isBrandShell, isAuthPage, loginPage } = useUnit({
+    isBrandShell: $isBrandShell,
+    isAuthPage: $isAuthPage,
+    loginPage: routes.login.$isOpened,
+  });
 
   return (
     <div
@@ -96,10 +100,10 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
           />
         </>
       )}
-      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} /> : <StandardHeader />}
+      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} loginPage={loginPage} /> : <StandardHeader />}
       <NotificationBanner />
       <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
-      {isBrandShell && <HomeFooter />}
+      {isBrandShell && <HomeFooter mobileHidden={loginPage} />}
       <LoginDialog />
     </div>
   );

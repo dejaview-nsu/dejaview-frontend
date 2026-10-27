@@ -45,7 +45,7 @@ describe("login form UI", () => {
     await user.click(screen.getByRole("button", { name: "Войти" }));
     expect(screen.getByText("Введите имя пользователя или email")).toBeInTheDocument();
     expect(screen.getByText("Введите пароль")).toBeInTheDocument();
-    expect(screen.getByLabelText("Имя пользователя или Email")).toHaveFocus();
+    await waitFor(() => expect(screen.getByLabelText("Имя пользователя или Email")).toHaveFocus());
 
     await user.type(screen.getByLabelText("Имя пользователя или Email"), "невалидный логин");
     await user.tab();
@@ -92,6 +92,19 @@ describe("login form UI", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Письмо отправлено");
     expect(resend).toBeDisabled();
     expect(screen.getByText(/Можно отправить ещё раз через/)).toBeInTheDocument();
+  });
+
+  it("disables the password form during a server lock", async () => {
+    const { user } = await setup("/login", "login_locked");
+    await user.type(screen.getByLabelText("Имя пользователя или Email"), "movie_fan_42");
+    await user.type(screen.getByLabelText("Пароль", { selector: "input" }), "Kino#2026");
+    await user.click(screen.getByRole("button", { name: "Войти" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Слишком много попыток входа");
+    expect(screen.getByLabelText("Имя пользователя или Email")).toBeDisabled();
+    expect(screen.getByLabelText("Пароль", { selector: "input" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Показать пароль" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Войти" })).toBeDisabled();
   });
 
   it("the header opens a dismissable dialog and restores focus", async () => {

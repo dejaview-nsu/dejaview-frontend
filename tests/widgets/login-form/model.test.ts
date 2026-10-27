@@ -86,7 +86,6 @@ describe("login form model", () => {
     [400, "AUTH_INVALID_CREDENTIALS", "movie_fan_42", "Неверные имя пользователя или пароль"],
     [400, "AUTH_INVALID_CREDENTIALS", "fan@example.test", "Неверные email или пароль"],
     [403, "AUTH_ACCOUNT_BLOCKED", "movie_fan_42", "Ваша учётная запись заблокирована. Обратитесь в службу поддержки"],
-    [429, "AUTH_LOGIN_LOCKED", "movie_fan_42", "Слишком много попыток входа. Повторите через 14 минут"],
     [500, "INTERNAL_ERROR", "movie_fan_42", "Произошла ошибка. Попробуйте позже"],
   ])("%s %s clears only the password and permits retry", async (status, code, login, message) => {
     const { form, scope, transport, fill, submit } = await setup();
@@ -115,6 +114,69 @@ describe("login form model", () => {
     transport.current().reject(new TransportError("network"));
     await allSettled(scope);
     expect(scope.getState(form.outputs.$messages)[0]).toContain("Проверьте подключение");
+  });
+
+  it("disables editing and requests until Retry-After expires, then permits retry", async () => {
+    const { form, scope, transport, fill, submit, activeChanged } = await setup();
+    vi.useFakeTimers();
+    try {
+      await fill();
+      submit();
+      await transport.waitForCalls(2);
+      transport
+        .current()
+        .resolve(jsonResponse(429, { code: "AUTH_LOGIN_LOCKED", message: "Заблокировано" }, { "Retry-After": "61" }));
+      await vi.waitFor(() => expect(scope.getState(form.outputs.$locked)).toBe(true));
+      expect(scope.getState(form.outputs.$messages)).toEqual(["Слишком много попыток входа. Повторите через 2 минут"]);
+      scopeBind(form.inputs.fieldChanged, { scope })({ field: "login", value: "changed_user" });
+      scopeBind(form.inputs.fieldChanged, { scope })({ field: "password", value: "changed password" });
+      submit();
+      expect(transport.calls).toHaveLength(2);
+      expect(scope.getState(form.outputs.$values)).toEqual({ login: "movie_fan_42", password: "" });
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(scope.getState(form.outputs.$messages)).toEqual(["Слишком много попыток входа. Повторите через 1 минут"]);
+      await vi.advanceTimersByTimeAsync(60000);
+      expect(scope.getState(form.outputs.$locked)).toBe(false);
+      expect(scope.getState(form.outputs.$messages)).toEqual([]);
+      await fill();
+      submit();
+      await transport.waitForCalls(3);
+      scopeBind(activeChanged, { scope })(false);
+      await allSettled(scope);
+    } finally {
+      scopeBind(activeChanged, { scope })(false);
+      vi.useRealTimers();
+    }
+  });
+
+  it("closing resets a lock timer and stale ticks cannot affect a new attempt", async () => {
+    const { form, scope, transport, fill, submit, activeChanged } = await setup();
+    vi.useFakeTimers();
+    try {
+      await fill();
+      submit();
+      await transport.waitForCalls(2);
+      transport
+        .current()
+        .resolve(jsonResponse(429, { code: "AUTH_LOGIN_LOCKED", message: "Заблокировано" }, { "Retry-After": "900" }));
+      await vi.waitFor(() => expect(scope.getState(form.outputs.$locked)).toBe(true));
+      scopeBind(activeChanged, { scope })(false);
+      expect(scope.getState(form.outputs.$locked)).toBe(false);
+      expect(scope.getState(form.outputs.$messages)).toEqual([]);
+      scopeBind(activeChanged, { scope })(true);
+      await fill();
+      submit();
+      await transport.waitForCalls(3);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(scope.getState(form.outputs.$locked)).toBe(false);
+      expect(scope.getState(form.outputs.$pending)).toBe(true);
+      scopeBind(activeChanged, { scope })(false);
+      await allSettled(scope);
+    } finally {
+      scopeBind(activeChanged, { scope })(false);
+      vi.useRealTimers();
+    }
   });
 
   it.each(["login", "session"] as const)(

@@ -1,6 +1,6 @@
 import { createFactory, invoke } from "@withease/factories";
 import { combine, createEvent, createStore, sample, type Store } from "effector";
-import { readonly } from "patronum";
+import { interval, readonly } from "patronum";
 
 import { createResendConfirmationFactory } from "@/features/resend-confirmation";
 
@@ -26,6 +26,8 @@ export const createLoginFormFactory = createFactory(
     const reset = createEvent();
     const loginFailed = createEvent<ApiError>();
     const focusRequested = createEvent<LoginField>();
+    const lockStarted = createEvent();
+    const lockStopped = createEvent();
 
     const $values = createStore<LoginValues>(emptyLoginValues);
     const $checked = createStore<LoginField[]>([]);
@@ -33,22 +35,33 @@ export const createLoginFormFactory = createFactory(
     const $submittedLogin = createStore("");
     const $confirmationSent = createStore(false);
     const $focusRequest = createStore<{ field: LoginField; id: number } | null>(null);
+    const $lockSeconds = createStore(0);
+
+    const { tick: lockTick } = interval({ timeout: 1000, start: lockStarted, stop: lockStopped });
 
     const $pending = session.outputs.$isSigningIn;
+    const $lockMinutes = $lockSeconds.map((seconds) => Math.ceil(seconds / 60));
     const $clientErrors = $values.map(validateLoginForm);
     const $errors = combine($clientErrors, $checked, (errors, checked): LoginErrors => ({
       login: checked.includes("login") ? errors.login : null,
       password: checked.includes("password") ? errors.password : null,
     }));
-    const $messages = combine($serverError, $submittedLogin, (error, login) =>
-      error ? getLoginErrorMessages(error, login) : [],
+    const $messages = combine($serverError, $submittedLogin, $lockMinutes, (error, login, minutes) =>
+      error
+        ? getLoginErrorMessages(
+            error.code === "AUTH_LOGIN_LOCKED" && minutes > 0 ? { ...error, retryAfter: minutes * 60 } : error,
+            login,
+          )
+        : [],
     );
     const $emailNotConfirmed = $serverError.map((error) => error?.code === "AUTH_EMAIL_NOT_CONFIRMED");
+    const $locked = $lockSeconds.map((seconds) => seconds > 0);
+    const $accountBlocked = $serverError.map((error) => error?.code === "AUTH_ACCOUNT_BLOCKED");
 
     const validated = sample({
       clock: submitted,
-      source: { values: $values, active: $active, pending: $pending },
-      filter: ({ active, pending }) => active && !pending,
+      source: { values: $values, active: $active, pending: $pending, locked: $locked },
+      filter: ({ active, pending, locked }) => active && !pending && !locked,
       fn: ({ values }) => ({ values, errors: validateLoginForm(values) }),
     });
 
@@ -60,8 +73,8 @@ export const createLoginFormFactory = createFactory(
 
     sample({
       clock: fieldChanged,
-      source: { values: $values, pending: $pending },
-      filter: ({ pending }) => !pending,
+      source: { values: $values, pending: $pending, locked: $locked },
+      filter: ({ pending, locked }) => !pending && !locked,
       fn: ({ values }, { field, value }) => ({ ...values, [field]: value }),
       target: $values,
     });
@@ -102,6 +115,27 @@ export const createLoginFormFactory = createFactory(
     });
 
     sample({ clock: loginFailed, target: $serverError });
+
+    sample({
+      clock: loginFailed,
+      filter: (error) => error.code === "AUTH_LOGIN_LOCKED",
+      fn: (error) => Math.max(0, error.retryAfter ?? 0),
+      target: $lockSeconds,
+    });
+
+    sample({ clock: $lockSeconds, filter: (seconds) => seconds > 0, target: lockStarted });
+
+    sample({ clock: lockTick, source: $lockSeconds, fn: (seconds) => Math.max(0, seconds - 1), target: $lockSeconds });
+
+    sample({ clock: $lockSeconds, filter: (seconds) => seconds === 0, target: lockStopped });
+
+    sample({
+      clock: lockStopped,
+      source: $serverError,
+      filter: (error) => error?.code === "AUTH_LOGIN_LOCKED",
+      fn: () => null,
+      target: $serverError,
+    });
 
     sample({ clock: loginFailed, source: $values, fn: (values) => ({ ...values, password: "" }), target: $values });
 
@@ -145,6 +179,10 @@ export const createLoginFormFactory = createFactory(
 
     sample({ clock: reset, fn: () => false, target: $confirmationSent });
 
+    sample({ clock: reset, fn: () => 0, target: $lockSeconds });
+
+    sample({ clock: reset, target: lockStopped });
+
     return {
       inputs: { fieldChanged, fieldBlurred, submitted, reset },
       outputs: {
@@ -154,6 +192,8 @@ export const createLoginFormFactory = createFactory(
         $messages,
         $pending,
         $emailNotConfirmed,
+        $locked,
+        $accountBlocked,
         $confirmationSent: readonly($confirmationSent),
         $focusRequest: readonly($focusRequest),
       },
