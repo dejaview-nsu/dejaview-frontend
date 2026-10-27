@@ -18,7 +18,7 @@ export const DEFAULT_MOCK_DELAYS: MockDelays = {
   uploadTickMs: 100,
   minUploadMs: 1500,
   uploadBytesPerSecond: 2 * 1024 * 1024,
-  processingMs: { image: 3000, video: 5000 },
+  processingMs: { image: 3000, video: 5000, audio: 3000 },
 };
 
 export const NO_MOCK_DELAYS: MockDelays = {
@@ -27,7 +27,7 @@ export const NO_MOCK_DELAYS: MockDelays = {
   uploadTickMs: 0,
   minUploadMs: 0,
   uploadBytesPerSecond: Number.POSITIVE_INFINITY,
-  processingMs: { image: 0, video: 0 },
+  processingMs: { image: 0, video: 0, audio: 0 },
 };
 
 export type MockContext = {

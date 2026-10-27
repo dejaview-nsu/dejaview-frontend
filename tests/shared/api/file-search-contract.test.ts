@@ -17,7 +17,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe.each(["image", "video"] as const)("%s search API contract", (mode) => {
+describe.each(["image", "video", "audio"] as const)("%s search API contract", (mode) => {
   const { path, responses } = contract[mode];
 
   it.each(responses)("handles $status $name through the HTTP transport", async (example) => {
@@ -25,7 +25,7 @@ describe.each(["image", "video"] as const)("%s search API contract", (mode) => {
     const scope = fork({ handlers: [[transportFx, xhrTransport]] });
     const requireLogin = vi.fn();
     createWatch({ unit: sessionRequired, scope, fn: requireLogin });
-    const file = new File(["media"], mode === "image" ? "frame.jpg" : "scene.mp4", {
+    const file = new File(["media"], { image: "frame.jpg", video: "scene.mp4", audio: "clip.mp3" }[mode], {
       type: contract[mode].mimeTypes[0],
     });
 

@@ -16,6 +16,7 @@ export const zError = z.object({
  * - `FILE_TOO_LARGE` - файл больше лимита режима.
  * - `UNSUPPORTED_FORMAT` - формат файла не из списка режима.
  * - `VIDEO_TOO_LONG` - видео длиннее 30 с.
+ * - `AUDIO_TOO_LONG` - аудио длиннее 10 с.
  * - `FILE_CORRUPTED` - файл поврежден или не декодируется.
  * - `QUERY_EMPTY`, `QUERY_TOO_SHORT`, `QUERY_TOO_LONG`, `QUERY_NOT_ALLOWED` - ошибки текстового запроса.
  * - `SEARCH_UNAVAILABLE` - ML-сервис недоступен или не ответил в таймаут.
@@ -28,6 +29,7 @@ export const zSearchErrorCode = z.enum([
     'FILE_TOO_LARGE',
     'UNSUPPORTED_FORMAT',
     'VIDEO_TOO_LONG',
+    'AUDIO_TOO_LONG',
     'FILE_CORRUPTED',
     'QUERY_EMPTY',
     'QUERY_TOO_SHORT',
@@ -49,6 +51,10 @@ export const zSearchImageRequest = z.object({
 });
 
 export const zSearchVideoRequest = z.object({
+    file: z.string()
+});
+
+export const zSearchAudioRequest = z.object({
     file: z.string()
 });
 
@@ -308,6 +314,13 @@ export const zSearchByVideoBody = zSearchVideoRequest;
  * Поиск выполнен. Пустой `results` - релевантный фильм не найден (#17154 п. 7.1): это не ошибка, frontend показывает сообщение об отсутствии результата.
  */
 export const zSearchByVideoResponse = zSearchResponse;
+
+export const zSearchByAudioBody = zSearchAudioRequest;
+
+/**
+ * Поиск выполнен. Пустой `results` - релевантный фильм не найден (#17155 п. 7.1): это не ошибка, frontend показывает сообщение об отсутствии результата.
+ */
+export const zSearchByAudioResponse = zSearchResponse;
 
 export const zSearchByTextBody = zSearchTextRequest;
 

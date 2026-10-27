@@ -1,4 +1,4 @@
-import { CircleCheck, FolderUp, Image, RefreshCcw, Trash, Video, X } from "lucide-react";
+import { CircleCheck, FolderUp, Image, Music, RefreshCcw, Trash, Video, X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "../../lib/cn";
@@ -20,6 +20,7 @@ type FileUploadProps = {
   prompt?: ReactNode;
   hint?: ReactNode;
   renderSelected?: (files: readonly File[], openPicker: () => void) => ReactNode;
+  renderContent?: (openPicker: () => void) => ReactNode;
   inputId?: string;
 };
 
@@ -37,14 +38,15 @@ export const FileUpload = ({
   prompt,
   hint,
   renderSelected,
+  renderContent,
   inputId,
 }: FileUploadProps) => {
   const input = useRef<HTMLInputElement>(null);
   const hintId = useId();
   const [isDragging, setIsDragging] = useState(false);
   const isImage = constraints.kind === "image";
-  const label = isImage ? "изображение" : "видеофрагмент";
-  const Icon = isImage ? Image : Video;
+  const label = { image: "изображение", video: "видеофрагмент", audio: "аудиофрагмент" }[constraints.kind];
+  const Icon = { image: Image, video: Video, audio: Music }[constraints.kind];
   const isCustomSelection = renderSelected !== undefined && files.length > 0;
   const selectedImage = !isCustomSelection && appearance === "brand" && isImage && files.length > 0;
   const openPicker = () => input.current?.click();
@@ -65,17 +67,20 @@ export const FileUpload = ({
     <div>
       <div
         className={cn(
-          isCustomSelection
-            ? "border-2 border-border-strong bg-input text-ink"
-            : [
-                "flex flex-col items-center justify-center border-2 text-center",
-                appearance === "brand"
-                  ? "border-border-default bg-input text-ink"
-                  : "rounded-xl border-border-base bg-surface-page",
-              ],
+          renderContent
+            ? "group text-ink"
+            : isCustomSelection
+              ? "border-2 border-border-strong bg-input text-ink"
+              : [
+                  "flex flex-col items-center justify-center border-2 text-center",
+                  appearance === "brand"
+                    ? "border-border-default bg-input text-ink"
+                    : "rounded-xl border-border-base bg-surface-page",
+                ],
           isDragging && !isDisabled && "border-link bg-hover",
           isDisabled && "cursor-wait",
-          !isCustomSelection &&
+          !renderContent &&
+            !isCustomSelection &&
             (selectedImage
               ? "gap-4 border-solid border-border-strong p-4 md:flex-row md:gap-6 md:p-5"
               : "min-h-[220px] gap-3 border-dashed p-2.5 md:p-6"),
@@ -97,8 +102,9 @@ export const FileUpload = ({
           if (!isDisabled) onFilesSelected(Array.from(event.dataTransfer.files));
         }}
         role="group"
+        data-dragging={isDragging && !isDisabled}
         aria-label={`Загрузка: ${label}`}
-        aria-describedby={isCustomSelection ? undefined : hintId}
+        aria-describedby={renderContent || isCustomSelection ? undefined : hintId}
       >
         <input
           ref={input}
@@ -115,7 +121,9 @@ export const FileUpload = ({
             event.currentTarget.value = "";
           }}
         />
-        {isCustomSelection ? (
+        {renderContent ? (
+          renderContent(openPicker)
+        ) : isCustomSelection ? (
           renderSelected(files, openPicker)
         ) : (
           <>

@@ -2,7 +2,7 @@ export type FileConstraints = {
   extensions: readonly string[];
   mimeTypes: readonly string[];
   maxBytes: number;
-  kind: "image" | "video";
+  kind: "image" | "video" | "audio";
   maxDurationSeconds?: number;
 };
 

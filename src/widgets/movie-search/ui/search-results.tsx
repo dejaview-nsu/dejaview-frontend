@@ -5,6 +5,7 @@ import { textSearchTexts } from "@/features/search-by-description";
 import { MovieCard } from "@/entities/movie";
 
 import { movieSearchModelView, useMovieSearchModel } from "../model";
+import { AudioSearchOutput } from "./audio-search-output";
 import { ImageSearchResult } from "./image-search-result";
 import { SearchStatus } from "./search-status";
 import { VideoSearchOutput } from "./video-search-output";
@@ -28,7 +29,9 @@ const ResultsView = ({ fileInputId }: { fileInputId: string }) => {
   if (!hasSearchOutput) return null;
   return (
     <section aria-label="Результаты поиска" aria-busy={pending} className="mx-auto mt-12 w-full max-w-results md:mt-16">
-      {mode === "video" ? (
+      {mode === "audio" ? (
+        <AudioSearchOutput fileInputId={fileInputId} />
+      ) : mode === "video" ? (
         <VideoSearchOutput fileInputId={fileInputId} />
       ) : pending || error || isEmpty ? (
         <SearchStatus />

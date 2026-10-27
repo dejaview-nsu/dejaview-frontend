@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { $$home, HomePage } from "@/pages/home";
 import "@/pages/login/model";
 
+import { checkAudio } from "@/features/search-by-audio";
 import { fileConstraints } from "@/features/search-by-file";
 import { checkVideo } from "@/features/search-by-video";
 
@@ -25,12 +26,13 @@ import { userEventSetup } from "../../test-utils";
 
 type SearchMode = "text" | FileSearchMode;
 
-const TAB_NAMES: Record<SearchMode, string> = { text: "Текст", image: "Изображение", video: "Видео" };
+const TAB_NAMES: Record<SearchMode, string> = { text: "Текст", image: "Изображение", video: "Видео", audio: "Аудио" };
 
 const INPUT_LABELS: Record<SearchMode, string> = {
   text: "Опиши, что помнишь о фильме",
   image: "Выберите изображение",
   video: "Выберите видеофрагмент",
+  audio: "Выберите аудиофрагмент",
 };
 
 const setup = async (
@@ -41,7 +43,14 @@ const setup = async (
     holdVideo = false,
     holdMode = null,
     decodingError,
-  }: { durationSeconds?: number; holdVideo?: boolean; holdMode?: SearchMode | null; decodingError?: Error } = {},
+    recordingError,
+  }: {
+    durationSeconds?: number;
+    holdVideo?: boolean;
+    holdMode?: SearchMode | null;
+    decodingError?: Error;
+    recordingError?: Error;
+  } = {},
 ) => {
   const storage = createTestMockStorage();
   if (authenticated) storage.set(MOCK_STORAGE_KEYS.session, "authenticated");
@@ -53,10 +62,25 @@ const setup = async (
       ? held.transport(request)
       : mock(request),
   );
-  const { $$imageSearch, $$videoSearch } = $$home.$$search.__;
+  const recordingCancel = vi.fn();
+  const { $$imageSearch, $$videoSearch, $$audioSearch } = $$home.$$search.__;
   const scope = fork({
     handlers: [
       [transportFx, transport],
+      [$$audioSearch.__.checkFx, ({ files }: { files: File[] }) => checkAudio(files, async () => 5)],
+      [
+        $$audioSearch.__.$$recording.__.startFx,
+        async (call: EffectParams<typeof $$audioSearch.__.$$recording.__.startFx>) => {
+          if (recordingError) throw recordingError;
+          return {
+            ...call,
+            recorder: {
+              cancel: recordingCancel,
+              stop: async () => new File(["wav"], "Запись с микрофона.wav", { type: "audio/wav" }),
+            },
+          };
+        },
+      ],
       // jsdom cannot decode media; only browser decoding is replaced, the API flow stays real.
       [
         $$imageSearch.__.validateFx,
@@ -83,16 +107,18 @@ const setup = async (
   );
   const user = userEventSetup();
   const selectFile = async (mode: FileSearchMode) => {
-    const image = mode === "image";
-    const file = new File([mode], image ? "frame.png" : "scene.mp4", {
-      type: image ? "image/png" : "video/mp4",
-    });
-    await user.click(screen.getByRole("tab", { name: image ? "Изображение" : "Видео" }));
-    await user.upload(screen.getByLabelText(image ? "Выберите изображение" : "Выберите видеофрагмент"), file);
+    const media = {
+      image: ["frame.png", "image/png"],
+      video: ["scene.mp4", "video/mp4"],
+      audio: ["clip.mp3", "audio/mpeg"],
+    }[mode];
+    const file = new File([mode], media[0], { type: media[1] });
+    await user.click(screen.getByRole("tab", { name: TAB_NAMES[mode] }));
+    await user.upload(screen.getByLabelText(INPUT_LABELS[mode]), file);
     return file;
   };
   const search = () => user.click(screen.getByRole("button", { name: "Начать поиск" }));
-  return { scope, storage, transport, held, selectFile, search, user };
+  return { scope, storage, transport, held, selectFile, search, user, recordingCancel };
 };
 
 describe("home search through the backend mock transport", () => {
@@ -151,6 +177,7 @@ describe("home search through the backend mock transport", () => {
   it.each([
     ["image", "Матрица", 603, "Открыть карточку фильма «Матрица»"],
     ["video", "Начало", 27205, "Открыть карточку фильма"],
+    ["audio", "Интерстеллар", 157336, "Открыть карточку фильма «Интерстеллар»"],
   ] as const)("%s sends one multipart file and renders the contract response", async (mode, title, movieId, link) => {
     const { transport, selectFile, search } = await setup();
     const file = await selectFile(mode);
@@ -171,6 +198,8 @@ describe("home search through the backend mock transport", () => {
     ["text", "image"],
     ["image", "video"],
     ["video", "text"],
+    ["audio", "image"],
+    ["image", "audio"],
   ] as const)(
     "a running %s search does not show up or block the %s mode when every mode has data",
     async (running, other) => {
@@ -178,6 +207,7 @@ describe("home search through the backend mock transport", () => {
       await user.type(screen.getByLabelText(INPUT_LABELS.text), "Хакер выбирает таблетку");
       await selectFile("image");
       await selectFile("video");
+      await selectFile("audio");
       await user.click(screen.getByRole("tab", { name: TAB_NAMES[running] }));
       await search();
       await held.waitForCalls(1);
@@ -196,6 +226,77 @@ describe("home search through the backend mock transport", () => {
 
       await user.click(screen.getByRole("tab", { name: TAB_NAMES[running] }));
       expect(screen.getByRole("button", { name: "Поиск выполняется" })).toBeDisabled();
+    },
+  );
+
+  it("audio records a fragment, offers playback and sends WAV", async () => {
+    const { user, search, transport } = await setup();
+    await user.click(screen.getByRole("tab", { name: "Аудио" }));
+    expect(screen.getByText(/MP3, WAV, OGG или M4A · до 20 МБ · до 10 секунд/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Записать с микрофона" }));
+    expect(await screen.findByText(/Идёт запись/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Начать поиск" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Остановить запись" }));
+    expect(await screen.findByLabelText("Прослушать Запись с микрофона.wav")).toBeInTheDocument();
+    await search();
+    expect(await screen.findByRole("heading", { name: "Интерстеллар" })).toBeInTheDocument();
+    const request = transport.mock.calls.map(([request]) => request).find(({ path }) => path === "/search/audio")!;
+    const file = (request.body as FormData).get("file") as File;
+    expect(file.type).toBe("audio/wav");
+  });
+
+  it("audio microphone denial preserves file upload and a retry", async () => {
+    const { user, transport } = await setup("found", true, {
+      recordingError: new DOMException("Denied", "NotAllowedError"),
+    });
+    await user.click(screen.getByRole("tab", { name: "Аудио" }));
+    await user.click(screen.getByRole("button", { name: "Записать с микрофона" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Нет доступа к микрофону");
+    expect(
+      within(screen.getByRole("group", { name: "Загрузка: аудиофрагмент" })).getByRole("button", {
+        name: "Выбрать файл",
+      }),
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Записать с микрофона" })).toBeEnabled();
+    expect(transport.mock.calls.some(([request]) => request.path === "/search/audio")).toBe(false);
+  });
+
+  it("audio can search the preserved file after a microphone denial", async () => {
+    const { user, selectFile, search } = await setup("found", true, {
+      recordingError: new DOMException("Denied", "NotAllowedError"),
+    });
+    await selectFile("audio");
+    await user.click(screen.getByRole("button", { name: "Записать заново" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Нет доступа к микрофону");
+    await search();
+    expect(await screen.findByRole("heading", { name: "Интерстеллар" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("switching away from audio releases the microphone", async () => {
+    const { user, recordingCancel } = await setup();
+    await user.click(screen.getByRole("tab", { name: "Аудио" }));
+    await user.click(screen.getByRole("button", { name: "Записать с микрофона" }));
+    await screen.findByText(/Идёт запись/);
+    await user.click(screen.getByRole("tab", { name: "Текст" }));
+    expect(recordingCancel).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole("tab", { name: "Аудио" }));
+    expect(screen.getByRole("button", { name: "Записать с микрофона" })).toBeEnabled();
+  });
+
+  it.each(["empty", "SEARCH_UNAVAILABLE", "AUDIO_TOO_LONG"] as const)(
+    "audio handles %s and retries with the same file",
+    async (scenario) => {
+      const { user, storage, selectFile, search } = await setup(scenario);
+      await selectFile("audio");
+      await search();
+      if (scenario === "empty") await screen.findByRole("heading", { name: "Не удалось узнать фильм" });
+      else await screen.findByRole("alert");
+      expect(screen.getByLabelText("Прослушать clip.mp3")).toBeInTheDocument();
+      storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
+      if (scenario === "empty") await user.click(screen.getByRole("button", { name: "Искать снова" }));
+      else await search();
+      expect(await screen.findByRole("heading", { name: "Интерстеллар" })).toBeInTheDocument();
     },
   );
 
@@ -484,6 +585,7 @@ describe("home search through the backend mock transport", () => {
   it.each([
     ["image", "Матрица"],
     ["video", "Начало"],
+    ["audio", "Интерстеллар"],
   ] as const)("%s search resumes once with the same file after signing in again", async (mode, title) => {
     const { scope, storage, selectFile, search, transport } = await setup("SESSION_EXPIRED");
     const file = await selectFile(mode);

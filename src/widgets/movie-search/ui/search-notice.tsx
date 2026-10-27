@@ -1,4 +1,5 @@
 import { CircleAlert, type LucideIcon, TriangleAlert } from "lucide-react";
+import { type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
@@ -12,6 +13,7 @@ export const SearchNotice = ({
   message,
   actionLabel,
   ActionIcon,
+  additionalAction,
   ...action
 }: {
   tone: "error" | "warning";
@@ -19,6 +21,7 @@ export const SearchNotice = ({
   message: string;
   actionLabel: string;
   ActionIcon?: LucideIcon;
+  additionalAction?: ReactNode;
 } & NoticeAction) => {
   const Icon = tone === "error" ? CircleAlert : TriangleAlert;
   const actionContent = (
@@ -63,15 +66,22 @@ export const SearchNotice = ({
         </div>
       </div>
 
-      {action.fileInputId === undefined ? (
-        <Button variant="brand-secondary" className="shrink-0 self-center px-4" onPress={action.onAction}>
-          {actionContent}
-        </Button>
-      ) : (
-        <FilePickerButton inputId={action.fileInputId} variant="brand-secondary" className="shrink-0 self-center px-4">
-          {actionContent}
-        </FilePickerButton>
-      )}
+      <div className="flex shrink-0 flex-col gap-3 self-center">
+        {action.fileInputId === undefined ? (
+          <Button variant="brand-secondary" className="shrink-0 self-center px-4" onPress={action.onAction}>
+            {actionContent}
+          </Button>
+        ) : (
+          <FilePickerButton
+            inputId={action.fileInputId}
+            variant="brand-secondary"
+            className="shrink-0 self-center px-4"
+          >
+            {actionContent}
+          </FilePickerButton>
+        )}
+        {additionalAction}
+      </div>
     </div>
   );
 };

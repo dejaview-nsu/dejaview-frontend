@@ -21,6 +21,7 @@ export const SEARCH_SCENARIOS = [
   "UNSUPPORTED_FORMAT",
   "FILE_TOO_LARGE",
   "VIDEO_TOO_LONG",
+  "AUDIO_TOO_LONG",
   "FILE_CORRUPTED",
   "SEARCH_UNAVAILABLE",
   "SERVER_BUSY",
@@ -47,7 +48,11 @@ const resolveScenario = (storage: MockStorage, mode: FileSearchMode): SearchScen
     return DEFAULT_SCENARIO;
   }
 
-  if (!isSearchScenario(value) || (value === "VIDEO_TOO_LONG" && mode !== "video")) {
+  if (
+    !isSearchScenario(value) ||
+    (value === "VIDEO_TOO_LONG" && mode !== "video") ||
+    (value === "AUDIO_TOO_LONG" && mode !== "audio")
+  ) {
     console.warn(
       `Заглушки: неизвестный сценарий поиска «${value}» для режима ${mode}, используется «${DEFAULT_SCENARIO}»`,
     );
@@ -93,6 +98,9 @@ const respond = (scenario: SearchScenario, mode: FileSearchMode, storage: MockSt
     }
     case "FILE_TOO_LARGE": {
       return mockResponse(413, FILE_ERRORS[mode][scenario]);
+    }
+    case "AUDIO_TOO_LONG": {
+      return mockResponse(422, FILE_ERRORS.audio.AUDIO_TOO_LONG);
     }
     case "VIDEO_TOO_LONG": {
       return mockResponse(422, FILE_ERRORS.video.VIDEO_TOO_LONG);

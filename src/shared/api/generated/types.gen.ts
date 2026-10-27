@@ -27,13 +27,14 @@ export type Error = {
  * - `FILE_TOO_LARGE` - файл больше лимита режима.
  * - `UNSUPPORTED_FORMAT` - формат файла не из списка режима.
  * - `VIDEO_TOO_LONG` - видео длиннее 30 с.
+ * - `AUDIO_TOO_LONG` - аудио длиннее 10 с.
  * - `FILE_CORRUPTED` - файл поврежден или не декодируется.
  * - `QUERY_EMPTY`, `QUERY_TOO_SHORT`, `QUERY_TOO_LONG`, `QUERY_NOT_ALLOWED` - ошибки текстового запроса.
  * - `SEARCH_UNAVAILABLE` - ML-сервис недоступен или не ответил в таймаут.
  * - `SERVER_BUSY` - перегрузка: лимит параллельных запросов к ML-сервису исчерпан.
  *
  */
-export type SearchErrorCode = 'FILE_REQUIRED' | 'TOO_MANY_FILES' | 'FILE_TOO_LARGE' | 'UNSUPPORTED_FORMAT' | 'VIDEO_TOO_LONG' | 'FILE_CORRUPTED' | 'QUERY_EMPTY' | 'QUERY_TOO_SHORT' | 'QUERY_TOO_LONG' | 'QUERY_NOT_ALLOWED' | 'SEARCH_UNAVAILABLE' | 'SERVER_BUSY';
+export type SearchErrorCode = 'FILE_REQUIRED' | 'TOO_MANY_FILES' | 'FILE_TOO_LARGE' | 'UNSUPPORTED_FORMAT' | 'VIDEO_TOO_LONG' | 'AUDIO_TOO_LONG' | 'FILE_CORRUPTED' | 'QUERY_EMPTY' | 'QUERY_TOO_SHORT' | 'QUERY_TOO_LONG' | 'QUERY_NOT_ALLOWED' | 'SEARCH_UNAVAILABLE' | 'SERVER_BUSY';
 
 /**
  * Ошибка поиска - `Error` с кодом из `SearchErrorCode`.
@@ -52,6 +53,13 @@ export type SearchImageRequest = {
 export type SearchVideoRequest = {
     /**
      * Один видеофайл: MP4, MOV или WEBM, не длиннее 30 с и до 50 МБ (#17154 п. 4.2).
+     */
+    file: Blob | File;
+};
+
+export type SearchAudioRequest = {
+    /**
+     * Один аудиофайл: MP3, WAV, OGG или M4A, не длиннее 10 с и до 20 МБ (#17155 п. 4.2). Запись с микрофона (#17155 п. 3.2) отправляется так же, как выбранный файл, в WAV.
      */
     file: Blob | File;
 };
@@ -513,6 +521,59 @@ export type SearchByVideoResponses = {
 };
 
 export type SearchByVideoResponse = SearchByVideoResponses[keyof SearchByVideoResponses];
+
+export type SearchByAudioData = {
+    body: SearchAudioRequest;
+    path?: never;
+    query?: never;
+    url: '/search/audio';
+};
+
+export type SearchByAudioErrors = {
+    /**
+     * Файла нет или их больше одного (#17155 п. 8.1.1, 8.1.2).
+     */
+    400: SearchError;
+    /**
+     * Нет сессии или сессия истекла (#17094 п. 1.1, 1.3).
+     */
+    401: Error;
+    /**
+     * Файл больше 20 МБ (#17155 п. 8.1.5). Тело больше лимита nginx (`client_max_body_size`, wiki `Nginx`) отклоняет nginx, ответ тот же: JSON с кодом `FILE_TOO_LARGE`.
+     */
+    413: SearchError;
+    /**
+     * Формат не MP3, WAV, OGG или M4A (#17155 п. 8.1.3).
+     */
+    415: SearchError;
+    /**
+     * Аудио длиннее 10 с (#17155 п. 8.1.4) или файл поврежден и не может быть обработан (#17155 п. 8.1.6).
+     */
+    422: SearchError;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+    /**
+     * Поиск временно недоступен (#17152 п. 8, #17153 п. 9, #17154 п. 9). Результатов в ответе нет: вместо ошибки нерелевантная выдача не отдается (#17153 п. 9.1). Коды общие с контрактом backend - ML-сервис (#17626).
+     */
+    503: SearchError;
+};
+
+export type SearchByAudioError = SearchByAudioErrors[keyof SearchByAudioErrors];
+
+export type SearchByAudioResponses = {
+    /**
+     * Поиск выполнен. Пустой `results` - релевантный фильм не найден (#17155 п. 7.1): это не ошибка, frontend показывает сообщение об отсутствии результата.
+     */
+    200: SearchResponse;
+};
+
+export type SearchByAudioResponse = SearchByAudioResponses[keyof SearchByAudioResponses];
 
 export type SearchByTextData = {
     body: SearchTextRequest;

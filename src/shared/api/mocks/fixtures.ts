@@ -2,6 +2,17 @@ import type { AuthLoginError, Error as ErrorBody, SearchResponse, SessionInfo } 
 import type { FileSearchMode } from "../search/modes";
 
 export const FOUND_RESULTS = {
+  audio: {
+    results: [
+      {
+        movie_id: 157336,
+        title: "Интерстеллар",
+        year: 2014,
+        poster_url: null,
+        overview: "Группа исследователей отправляется через червоточину искать планету для человечества.",
+      },
+    ],
+  },
   image: {
     results: [
       {
@@ -78,6 +89,32 @@ export const createSessionInfo = (): SessionInfo => ({
 const fileError = (code: string, message: string): ErrorBody => ({ code, message, field: "file" });
 
 export const FILE_ERRORS = {
+  audio: {
+    FILE_REQUIRED: fileError(
+      "FILE_REQUIRED",
+      "Невозможно выполнить поиск по аудиофрагменту: аудиофрагмент не загружен и не записан",
+    ),
+    TOO_MANY_FILES: fileError(
+      "TOO_MANY_FILES",
+      "Невозможно выполнить поиск по аудиофрагменту: загружено больше одного файла",
+    ),
+    UNSUPPORTED_FORMAT: fileError(
+      "UNSUPPORTED_FORMAT",
+      "Невозможно выполнить поиск по аудиофрагменту: поддерживаются только MP3, WAV, OGG и M4A",
+    ),
+    FILE_TOO_LARGE: fileError(
+      "FILE_TOO_LARGE",
+      "Невозможно выполнить поиск по аудиофрагменту: размер файла больше 20 МБ",
+    ),
+    AUDIO_TOO_LONG: fileError(
+      "AUDIO_TOO_LONG",
+      "Невозможно выполнить поиск по аудиофрагменту: аудиофрагмент длиннее 10 секунд",
+    ),
+    FILE_CORRUPTED: fileError(
+      "FILE_CORRUPTED",
+      "Невозможно выполнить поиск по аудиофрагменту: файл повреждён или не может быть обработан",
+    ),
+  },
   image: {
     FILE_REQUIRED: fileError("FILE_REQUIRED", "Невозможно выполнить поиск по изображению: изображение не загружено"),
     TOO_MANY_FILES: fileError(
