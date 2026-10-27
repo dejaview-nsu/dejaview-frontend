@@ -194,7 +194,7 @@ describe("registration acceptance on mocks", () => {
 
     await waitFor(() => expect(page.scope.getState($$session.outputs.$status)).toBe("guest"));
     expect(page.scope.getState(router.$path)).toBe("/");
-    expect(within(page.header()).getByRole("link", { name: "Войти" })).toBeInTheDocument();
+    expect(within(page.header()).getByRole("button", { name: "Войти" })).toBeInTheDocument();
     expect(within(page.header()).getByRole("link", { name: "Зарегистрироваться" })).toBeInTheDocument();
   });
 

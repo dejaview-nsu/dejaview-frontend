@@ -574,8 +574,9 @@ describe("home search through the backend mock transport", () => {
     await screen.findByRole("heading", { name: "Матрица" });
     storage.set(MOCK_STORAGE_KEYS.searchScenario, "SESSION_EXPIRED");
     await search();
-    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/" });
+    await waitFor(() => expect(scope.getState($$session.outputs.$isLoginDialogOpened)).toBe(true));
+    expect(scope.getState(router.$path)).toBe("/");
+    expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/");
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
     expect(storage.get(MOCK_STORAGE_KEYS.session)).toBeNull();
     expect(screen.queryByRole("heading", { name: "Матрица" })).not.toBeInTheDocument();
@@ -591,7 +592,8 @@ describe("home search through the backend mock transport", () => {
     const file = await selectFile(mode);
 
     await search();
-    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+    await waitFor(() => expect(scope.getState($$session.outputs.$isLoginDialogOpened)).toBe(true));
+    expect(scope.getState(router.$path)).toBe("/");
     expect(scope.getState($$home.$$search.outputs.$pending)).toBe(false);
 
     storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
@@ -616,8 +618,9 @@ describe("home search through the backend mock transport", () => {
     const { scope, transport, selectFile, user } = await setup("found", false);
     await user.type(screen.getByLabelText(INPUT_LABELS.text), "Хакер выбирает таблетку");
     await user.click(screen.getByRole("tab", { name: "Видео, после входа" }));
-    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/?mode=video" });
+    await waitFor(() => expect(scope.getState($$session.outputs.$isLoginDialogOpened)).toBe(true));
+    expect(scope.getState(router.$path)).toBe("/");
+    expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/?mode=video");
     expect(scope.getState($$home.$$search.outputs.$mode)).toBe("text");
     expect(scope.getState($$home.$$search.outputs.$pendingMode)).toBe("video");
 
@@ -636,13 +639,14 @@ describe("home search through the backend mock transport", () => {
     expect(screen.getByText("scene.mp4")).toBeInTheDocument();
   });
 
-  it("guest who leaves the login page without signing in keeps the current mode", async () => {
+  it("guest who closes the login dialog without signing in keeps the current mode", async () => {
     const { scope, user } = await setup("found", false);
     await user.type(screen.getByLabelText(INPUT_LABELS.text), "Хакер");
     await user.click(screen.getByRole("tab", { name: "Видео, после входа" }));
-    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+    await waitFor(() => expect(scope.getState($$session.outputs.$isLoginDialogOpened)).toBe(true));
+    expect(scope.getState(router.$path)).toBe("/");
 
-    await allSettled(routes.home.open, { scope, params: {} });
+    await allSettled($$session.inputs.loginDialogDismissed, { scope });
 
     expect(scope.getState(router.$path)).toBe("/");
     expect(scope.getState($$session.outputs.$status)).toBe("guest");

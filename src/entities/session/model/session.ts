@@ -1,6 +1,6 @@
 import { concurrency } from "@farfetched/core";
 import { createFactory } from "@withease/factories";
-import { combine, createEvent, createStore, sample } from "effector";
+import { combine, createEvent, createStore, merge, sample } from "effector";
 import { not, readonly } from "patronum";
 
 import { type ApiError, sessionRequired, toApiError } from "@/shared/api";
@@ -18,26 +18,37 @@ export const createSessionFactory = createFactory(() => {
 
   const sessionCheckRequested = createEvent();
   const signedIn = createEvent<SessionCredentials>();
+  const signInStarted = createEvent<SessionCredentials>();
+  const signInCancelled = createEvent();
   const signedOut = createEvent();
   const signOutStarted = createEvent();
   const signOutCompleted = createEvent();
   const sessionCreated = createEvent<SessionInfo>();
   const statusResolved = createEvent<Exclude<SessionStatus, "unknown">>();
+  const loginDialogRequested = createEvent<{ path: string; replace: boolean }>();
+  const loginPressed = createEvent();
+  const loginDialogDismissed = createEvent();
+  const loginDialogClosed = createEvent();
+
+  const authCancelled = merge([signInCancelled, signOutStarted]);
 
   const $status = createStore<SessionStatus>("unknown");
   const $user = createStore<SessionUser | null>(null);
+  const $loginDialogPath = createStore<string | null>(null);
   const $loginError = createStore<ApiError | null>(null);
   const $isCheckingAfterLogin = createStore(false);
 
   const $isAuthenticated = $status.map((status) => status === "authenticated");
-  const $isSigningIn = signInMutation.$pending;
+  const $isLoginDialogOpened = $loginDialogPath.map((path) => path !== null);
+  const $isSigningIn = combine(signInMutation.$pending, $isCheckingAfterLogin, (login, checking) => login || checking);
   const $isSigningOut = signOutMutation.$pending;
   const $canSignIn = combine($isSigningIn, $isSigningOut, (signingIn, signingOut) => !signingIn && !signingOut);
   const $canSignOut = combine($isAuthenticated, $isSigningOut, (authenticated, pending) => authenticated && !pending);
 
-  concurrency(sessionQuery, { strategy: "TAKE_LATEST", abortAll: signOutStarted });
+  concurrency(sessionQuery, { strategy: "TAKE_LATEST", abortAll: authCancelled });
 
-  concurrency(signInMutation, { strategy: "TAKE_FIRST", abortAll: signOutStarted });
+  // TAKE_FIRST retains its lock after abort; duplicate submissions are gated by $canSignIn.
+  concurrency(signInMutation, { strategy: "TAKE_LATEST", abortAll: authCancelled });
 
   concurrency(signOutMutation, { strategy: "TAKE_FIRST" });
 
@@ -45,9 +56,11 @@ export const createSessionFactory = createFactory(() => {
 
   sample({ clock: sessionCheckRequested, filter: not($isSigningOut), target: sessionQuery.start });
 
-  sample({ clock: signedIn, filter: $canSignIn, fn: () => null, target: $loginError });
+  sample({ clock: signedIn, filter: $canSignIn, target: signInStarted });
 
-  sample({ clock: signedIn, filter: $canSignIn, target: signInMutation.start });
+  sample({ clock: signInStarted, fn: () => null, target: $loginError });
+
+  sample({ clock: signInStarted, target: signInMutation.start });
 
   sample({ clock: signInMutation.finished.success, fn: () => true, target: $isCheckingAfterLogin });
 
@@ -62,9 +75,9 @@ export const createSessionFactory = createFactory(() => {
     target: $loginError,
   });
 
-  sample({ clock: [sessionQuery.finished.finally, signOutStarted], fn: () => false, target: $isCheckingAfterLogin });
+  sample({ clock: [sessionQuery.finished.finally, authCancelled], fn: () => false, target: $isCheckingAfterLogin });
 
-  sample({ clock: routes.login.closed, fn: () => null, target: $loginError });
+  sample({ clock: [routes.login.closed, authCancelled], fn: () => null, target: $loginError });
 
   sample({ clock: signedOut, filter: $canSignOut, target: signOutStarted });
 
@@ -120,6 +133,13 @@ export const createSessionFactory = createFactory(() => {
 
   const loginRequired = createEvent<{ path: string; replace: boolean }>();
 
+  sample({
+    clock: loginPressed,
+    source: { path: router.$path, query: router.$query },
+    fn: (location) => ({ path: toLocationPath(location), replace: false }),
+    target: loginRequired,
+  });
+
   sample({ clock: sessionRequired, fn: () => "guest" as const, target: statusResolved });
 
   sample({
@@ -142,14 +162,37 @@ export const createSessionFactory = createFactory(() => {
 
   sample({ clock: loginRedirectStarted, fn: () => true, target: $isLoginRedirectPending });
 
-  sample({ clock: loginRedirectStarted, target: loginRedirectRequested });
+  sample({ clock: loginRedirectStarted, filter: ({ replace }) => replace, target: loginRedirectRequested });
+
+  sample({ clock: loginRedirectStarted, filter: ({ replace }) => !replace, target: loginDialogRequested });
+
+  sample({ clock: loginDialogRequested, fn: ({ path }) => path, target: $loginDialogPath });
+
+  sample({ clock: loginDialogDismissed, target: loginDialogClosed });
+
+  sample({ clock: router.$path, filter: $isLoginDialogOpened, target: loginDialogDismissed });
+
+  sample({ clock: statusResolved, filter: (status) => status === "authenticated", target: loginDialogClosed });
+
+  sample({ clock: loginDialogClosed, fn: () => null, target: $loginDialogPath });
+
+  sample({ clock: loginDialogClosed, fn: () => false, target: $isLoginRedirectPending });
 
   sample({ clock: routes.login.opened, fn: () => false, target: $isLoginRedirectPending });
 
   return {
     __: { sessionQuery, signInMutation, signOutMutation },
     registry: { protectedRoutes },
-    inputs: { sessionCheckRequested, signedIn, signedOut, sessionCreated, loginRequired },
+    inputs: {
+      sessionCheckRequested,
+      signedIn,
+      signInCancelled,
+      signedOut,
+      sessionCreated,
+      loginRequired,
+      loginPressed,
+      loginDialogDismissed,
+    },
     outputs: {
       $status: readonly($status),
       $user: readonly($user),
@@ -157,6 +200,9 @@ export const createSessionFactory = createFactory(() => {
       $isSigningIn: readonly($isSigningIn),
       $isSigningOut: readonly($isSigningOut),
       $loginError: readonly($loginError),
+      $isLoginDialogOpened,
+      $loginDialogPath: readonly($loginDialogPath),
+      loginDialogDismissed: readonly(loginDialogDismissed),
       statusResolved: readonly(statusResolved),
     },
   };

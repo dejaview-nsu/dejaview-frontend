@@ -167,4 +167,34 @@ describe("resend confirmation", () => {
     expect(state().countdown).toBeNull();
     expect(requests()).toHaveLength(0);
   });
+
+  it.each([202, 500])("reset cancels resend and ignores its late %s response after restart", async (status) => {
+    const held = createControlledTransport({ ignoreAbort: true });
+    const { scope, start, press, state } = setup(held.transport);
+
+    start({ request: { login: "first@example.test" }, resendAfter: 0 });
+    press();
+    await held.waitForCalls(1);
+    const stale = held.current();
+
+    scopeBind($$resend.inputs.reset, { scope })();
+    expect(stale.request.signal?.aborted).toBe(true);
+    await vi.waitFor(() => expect(scope.getState($$resend.outputs.$pending)).toBe(false));
+    start({ request: { login: "second@example.test" }, resendAfter: 0 });
+    press();
+    await held.waitForCalls(2);
+    expect(held.current().request.body).toEqual({ login: "second@example.test" });
+
+    stale.resolve(
+      jsonResponse(
+        status,
+        status === 202 ? { resend_after: 60 } : { code: "INTERNAL_ERROR", message: "Старая ошибка" },
+      ),
+    );
+    held.current().resolve(jsonResponse(202, { resend_after: 42 }));
+    await vi.waitFor(() => expect(state().countdown).toBe("0:42"));
+
+    expect(state().error).toBeNull();
+    await allSettled($$resend.inputs.reset, { scope });
+  });
 });

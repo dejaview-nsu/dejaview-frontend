@@ -161,13 +161,6 @@ export const RegisterForm = () => {
             Войти
           </Link>
         </p>
-        <Link
-          to={routes.login}
-          query={{}}
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-link outline-link hover:underline focus-visible:outline-2"
-        >
-          Забыли пароль?
-        </Link>
       </div>
     </section>
   );

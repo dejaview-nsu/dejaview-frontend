@@ -3,7 +3,7 @@ import { allSettled, createWatch, fork, scopeBind } from "effector";
 import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
-import { $$login } from "@/pages/login/model";
+import "@/pages/login/model";
 
 import { $$session, getLoginErrorDetails } from "@/entities/session";
 
@@ -144,7 +144,7 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
     expect(scope.getState(router.$path)).toBe("/login");
@@ -163,7 +163,7 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(transport).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -187,11 +187,11 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
     expect(scope.getState($$session.outputs.$loginError)).toMatchObject({ code: "INTERNAL_ERROR" });
 
     isServerUp = true;
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState($$session.outputs.$loginError)).toBeNull();
     expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
@@ -255,7 +255,8 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    scopeBind($$session.inputs.signedIn, { scope })(credentials);
+    await vi.waitFor(() => expect(scope.getState($$session.outputs.$loginError)).not.toBeNull());
 
     const error = scope.getState($$session.outputs.$loginError);
 
@@ -265,6 +266,7 @@ describe("login errors", () => {
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
     expect(scope.getState(router.$path)).toBe("/login");
     expect(required).not.toHaveBeenCalled();
+    await allSettled(routes.about.open, { scope, params: {} });
   });
 
   it("AUTH_LOGIN_LOCKED is not a general rate limit", async () => {
@@ -281,12 +283,14 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    scopeBind($$session.inputs.signedIn, { scope })(credentials);
+    await vi.waitFor(() => expect(scope.getState($$session.outputs.$loginError)).not.toBeNull());
 
     const error = scope.getState($$session.outputs.$loginError);
 
     expect(isLoginLockedError(error)).toBe(true);
     expect(isRateLimitError(error)).toBe(false);
+    await allSettled(routes.about.open, { scope, params: {} });
   });
 
   it("second signedIn while signing in is ignored", async () => {
@@ -356,7 +360,7 @@ describe("login errors", () => {
 
     expect(scope.getState($$session.outputs.$loginError)).toBeNull();
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState($$session.outputs.$loginError)).toMatchObject({ code });
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
@@ -387,7 +391,7 @@ describe("login errors", () => {
       }),
     );
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
     expect(scope.getState($$session.outputs.$loginError)).toMatchObject({ code: "AUTH_INVALID_CREDENTIALS" });
 
     await allSettled(routes.home.open, { scope, params: undefined });

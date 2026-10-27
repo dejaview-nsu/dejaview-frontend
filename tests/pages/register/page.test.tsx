@@ -388,11 +388,10 @@ describe("register page", () => {
     expect(held.calls).toHaveLength(1);
   });
 
-  it("both login links lead to the existing login route", async () => {
+  it("the login link leads to the existing login route", async () => {
     await setup();
 
     expect(screen.getByRole("link", { name: "Войти" })).toHaveAttribute("href", "/login");
-    expect(screen.getByRole("link", { name: "Забыли пароль?" })).toHaveAttribute("href", "/login");
   });
 
   it("opening /register again shows an empty form", async () => {

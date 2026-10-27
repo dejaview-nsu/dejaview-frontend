@@ -2,6 +2,9 @@ import { Link } from "@effector/router-react";
 import { combine } from "effector";
 import { useUnit } from "effector-react";
 import { type ReactNode } from "react";
+import { Button } from "react-aria-components";
+
+import { LoginDialog } from "@/widgets/login-form";
 
 import { $$session } from "@/entities/session";
 
@@ -18,7 +21,11 @@ const $registerQuery = combine(routes.login.$isOpened, router.$query, (opened, q
 );
 
 const StandardHeader = () => {
-  const { status, registerQuery } = useUnit({ status: $$session.outputs.$status, registerQuery: $registerQuery });
+  const { status, registerQuery, openLogin } = useUnit({
+    status: $$session.outputs.$status,
+    registerQuery: $registerQuery,
+    openLogin: $$session.inputs.loginPressed,
+  });
 
   const linkStyle = "text-sm font-medium text-text-base hover:text-system-primary";
 
@@ -34,9 +41,9 @@ const StandardHeader = () => {
         <div className="ml-auto flex items-center gap-6">
           {status === "guest" && (
             <>
-              <Link to={routes.login} className={linkStyle}>
+              <Button onPress={() => openLogin()} className={linkStyle}>
                 Войти
-              </Link>
+              </Button>
               <Link to={routes.register} query={registerQuery} className={linkStyle}>
                 Зарегистрироваться
               </Link>
@@ -50,17 +57,27 @@ const StandardHeader = () => {
 };
 
 const $isBrandShell = combine(
-  [routes.home.$isOpened, routes.register.$isOpened, routes.confirmEmail.$isOpened, routes.oidcCallback.$isOpened],
+  [
+    routes.home.$isOpened,
+    routes.login.$isOpened,
+    routes.register.$isOpened,
+    routes.confirmEmail.$isOpened,
+    routes.oidcCallback.$isOpened,
+  ],
   (opened) => opened.some(Boolean),
 );
 
 const $isAuthPage = combine(
-  [routes.register.$isOpened, routes.confirmEmail.$isOpened, routes.oidcCallback.$isOpened],
+  [routes.login.$isOpened, routes.register.$isOpened, routes.confirmEmail.$isOpened, routes.oidcCallback.$isOpened],
   (opened) => opened.some(Boolean),
 );
 
 export const BaseLayout = ({ children }: { children: ReactNode }) => {
-  const { isBrandShell, isAuthPage } = useUnit({ isBrandShell: $isBrandShell, isAuthPage: $isAuthPage });
+  const { isBrandShell, isAuthPage, loginPage } = useUnit({
+    isBrandShell: $isBrandShell,
+    isAuthPage: $isAuthPage,
+    loginPage: routes.login.$isOpened,
+  });
 
   return (
     <div
@@ -83,10 +100,11 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
           />
         </>
       )}
-      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} /> : <StandardHeader />}
+      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} loginPage={loginPage} /> : <StandardHeader />}
       <NotificationBanner />
       <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
-      {isBrandShell && <HomeFooter />}
+      {isBrandShell && <HomeFooter mobileHidden={loginPage} />}
+      <LoginDialog />
     </div>
   );
 };

@@ -83,7 +83,7 @@ describe("header on registration pages", () => {
       const header = screen.getByRole("navigation", { name: "Главная навигация" });
 
       expect(within(header).getByRole("link", { name: "DejaView — главная" })).toBeInTheDocument();
-      expect(within(header).queryByRole("link", { name: "Войти" })).toBeNull();
+      expect(within(header).queryByRole("button", { name: "Войти" })).toBeNull();
       expect(within(header).queryByRole("link", { name: "Зарегистрироваться" })).toBeNull();
       expect(within(header).queryByRole("button", { name: "Открыть меню" })).toBeNull();
     },
@@ -96,7 +96,7 @@ describe("header on registration pages", () => {
 
     const header = screen.getByRole("navigation", { name: "Главная навигация" });
 
-    expect(within(header).getByRole("link", { name: "Войти" })).toHaveAttribute("href", "/login");
+    expect(within(header).getByRole("button", { name: "Войти" })).toBeEnabled();
     expect(within(header).getByRole("link", { name: "Зарегистрироваться" })).toHaveAttribute("href", "/register");
   });
 
