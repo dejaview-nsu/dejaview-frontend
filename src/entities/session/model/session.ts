@@ -1,9 +1,11 @@
+import { concurrency } from "@farfetched/core";
 import { createFactory } from "@withease/factories";
 import { combine, createEvent, createStore, sample } from "effector";
 import { not, readonly } from "patronum";
 
 import { type ApiError, sessionRequired, toApiError } from "@/shared/api";
 import { appStarted } from "@/shared/config/init";
+import { $$notifications } from "@/shared/lib/notifications";
 import { loginRedirectRequested, router, routes } from "@/shared/routes";
 
 import { createSessionApi, type SessionCredentials, type SessionInfo, type SessionUser } from "../api";
@@ -17,24 +19,35 @@ export const createSessionFactory = createFactory(() => {
   const sessionCheckRequested = createEvent();
   const signedIn = createEvent<SessionCredentials>();
   const signedOut = createEvent();
+  const signOutStarted = createEvent();
+  const signOutCompleted = createEvent();
   const sessionCreated = createEvent<SessionInfo>();
   const statusResolved = createEvent<Exclude<SessionStatus, "unknown">>();
 
   const $status = createStore<SessionStatus>("unknown");
   const $user = createStore<SessionUser | null>(null);
+  const $loginError = createStore<ApiError | null>(null);
+  const $isCheckingAfterLogin = createStore(false);
+
   const $isAuthenticated = $status.map((status) => status === "authenticated");
+  const $isSigningIn = signInMutation.$pending;
+  const $isSigningOut = signOutMutation.$pending;
+  const $canSignIn = combine($isSigningIn, $isSigningOut, (signingIn, signingOut) => !signingIn && !signingOut);
+  const $canSignOut = combine($isAuthenticated, $isSigningOut, (authenticated, pending) => authenticated && !pending);
+
+  concurrency(sessionQuery, { strategy: "TAKE_LATEST", abortAll: signOutStarted });
+
+  concurrency(signInMutation, { strategy: "TAKE_FIRST", abortAll: signOutStarted });
+
+  concurrency(signOutMutation, { strategy: "TAKE_FIRST" });
 
   sample({ clock: appStarted, target: sessionCheckRequested });
 
-  sample({ clock: sessionCheckRequested, target: sessionQuery.start });
+  sample({ clock: sessionCheckRequested, filter: not($isSigningOut), target: sessionQuery.start });
 
-  const $loginError = createStore<ApiError | null>(null);
-  const $isSigningIn = signInMutation.$pending;
-  const $isCheckingAfterLogin = createStore(false);
+  sample({ clock: signedIn, filter: $canSignIn, fn: () => null, target: $loginError });
 
-  sample({ clock: signedIn, filter: not($isSigningIn), fn: () => null, target: $loginError });
-
-  sample({ clock: signedIn, target: signInMutation.start });
+  sample({ clock: signedIn, filter: $canSignIn, target: signInMutation.start });
 
   sample({ clock: signInMutation.finished.success, fn: () => true, target: $isCheckingAfterLogin });
 
@@ -49,16 +62,33 @@ export const createSessionFactory = createFactory(() => {
     target: $loginError,
   });
 
-  sample({ clock: sessionQuery.finished.finally, fn: () => false, target: $isCheckingAfterLogin });
+  sample({ clock: [sessionQuery.finished.finally, signOutStarted], fn: () => false, target: $isCheckingAfterLogin });
 
   sample({ clock: routes.login.closed, fn: () => null, target: $loginError });
 
-  sample({ clock: signedOut, target: signOutMutation.start });
+  sample({ clock: signedOut, filter: $canSignOut, target: signOutStarted });
+
+  sample({ clock: signOutStarted, target: signOutMutation.start });
+
+  sample({ clock: signOutMutation.finished.success, target: signOutCompleted });
+
+  sample({
+    clock: signOutMutation.finished.failure,
+    filter: ({ error }) => toApiError(error).status === 401,
+    target: signOutCompleted,
+  });
+
+  sample({
+    clock: signOutMutation.finished.failure,
+    filter: ({ error }) => toApiError(error).status !== 401,
+    fn: ({ error }) => ({ text: toApiError(error).message, tone: "error" as const }),
+    target: $$notifications.inputs.shown,
+  });
 
   sample({ clock: sessionQuery.finished.success, fn: () => "authenticated" as const, target: statusResolved });
 
   sample({
-    clock: [sessionQuery.finished.failure, signOutMutation.finished.finally],
+    clock: [sessionQuery.finished.failure, signOutCompleted],
     fn: () => "guest" as const,
     target: statusResolved,
   });
@@ -74,7 +104,7 @@ export const createSessionFactory = createFactory(() => {
   sample({ clock: statusResolved, filter: (status) => status === "guest", fn: () => null, target: $user });
 
   sample({
-    clock: signOutMutation.finished.finally,
+    clock: signOutCompleted,
     fn: () => ({ replace: true, query: {} }),
     target: routes.home.open,
   });
@@ -104,8 +134,8 @@ export const createSessionFactory = createFactory(() => {
 
   sample({
     clock: loginRequired,
-    source: { isPending: $isLoginRedirectPending, isOnAuthPage: $isOnAuthPage },
-    filter: ({ isPending, isOnAuthPage }) => !isPending && !isOnAuthPage,
+    source: { isPending: $isLoginRedirectPending, isOnAuthPage: $isOnAuthPage, isSigningOut: $isSigningOut },
+    filter: ({ isPending, isOnAuthPage, isSigningOut }) => !isPending && !isOnAuthPage && !isSigningOut,
     fn: (_, redirect) => redirect,
     target: loginRedirectStarted,
   });
@@ -125,6 +155,7 @@ export const createSessionFactory = createFactory(() => {
       $user: readonly($user),
       $isAuthenticated,
       $isSigningIn: readonly($isSigningIn),
+      $isSigningOut: readonly($isSigningOut),
       $loginError: readonly($loginError),
       statusResolved: readonly(statusResolved),
     },

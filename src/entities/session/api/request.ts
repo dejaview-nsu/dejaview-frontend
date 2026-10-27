@@ -1,4 +1,4 @@
-import { concurrency, createMutation, createQuery } from "@farfetched/core";
+import { createMutation, createQuery } from "@farfetched/core";
 
 import { type AuthLoginRequest, callApi, zNoContent, zSessionInfo } from "@/shared/api";
 
@@ -11,10 +11,14 @@ export const createSessionApi = () => {
   const signInMutation = createMutation({
     name: "session.login",
     handler: (credentials: AuthLoginRequest) =>
-      callApi({ method: "POST", path: "/auth/login", body: credentials, schema: zSessionInfo }),
+      callApi({
+        method: "POST",
+        path: "/auth/login",
+        body: credentials,
+        schema: zSessionInfo,
+        onUnauthorized: "guest",
+      }),
   });
-
-  concurrency(signInMutation, { strategy: "TAKE_FIRST" });
 
   const signOutMutation = createMutation({
     name: "session.logout",
