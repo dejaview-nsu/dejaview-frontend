@@ -95,7 +95,7 @@ sample({ clock: route.closed, target: $$videoSearch.inputs.cancelled });
 
 Без Effector — `searchByFile({ mode, file, signal, onUploadProgress, onUploadComplete })`: прогресс — доля от 0 до 1 или `null`, отмена — `controller.abort()` (промис отклоняется с `AbortError`).
 
-**Новый режим загрузки (аудио):** запись в `FILE_SEARCH_MODES` (путь, таймауты, текст `FILE_TOO_LARGE`) и сценарии в заглушках — модель и `searchByFile` работают без изменений. **Текстовый поиск** — `searchByText({ query, signal })`, `POST /search/text` с JSON `{ query }`, без этапа загрузки. Доступен гостю; по контракту 401 здесь нет. Экран и mock transport поддерживают этот сценарий; backend реализует endpoint в Sprint 2.
+**Новый режим загрузки (аудио):** запись в `FILE_SEARCH_MODES` (путь, таймауты, текст `FILE_TOO_LARGE`) и сценарии в заглушках — модель и `searchByFile` работают без изменений. **Текстовый поиск** — `searchByText({ query, signal })`, `POST /search/text` с JSON `{ query }`, без этапа загрузки. Доступен гостю; по контракту 401 здесь нет, поэтому запрос идёт с `onUnauthorized: "guest"` и не открывает вход. Ответ проверяется схемой без ограничения длины `results`: модель `search-by-description` сама берёт первые 10 фильмов. Перед отправкой модель обрезает пробелы по краям по свойству Unicode `White_Space` и считает длину в кодовых точках, как backend.
 
 ## Сессия
 
@@ -156,7 +156,7 @@ localStorage.removeItem("dejaview:mocks:session"); // выйти без кноп
 
 Тексты и HTTP-статусы — как в контракте. Неизвестное имя сценария — предупреждение в консоли и поведение по умолчанию.
 
-Для текстового поиска тот же ключ `dejaview:mocks:search` поддерживает `found`, `empty`, `QUERY_EMPTY`, `QUERY_TOO_SHORT`, `QUERY_TOO_LONG`, `QUERY_NOT_ALLOWED`, `SEARCH_UNAVAILABLE`, `SERVER_BUSY`, `NGINX_502`, `RATE_LIMITED`, `INTERNAL_ERROR`, `NETWORK_ERROR`, `TIMEOUT`. Мок также проверяет фактическую длину запроса. По умолчанию возвращает фиксированный список из пяти фильмов, независимо от введённого описания. Сценарии ошибок файла и сессии к текстовому режиму не применяются.
+Для текстового поиска тот же ключ `dejaview:mocks:search` поддерживает `found`, `many` (12 фильмов), `empty`, `QUERY_EMPTY`, `QUERY_TOO_SHORT`, `QUERY_TOO_LONG`, `QUERY_NOT_ALLOWED`, `SEARCH_UNAVAILABLE`, `SERVER_BUSY`, `NGINX_502`, `RATE_LIMITED`, `INTERNAL_ERROR`, `NETWORK_ERROR`, `TIMEOUT`. Мок также проверяет фактическую длину запроса. По умолчанию возвращает фиксированный список из пяти фильмов, независимо от введённого описания. Сценарии ошибок файла и сессии к текстовому режиму не применяются.
 
 ### Сценарии регистрации, входа и OIDC
 

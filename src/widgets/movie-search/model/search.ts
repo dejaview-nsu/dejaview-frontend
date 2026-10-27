@@ -3,7 +3,7 @@ import { combine, createEvent, createStore, sample, type Store } from "effector"
 import { readonly } from "patronum";
 
 import { createSearchByAudioFactory } from "@/features/search-by-audio";
-import { createSearchByDescriptionFactory } from "@/features/search-by-description";
+import { createSearchByDescriptionFactory, type QueryChange, textSearchTexts } from "@/features/search-by-description";
 import { createSearchByFileFactory } from "@/features/search-by-file";
 import { createSearchByVideoFactory } from "@/features/search-by-video";
 
@@ -20,7 +20,7 @@ export const createMovieSearchFactory = createFactory(
     const modeAccepted = createEvent<SearchMode>();
     const filesSelected = createEvent<{ mode: FileSearchMode; files: File[] }>();
     const imagePreviewLoaded = createEvent<File>();
-    const textChanged = createEvent<string>();
+    const textChanged = createEvent<QueryChange>();
     const searchPressed = createEvent();
     const searchCancelled = createEvent();
     const pageClosed = createEvent();
@@ -55,11 +55,7 @@ export const createMovieSearchFactory = createFactory(
 
     sample({ clock: imagePreviewLoaded, target: $$imageSearch.inputs.previewLoaded });
 
-    sample({
-      clock: textChanged,
-      fn: (text) => [...text].slice(0, 250).join(""),
-      target: $$textSearch.inputs.queryChanged,
-    });
+    sample({ clock: textChanged, target: $$textSearch.inputs.queryChanged });
 
     sample({ clock: becameGuest, fn: () => "text" as const, target: $mode });
 
@@ -153,9 +149,11 @@ export const createMovieSearchFactory = createFactory(
       mode === "text" ? text : !media.result ? null : [media.result],
     );
 
-    const $error = combine($mode, $currentMedia, $$textSearch.outputs.$error, (mode, media, text) =>
-      mode === "text" ? text : media.error,
-    );
+    const $error = combine($mode, $currentMedia, $$textSearch.outputs.$isUnavailable, (mode, media, unavailable) => {
+      if (mode === "text") return unavailable ? textSearchTexts.unavailableText : null;
+
+      return media.error;
+    });
 
     const $isEmpty = combine($mode, $currentMedia, $$textSearch.outputs.$isEmpty, (mode, media, text) =>
       mode === "text" ? text : media.isEmpty,
@@ -180,7 +178,7 @@ export const createMovieSearchFactory = createFactory(
     });
 
     return {
-      __: { $$imageSearch, $$videoSearch, $$audioSearch },
+      __: { $$imageSearch, $$videoSearch, $$audioSearch, $$textSearch },
 
       inputs: {
         modeSelected,
@@ -201,6 +199,9 @@ export const createMovieSearchFactory = createFactory(
         $mode: readonly($mode),
         $pendingMode: readonly($pendingMode),
         $text: readonly($text),
+        $textLength: $$textSearch.outputs.$length,
+        $textOverLimit: $$textSearch.outputs.$isOverLimit,
+        $textFieldError: $$textSearch.outputs.$fieldError,
         $submittedQuery: $$textSearch.outputs.$submittedQuery,
         $image: $$imageSearch.outputs.$state,
         $video: $$videoSearch.outputs.$state,

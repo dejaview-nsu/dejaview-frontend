@@ -151,24 +151,26 @@ describe("home search through the backend mock transport", () => {
     const description = screen.getByLabelText("Опиши, что помнишь о фильме");
     await user.type(description, "Хакер");
     await search();
-    expect(await screen.findByRole("heading", { name: "Ничего не нашлось" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Не удалось узнать фильм" })).toBeInTheDocument();
     expect(description).toHaveValue("Хакер");
     await user.click(screen.getByRole("button", { name: "Изменить запрос" }));
     expect(description).toHaveFocus();
     storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
     await user.type(description, " выбирает таблетку");
-    await search();
+    await user.click(screen.getByRole("button", { name: "Искать снова" }));
     expect(await screen.findByRole("heading", { name: "Матрица" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Ничего не нашлось" })).not.toBeInTheDocument();
+    expect(screen.getByText("«Хакер выбирает таблетку»")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Не удалось узнать фильм" })).not.toBeInTheDocument();
   });
 
   it("text search displays a backend failure and permits retry", async () => {
     const { storage, user, search } = await setup("SEARCH_UNAVAILABLE", false);
     await user.type(screen.getByLabelText("Опиши, что помнишь о фильме"), "Хакер выбирает таблетку");
     await search();
-    expect(await screen.findByText("Поиск временно недоступен. Попробуйте позже")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Поиск временно недоступен" })).toBeInTheDocument();
+    expect(screen.getByText("Мы уже разбираемся. Попробуйте еще раз через несколько минут")).toBeInTheDocument();
     storage.set(MOCK_STORAGE_KEYS.searchScenario, "found");
-    await search();
+    await user.click(screen.getByRole("button", { name: "Повторить" }));
     expect(await screen.findByRole("heading", { name: "Матрица" })).toBeInTheDocument();
   });
 

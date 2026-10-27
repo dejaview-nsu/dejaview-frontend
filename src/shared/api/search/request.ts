@@ -1,7 +1,11 @@
+import { z } from "zod";
+
 import type { SearchResponse } from "../generated";
-import { zSearchResponse } from "../generated/zod.gen";
+import { zMovieSearchResult, zSearchResponse } from "../generated/zod.gen";
 import { sendApiRequest, type UnauthorizedPolicy } from "../request";
 import { FILE_SEARCH_MODES, type FileSearchMode } from "./modes";
+
+const zTextSearchResponse = z.object({ results: z.array(zMovieSearchResult) });
 
 export const searchByText = ({ query, signal }: { query: string; signal?: AbortSignal }): Promise<SearchResponse> =>
   sendApiRequest({
@@ -9,9 +13,10 @@ export const searchByText = ({ query, signal }: { query: string; signal?: AbortS
     path: "/search/text",
     body: { query },
     timeouts: { response: 10_000 },
-    schema: zSearchResponse,
+    schema: zTextSearchResponse,
     isSearch: true,
     signal,
+    onUnauthorized: "guest",
   });
 
 export type SearchByFileParams = {
