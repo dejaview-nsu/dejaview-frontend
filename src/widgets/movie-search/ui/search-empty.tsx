@@ -2,9 +2,7 @@ import { CircleAlert, PencilLine } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 
-import { type SearchMode } from "../config/search";
-
-export const SearchEmpty = ({ mode }: { mode: SearchMode }) => (
+export const SearchEmpty = () => (
   <div
     role="status"
     aria-live="polite"
@@ -14,23 +12,19 @@ export const SearchEmpty = ({ mode }: { mode: SearchMode }) => (
     <div className="flex min-w-0 flex-col gap-4">
       <div>
         <h2 className="font-heading text-mobile-heading-3 font-bold md:text-heading-3">Ничего не нашлось</h2>
-        <p className="text-base leading-[1.55]">
-          {mode === "text"
-            ? "Попробуйте уточнить или переформулировать запрос, добавив сюжет, сцену, персонажей, жанр или примерный год выпуска."
-            : "Попробуйте загрузить другой файл и повторить поиск."}
-        </p>
+        <p className="text-base leading-[1.55]">Попробуйте загрузить другой файл и повторить поиск.</p>
       </div>
       <Button
         variant="brand-secondary"
         className="self-start px-3 md:px-6"
         onPress={() => {
-          const input = document.getElementById(mode === "text" ? "film-description" : "search-file-action");
+          const input = document.getElementById("search-file-action");
           input?.scrollIntoView?.({ block: "center" });
           input?.focus({ preventScroll: true });
         }}
       >
         <PencilLine size={24} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
-        {mode === "text" ? "Изменить запрос" : "Изменить файл"}
+        Изменить файл
       </Button>
     </div>
   </div>

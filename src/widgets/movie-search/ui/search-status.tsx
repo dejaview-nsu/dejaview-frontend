@@ -1,5 +1,7 @@
 import { useUnit } from "effector-react";
-import { CircleAlert, RefreshCcw, TriangleAlert } from "lucide-react";
+import { CircleAlert, RefreshCcw, RefreshCw, TriangleAlert } from "lucide-react";
+
+import { textSearchTexts } from "@/features/search-by-description";
 
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
@@ -7,6 +9,8 @@ import { Button } from "@/shared/ui/button";
 import { useMovieSearchModel } from "../model";
 import { SearchEmpty } from "./search-empty";
 import { SearchLoading } from "./search-loading";
+import { SearchNotice } from "./search-notice";
+import { TextSearchEmpty } from "./text-search-empty";
 
 export const SearchStatus = () => {
   const $$model = useMovieSearchModel();
@@ -49,6 +53,17 @@ export const SearchStatus = () => {
       </div>
     );
   }
+  if (mode === "text" && error)
+    return (
+      <SearchNotice
+        tone="warning"
+        title={textSearchTexts.unavailableTitle}
+        message={error}
+        actionLabel={textSearchTexts.retry}
+        ActionIcon={RefreshCw}
+        onAction={search}
+      />
+    );
   if (error)
     return (
       <div
@@ -59,6 +74,6 @@ export const SearchStatus = () => {
         <p className="min-w-0 break-words text-base leading-[1.55]">{error}</p>
       </div>
     );
-  if (isEmpty) return <SearchEmpty mode={mode} />;
+  if (isEmpty) return mode === "text" ? <TextSearchEmpty onSearchAgain={search} /> : <SearchEmpty />;
   return null;
 };

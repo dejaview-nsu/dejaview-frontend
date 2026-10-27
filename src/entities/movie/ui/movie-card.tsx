@@ -14,9 +14,7 @@ export const MovieCard = ({ movie }: { movie: MovieSearchResult }) => (
       </h3>
 
       {movie.year !== null && <p className="text-sm leading-[1.5] text-muted">{movie.year}</p>}
-      {movie.overview && (
-        <p className="line-clamp-2 text-sm md:line-clamp-3 leading-[1.5] text-ink">{movie.overview}</p>
-      )}
+      {movie.overview && <p className="line-clamp-2 text-sm leading-[1.5] text-ink">{movie.overview}</p>}
 
       <Link
         className="mt-auto flex min-h-11 items-center font-label text-sm leading-[1.2] font-semibold tracking-widest text-link uppercase outline-link hover:underline"

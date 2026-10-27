@@ -11,6 +11,7 @@ import { type MockHandler, mockResponse, wait } from "./utils";
 
 export const TEXT_SEARCH_SCENARIOS = [
   "found",
+  "many",
   "empty",
   "QUERY_EMPTY",
   "QUERY_TOO_SHORT",
@@ -25,6 +26,16 @@ export const TEXT_SEARCH_SCENARIOS = [
   "TIMEOUT",
 ] as const;
 type TextSearchScenario = (typeof TEXT_SEARCH_SCENARIOS)[number];
+
+const EDGE_WHITESPACE = /^\p{White_Space}+|\p{White_Space}+$/gu;
+
+const MANY_RESULTS = {
+  results: Array.from({ length: 12 }, (_, index) => ({
+    ...TEXT_FOUND_RESULTS.results[index % TEXT_FOUND_RESULTS.results.length],
+    movie_id: 900_000 + index,
+  })),
+};
+
 const QUERY_ERRORS = {
   QUERY_EMPTY: "Невозможно выполнить поиск по запросу: запрос пустой",
   QUERY_TOO_SHORT: "Невозможно выполнить поиск по запросу: запрос короче 3 символов",
@@ -46,7 +57,7 @@ const queryError = (code: keyof typeof QUERY_ERRORS) =>
 export const textSearch: MockHandler = async ({ request, storage, delays }) => {
   await wait(delays.textSearchMs, request.signal);
   const query = (request.body as { query?: unknown } | undefined)?.query;
-  const length = typeof query === "string" ? [...query.trim()].length : 0;
+  const length = typeof query === "string" ? [...query.replaceAll(EDGE_WHITESPACE, "")].length : 0;
   if (length === 0) return queryError("QUERY_EMPTY");
   if (length < 3) return queryError("QUERY_TOO_SHORT");
   if (length > 250) return queryError("QUERY_TOO_LONG");
@@ -54,6 +65,8 @@ export const textSearch: MockHandler = async ({ request, storage, delays }) => {
   switch (resolveScenario(storage)) {
     case "found":
       return mockResponse(200, TEXT_FOUND_RESULTS);
+    case "many":
+      return mockResponse(200, MANY_RESULTS);
     case "empty":
       return mockResponse(200, EMPTY_RESULTS);
     case "QUERY_EMPTY":
