@@ -1,5 +1,7 @@
 import { useUnit } from "effector-react";
 
+import { textSearchTexts } from "@/features/search-by-description";
+
 import { MovieCard } from "@/entities/movie";
 
 import { movieSearchModelView, useMovieSearchModel } from "../model";
@@ -34,10 +36,15 @@ const ResultsView = ({ fileInputId }: { fileInputId: string }) => {
         <ImageSearchResult movie={results[0]} />
       ) : (
         <>
-          <div className="mx-auto mb-7 max-w-content border-b-2 border-border-strong pb-6 md:mb-12">
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="mx-auto mb-7 max-w-content border-b-2 border-border-strong pb-6 md:mb-12"
+          >
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between md:gap-6">
               <h2 className="min-w-0 font-heading text-mobile-heading-3 font-bold md:text-heading-2 md:font-extrabold">
-                {mode === "text" ? "Результаты по запросу:" : "Результат поиска"}
+                {mode === "text" ? textSearchTexts.resultsTitle : "Результат поиска"}
                 {mode === "text" && (
                   <em className="block break-words font-semibold text-terracotta">«{submittedQuery}»</em>
                 )}
@@ -45,7 +52,7 @@ const ResultsView = ({ fileInputId }: { fileInputId: string }) => {
               <p className="shrink-0 text-sm leading-[1.5] text-muted">{countLabel}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 items-stretch gap-x-3 gap-y-3.5 md:grid-cols-3 md:gap-6 lg:grid-cols-4 desktop:grid-cols-5">
+          <div className="grid grid-cols-2 items-stretch gap-x-3 gap-y-3.5 md:gap-6 lg:grid-cols-4">
             {results?.map((movie) => (
               <MovieCard key={movie.movie_id} movie={movie} />
             ))}

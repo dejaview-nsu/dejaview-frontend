@@ -60,10 +60,15 @@ const startImage = async ({ home, scope, controlled }: Awaited<ReturnType<typeof
 };
 
 describe("movie search model", () => {
-  it.each(["а", "😀"])("limits the text draft to 250 Unicode characters on input for %s", async (character) => {
+  it.each(["а", "😀"])("blocks typing past 250 characters but accepts a long paste for %s", async (character) => {
     const { home, scope } = await setup();
-    await allSettled(home.inputs.textChanged, { scope, params: character.repeat(260) });
+    await allSettled(home.inputs.textChanged, { scope, params: { text: character.repeat(250) } });
+    await allSettled(home.inputs.textChanged, { scope, params: { text: character.repeat(251) } });
     expect(scope.getState(home.outputs.$text)).toBe(character.repeat(250));
+    expect(scope.getState(home.outputs.$textLength)).toBe(250);
+    await allSettled(home.inputs.textChanged, { scope, params: { text: character.repeat(263), pasted: true } });
+    expect(scope.getState(home.outputs.$textLength)).toBe(263);
+    expect(scope.getState(home.outputs.$textOverLimit)).toBe(true);
   });
 
   it("marks a decoded image ready only when the current single file meets constraints", async () => {
@@ -136,7 +141,7 @@ describe("movie search model", () => {
     const { home, scope, other } = await setup();
     const image = imageFile();
     const video = videoFile();
-    await allSettled(home.inputs.textChanged, { scope, params: "Описание сцены" });
+    await allSettled(home.inputs.textChanged, { scope, params: { text: "Описание сцены" } });
     await allSettled(home.inputs.filesSelected, { scope, params: { mode: "image", files: [image] } });
     await allSettled(home.inputs.filesSelected, { scope, params: { mode: "video", files: [video] } });
     for (const mode of ["image", "video", "audio", "text"] as const)
