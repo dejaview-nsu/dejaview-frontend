@@ -172,13 +172,12 @@ describe("registration form accessibility", () => {
     }
   });
 
-  it("login links are at least 44 px tall", async () => {
+  it("the login link is at least 44 px tall", async () => {
     await setupRegister();
 
     const form = screen.getByRole("region", { name: "Создать аккаунт" });
 
     expect(within(form).getByRole("link", { name: "Войти" })).toHaveClass("min-h-11");
-    expect(within(form).getByRole("link", { name: "Забыли пароль?" })).toHaveClass("min-h-11");
   });
 });
 

@@ -41,7 +41,7 @@ describe("base layout header", () => {
     renderLayout(scope);
 
     expect(scope.getState($$session.outputs.$status)).toBe("unknown");
-    expect(screen.queryByRole("link", { name: "Войти" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Войти" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Зарегистрироваться" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Меню пользователя/ })).not.toBeInTheDocument();
   });
@@ -50,7 +50,7 @@ describe("base layout header", () => {
     const { scope } = await setupSessionScope({ initialEntry: path });
     renderLayout(scope);
 
-    expect(screen.getByRole("link", { name: "Войти" })).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("button", { name: "Войти" })).toBeEnabled();
     expect(screen.getByRole("link", { name: "Зарегистрироваться" })).toHaveAttribute("href", "/register");
     expect(screen.queryByRole("button", { name: /Меню пользователя/ })).not.toBeInTheDocument();
   });
@@ -61,7 +61,7 @@ describe("base layout header", () => {
 
     const trigger = screen.getByRole("button", { name: "Меню пользователя movie_fan_42" });
     expect(trigger).toHaveTextContent("MO");
-    expect(screen.queryByRole("link", { name: "Войти" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Войти" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Зарегистрироваться" })).not.toBeInTheDocument();
 
     await userEventSetup().click(trigger);

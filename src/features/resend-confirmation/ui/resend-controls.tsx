@@ -1,6 +1,7 @@
 import { useUnit } from "effector-react";
 import { CircleAlert, LoaderCircle } from "lucide-react";
 
+import { cn } from "@/shared/lib/cn";
 import { Button, type ButtonProps } from "@/shared/ui";
 
 import { type ResendConfirmationModel } from "../model";
@@ -9,10 +10,12 @@ export const ResendControls = ({
   model,
   label,
   variant = "brand-secondary",
+  compact = false,
 }: {
   model: ResendConfirmationModel;
   label: string;
   variant?: ButtonProps["variant"];
+  compact?: boolean;
 }) => {
   const { countdown, canResend, pending, error, resend } = useUnit({
     countdown: model.outputs.$countdown,
@@ -23,9 +26,14 @@ export const ResendControls = ({
   });
 
   return (
-    <div className="flex w-full flex-col items-center gap-3 border-t border-dashed border-divider pt-5">
+    <div
+      className={cn(
+        "flex w-full flex-col items-center gap-3",
+        !compact && "border-t border-dashed border-divider pt-5",
+      )}
+    >
       <Button
-        variant={variant}
+        variant={compact ? "brand-secondary-small" : variant}
         isDisabled={!canResend}
         aria-busy={pending}
         aria-describedby={countdown ? "resend-countdown" : undefined}

@@ -5,7 +5,7 @@ import { createMovieSearchFactory, isSearchMode, type SearchMode } from "@/widge
 
 import { $$session } from "@/entities/session";
 
-import { loginRedirectRequested, router, routes } from "@/shared/routes";
+import { router, routes } from "@/shared/routes";
 
 const $$search = invoke(createMovieSearchFactory, {
   $isActive: routes.home.$isOpened,
@@ -15,11 +15,13 @@ const $$search = invoke(createMovieSearchFactory, {
 sample({
   clock: $$search.outputs.loginRequested,
   source: $$search.outputs.$pendingMode,
-  fn: (mode) => ({ path: mode ? `/?mode=${mode}` : "/" }),
-  target: loginRedirectRequested,
+  fn: (mode) => ({ path: mode ? `/?mode=${mode}` : "/", replace: false }),
+  target: $$session.inputs.loginRequired,
 });
 
 sample({ clock: routes.home.closed, target: $$search.inputs.pageClosed });
+
+sample({ clock: $$session.outputs.loginDialogDismissed, target: $$search.inputs.loginCancelled });
 
 sample({
   clock: routes.login.closed,

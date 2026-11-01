@@ -1,3 +1,4 @@
+import { concurrency } from "@farfetched/core";
 import { createFactory } from "@withease/factories";
 import { combine, createEvent, createStore, sample } from "effector";
 import { interval, readonly } from "patronum";
@@ -24,6 +25,8 @@ export const createResendConfirmationFactory = createFactory(() => {
   const $secondsLeft = createStore(0);
   const $error = createStore<string | null>(null);
   const $pending = resendMutation.$pending;
+
+  concurrency(resendMutation, { strategy: "TAKE_LATEST", abortAll: reset });
 
   const { tick } = interval({ timeout: 1000, start: countdownStarted, stop: countdownStopped });
 

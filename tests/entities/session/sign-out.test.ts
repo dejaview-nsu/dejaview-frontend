@@ -192,6 +192,56 @@ describe("sign out", () => {
     },
   );
 
+  it.each(["login", "confirmation"] as const)(
+    "logout during %s permits a new login and ignores the cancelled response",
+    async (stage) => {
+      const { scope, transport, signOut } = await setupControlled({ ignoreAbort: true });
+      const signIn = scopeBind($$session.inputs.signedIn, { scope });
+      const credentials = { login: "movie_fan_42", password: "Kino#2026" };
+
+      signIn(credentials);
+      await transport.waitForCalls(1);
+
+      if (stage === "confirmation") {
+        transport.current().resolve(jsonResponse(200, sessionInfo));
+        await transport.waitForCalls(2);
+        expect(transport.current().request.path).toBe("/auth/session");
+      }
+
+      const cancelled = transport.current();
+      const beforeLogout = transport.calls.length;
+      expect(scope.getState($$session.outputs.$isSigningIn)).toBe(true);
+
+      signOut();
+      await transport.waitForCalls(beforeLogout + 1);
+      expect(cancelled.request.signal?.aborted).toBe(true);
+      expect(scope.getState($$session.outputs.$isSigningIn)).toBe(false);
+      signIn(credentials);
+      expect(transport.calls).toHaveLength(beforeLogout + 1);
+
+      transport.current().resolve(jsonResponse(204, ""));
+      await vi.waitFor(() => expect(scope.getState($$session.outputs.$status)).toBe("guest"));
+
+      signIn(credentials);
+      await transport.waitForCalls(beforeLogout + 2);
+      const nextLogin = transport.current();
+      cancelled.resolve(jsonResponse(200, sessionInfo));
+      await vi.waitFor(() => expect(scope.getState($$session.outputs.$status)).toBe("guest"));
+      expect(scope.getState($$session.outputs.$isSigningIn)).toBe(true);
+      expect(transport.calls).toHaveLength(beforeLogout + 2);
+
+      const nextSession = { ...sessionInfo, user: { ...sessionInfo.user, username: "another_user" } };
+      nextLogin.resolve(jsonResponse(200, nextSession));
+      await transport.waitForCalls(beforeLogout + 3);
+      transport.current().resolve(jsonResponse(200, nextSession));
+      await allSettled(scope);
+
+      expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
+      expect(scope.getState($$session.outputs.$user)).toEqual(nextSession.user);
+      expect(scope.getState($$session.outputs.$isSigningIn)).toBe(false);
+    },
+  );
+
   it("a protected request expiring during logout does not open login", async () => {
     const { scope, transport, signOut } = await setupControlled();
 

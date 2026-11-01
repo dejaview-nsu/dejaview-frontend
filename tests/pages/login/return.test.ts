@@ -1,8 +1,10 @@
 import { allSettled } from "effector";
 import { describe, expect, it } from "vitest";
 
-import { $$login } from "@/pages/login/model";
+import "@/pages/login/model";
 import { $$profile } from "@/pages/profile/model";
+
+import { $$session } from "@/entities/session";
 
 import { router } from "@/shared/routes";
 
@@ -11,7 +13,7 @@ import { setupSessionScope } from "../../session-scope";
 const signInFrom = async (initialEntry: string) => {
   const { scope, history } = await setupSessionScope({ initialEntry });
 
-  await allSettled($$login.inputs.stubLoginPressed, { scope });
+  await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
   return { scope, history };
 };

@@ -1,8 +1,10 @@
 import { allSettled, createWatch } from "effector";
 import { describe, expect, it } from "vitest";
 
-import { $$login, $$loginRoute } from "@/pages/login/model";
+import { $$loginRoute } from "@/pages/login/model";
 import { $$register } from "@/pages/register/model";
+
+import { $$session } from "@/entities/session";
 
 import { router, routes } from "@/shared/routes";
 
@@ -59,7 +61,7 @@ describe("guest-only routes", () => {
       },
     });
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
     unwatch();
 
     expect(locations).toEqual(["/profile{}"]);

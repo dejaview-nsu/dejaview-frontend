@@ -91,6 +91,11 @@ export const createMovieSearchFactory = createFactory(
 
     sample({ clock: [modeAccepted, loginCancelled], fn: () => null, target: $pendingMode });
 
+    sample({
+      clock: loginCancelled,
+      target: [$$imageSearch.inputs.cancelled, $$videoSearch.inputs.cancelled, $$audioSearch.inputs.cancelled],
+    });
+
     for (const [mode, media] of [
       ["image", $$imageSearch],
       ["video", $$videoSearch],

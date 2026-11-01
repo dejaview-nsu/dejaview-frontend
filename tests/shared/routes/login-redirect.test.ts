@@ -1,7 +1,7 @@
 import { allSettled } from "effector";
 import { describe, expect, it } from "vitest";
 
-import { $$login } from "@/pages/login/model";
+import "@/pages/login/model";
 import { $$profile } from "@/pages/profile/model";
 
 import { $$session } from "@/entities/session";
@@ -11,10 +11,10 @@ import { router, routes } from "@/shared/routes";
 import { setupSessionScope } from "../../session-scope";
 
 describe("login redirect query", () => {
-  it("stub login leaves /login without redirect", async () => {
+  it("successful login leaves /login without redirect", async () => {
     const { scope, history } = await setupSessionScope({ initialEntry: "/login?redirect=/profile" });
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState(router.$path)).toBe("/profile");
     expect(scope.getState(router.$query)).toEqual({});
@@ -50,7 +50,7 @@ describe("login redirect query", () => {
     await allSettled(routes.profile.open, { scope, params: undefined });
     expect(scope.getState(router.$query)).toEqual({ redirect: "/profile" });
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState($$profile.outputs.readyRoute.$isOpened)).toBe(true);
     expect(scope.getState(router.$query)).toEqual({});

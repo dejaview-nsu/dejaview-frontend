@@ -1,5 +1,5 @@
 import { RouterProvider } from "@effector/router-react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { Provider } from "effector-react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -43,11 +43,10 @@ describe("search mode around the OIDC redirect", () => {
     const { scope, user } = await open("/");
 
     await user.click(screen.getByRole("tab", { name: "Видео, после входа" }));
-    await waitFor(() => expect(scope.getState(router.$path)).toBe("/login"));
+    await screen.findByRole("dialog", { name: "Вход в DejaView" });
+    expect(scope.getState(router.$path)).toBe("/");
 
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/?mode=video" });
-
-    await user.click(screen.getByRole("link", { name: "Зарегистрироваться" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Зарегистрироваться" }));
     await waitFor(() => expect(scope.getState(router.$path)).toBe("/register"));
 
     const google = await screen.findByRole("link", { name: "Продолжить с Google" });

@@ -3,14 +3,16 @@ import { INTERNAL_ERROR_MESSAGE, LOGIN_MESSAGES } from "@/shared/config/auth-mes
 
 import { getLoginErrorDetails } from "../api";
 
-export const getLoginErrorMessages = (error: ApiError): string[] => {
+export const getLoginErrorMessages = (error: ApiError, login?: string): string[] => {
   switch (error.code) {
     case "AUTH_INVALID_CREDENTIALS": {
       const captchaRequired = getLoginErrorDetails(error)?.captcha_required === true;
+      const credentialsMessage =
+        login !== undefined && !login.includes("@")
+          ? LOGIN_MESSAGES.invalidUsernameCredentials
+          : LOGIN_MESSAGES.invalidEmailCredentials;
 
-      return captchaRequired
-        ? [LOGIN_MESSAGES.invalidEmailCredentials, LOGIN_MESSAGES.captchaRequired]
-        : [LOGIN_MESSAGES.invalidEmailCredentials];
+      return captchaRequired ? [credentialsMessage, LOGIN_MESSAGES.captchaRequired] : [credentialsMessage];
     }
     case "AUTH_CAPTCHA_REQUIRED": {
       return [LOGIN_MESSAGES.captchaRequired];

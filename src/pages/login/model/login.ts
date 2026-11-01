@@ -1,6 +1,8 @@
 import { type Route } from "@effector/router";
-import { createFactory } from "@withease/factories";
-import { createEvent, sample } from "effector";
+import { createFactory, invoke } from "@withease/factories";
+import { sample } from "effector";
+
+import { createLoginFormFactory } from "@/widgets/login-form";
 
 import { type $$session } from "@/entities/session";
 
@@ -8,15 +10,7 @@ import { loginReturnRequested } from "@/shared/routes";
 
 export const createLoginPageFactory = createFactory(
   ({ route, session }: { route: Route; session: typeof $$session }) => {
-    const stubLoginPressed = createEvent();
-
-    if (import.meta.env.DEV) {
-      sample({
-        clock: stubLoginPressed,
-        fn: () => ({ login: "movie_fan_42", password: "Kino#2026" }),
-        target: session.inputs.signedIn,
-      });
-    }
+    const $$form = invoke(createLoginFormFactory, { session, $active: route.$isOpened });
 
     sample({
       clock: session.outputs.statusResolved,
@@ -25,8 +19,6 @@ export const createLoginPageFactory = createFactory(
       target: loginReturnRequested,
     });
 
-    return {
-      inputs: { stubLoginPressed },
-    };
+    return $$form;
   },
 );

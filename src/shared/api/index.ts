@@ -33,6 +33,7 @@ export type {
 export {
   zAuthConfirmationSent,
   zAuthEmail,
+  zAuthLogin,
   zAuthLoginError,
   zAuthOidcPending,
   zAuthOidcProvider,

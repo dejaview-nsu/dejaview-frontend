@@ -4,7 +4,7 @@ import { allSettled, createWatch, fork, type Scope, scopeBind } from "effector";
 import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
-import { $$login } from "@/pages/login/model";
+import "@/pages/login/model";
 import "@/pages/profile/model";
 
 import { $$session } from "@/entities/session";
@@ -28,11 +28,13 @@ const searchFile = () => new File(["image"], "frame.jpg", { type: "image/jpeg" }
 const watchCalls = (scope: Scope) => {
   const redirects = vi.fn();
   const required = vi.fn();
+  const dialogs = vi.fn();
 
   createWatch({ unit: loginRedirectRequested, scope, fn: redirects });
   createWatch({ unit: sessionRequired, scope, fn: required });
+  createWatch({ unit: $$session.outputs.$isLoginDialogOpened.updates, scope, fn: dialogs });
 
-  return { redirects, required };
+  return { redirects, required, dialogs };
 };
 
 const runSearch = async (scope: Scope, mode: FileSearchMode = "image") => {
@@ -46,7 +48,7 @@ const runSearch = async (scope: Scope, mode: FileSearchMode = "image") => {
 
 describe("401 on a user action", () => {
   it.each(["SESSION_REQUIRED", "SESSION_EXPIRED"])(
-    "%s on search makes user a guest and opens login with push",
+    "%s on search makes user a guest and opens a dialog without navigation",
     async (code) => {
       const { scope, history } = await setupSessionScope({
         authenticated: true,
@@ -60,14 +62,15 @@ describe("401 on a user action", () => {
 
       expect(scope.getState($$session.outputs.$status)).toBe("guest");
       expect(scope.getState($$session.outputs.$user)).toBeNull();
-      expect(scope.getState(router.$path)).toBe("/login");
-      expect(scope.getState(router.$query)).toEqual({ redirect: "/" });
-      expect(redirects).toHaveBeenCalledWith({ path: "/", replace: false });
-      expect(history.index).toBe(1);
+      expect(scope.getState(router.$path)).toBe("/");
+      expect(scope.getState(router.$query)).toEqual({});
+      expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/");
+      expect(redirects).not.toHaveBeenCalled();
+      expect(history.index).toBe(0);
       expect(scope.getState($$search.outputs.$stage)).toBe("idle");
       expect(scope.getState($$search.outputs.$error)).toBeNull();
 
-      await allSettled(router.back, { scope });
+      await allSettled($$session.inputs.loginDialogDismissed, { scope });
 
       expect(scope.getState(router.$path)).toBe("/");
     },
@@ -82,8 +85,9 @@ describe("401 on a user action", () => {
 
     await runSearch(scope);
 
-    expect(scope.getState(router.$path)).toBe("/login");
-    expect(scope.getState(router.$query)).toEqual({ redirect: "/about?ref=main&tab=2" });
+    expect(scope.getState(router.$path)).toBe("/about");
+    expect(scope.getState(router.$query)).toEqual({ ref: "main", tab: "2" });
+    expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/about?ref=main&tab=2");
   });
 
   it("replaces history entry on a protected page", async () => {
@@ -137,10 +141,10 @@ describe("401 on a user action", () => {
     expect(scope.getState(router.$path)).toBe("/register");
   });
 
-  it("several 401 at once give exactly one redirect", async () => {
+  it("several 401 at once open exactly one dialog", async () => {
     const controlled = createControlledTransport();
     const { scope, history } = await setupSessionScope({ authenticated: true, transport: controlled.transport });
-    const { redirects, required } = watchCalls(scope);
+    const { redirects, required, dialogs } = watchCalls(scope);
     const $$image = invoke(createFileSearchFactory, { mode: "image" });
     const $$video = invoke(createFileSearchFactory, { mode: "video" });
 
@@ -153,9 +157,10 @@ describe("401 on a user action", () => {
     await allSettled(scope);
 
     expect(required).toHaveBeenCalledTimes(2);
-    expect(redirects).toHaveBeenCalledTimes(1);
-    expect(history.index).toBe(1);
-    expect(scope.getState(router.$path)).toBe("/login");
+    expect(redirects).not.toHaveBeenCalled();
+    expect(dialogs).toHaveBeenCalledExactlyOnceWith(true);
+    expect(history.index).toBe(0);
+    expect(scope.getState(router.$path)).toBe("/");
   });
 
   it("401 during the start session check on /profile gives exactly one redirect", async () => {
@@ -197,13 +202,15 @@ describe("401 on a user action", () => {
     });
 
     await runSearch(scope);
-    expect(scope.getState(router.$path)).toBe("/login");
+    expect(scope.getState(router.$path)).toBe("/about");
+    expect(scope.getState($$session.outputs.$isLoginDialogOpened)).toBe(true);
 
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
 
     expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
     expect(scope.getState(router.$path)).toBe("/about");
     expect(scope.getState(router.$query)).toEqual({ ref: "main" });
+    expect(scope.getState($$session.outputs.$isLoginDialogOpened)).toBe(false);
   });
 
   it("cancelled search does not raise sessionRequired", async () => {

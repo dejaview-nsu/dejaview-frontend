@@ -2,7 +2,7 @@ import { allSettled, fork } from "effector";
 import { createBrowserHistory } from "history";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { $$login } from "@/pages/login/model";
+import "@/pages/login/model";
 import { $$profile } from "@/pages/profile/model";
 
 import { $$session } from "@/entities/session";
@@ -129,7 +129,7 @@ describe("application browser history", () => {
     const { scope, browserWindow, expectLocation } = await setup("/about");
     await allSettled(routes.profile.open, { scope, params: { query: { tab: "lists" } } });
     await expectLocation("/login", { redirect: "/profile?tab=lists" });
-    await allSettled($$login.inputs.stubLoginPressed, { scope });
+    await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
     await expectLocation("/profile", { tab: "lists" });
     expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
     expect(scope.getState($$profile.outputs.readyRoute.$isOpened)).toBe(true);
