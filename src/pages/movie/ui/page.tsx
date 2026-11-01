@@ -8,6 +8,7 @@ import { routes } from "@/shared/routes";
 import { Button, Panel } from "@/shared/ui";
 
 import { $$movie } from "../model/page";
+import { MovieReviewAction } from "./movie-actions";
 import { MovieCast } from "./movie-cast";
 import { MovieDetails } from "./movie-details";
 import { MovieReviews } from "./movie-reviews";
@@ -86,6 +87,7 @@ export const MoviePage = () => {
           )}
 
           {movie.actors.length > 0 && <MovieCast actors={movie.actors} />}
+          <MovieReviewAction />
           <MovieReviews />
         </>
       )}

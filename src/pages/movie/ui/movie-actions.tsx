@@ -33,11 +33,32 @@ export const MovieActions = () => {
         <Button variant="brand-secondary" isDisabled={disabled} onPress={() => loginPressed()}>
           <Check size={20} aria-hidden="true" /> Просмотрено
         </Button>
-        <Button variant="brand-secondary" isDisabled={disabled} onPress={() => loginPressed()}>
-          <MessageSquare size={20} aria-hidden="true" /> Написать отзыв
-        </Button>
       </div>
-      <p className="text-sm leading-relaxed text-muted">Оценки, списки и публикация отзывов скоро появятся.</p>
+      <p className="text-sm leading-relaxed text-muted">Оценки и списки скоро появятся.</p>
     </div>
+  );
+};
+
+export const MovieReviewAction = () => {
+  const { status, loginPressed } = useUnit({
+    status: $$session.outputs.$status,
+    loginPressed: $$session.inputs.loginPressed,
+  });
+
+  return (
+    <section
+      aria-labelledby="movie-own-review-title"
+      className="flex flex-wrap items-center justify-between gap-5 border-t-2 border-border-strong pt-8"
+    >
+      <div className="flex flex-col gap-3">
+        <h2 id="movie-own-review-title" className="font-heading text-mobile-heading-2 font-bold md:text-heading-2">
+          Ваш отзыв
+        </h2>
+        <p className="text-sm leading-relaxed text-muted">Возможность написать отзыв скоро появится.</p>
+      </div>
+      <Button variant="brand-secondary" isDisabled={status !== "guest"} onPress={() => loginPressed()}>
+        <MessageSquare size={20} aria-hidden="true" /> Написать отзыв
+      </Button>
+    </section>
   );
 };
