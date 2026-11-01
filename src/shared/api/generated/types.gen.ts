@@ -326,7 +326,7 @@ export type UserSummary = {
 };
 
 /**
- * Карточка фильма для блоков 1, 3, 8, 9 #17193. Поля и их пустые значения совпадают с таблицей `movies` (#17627, `contracts/db-schema.md`), кроме `poster_url`: в БД лежит `poster_path`, полный URL собирает backend. Пустое значение - `null` у скалярных полей и `[]` у списков, пустых строк нет. Блоки вне Sprint 1 (трейлер, актеры, оценки, отзывы) добавятся новыми необязательными полями или операциями: клиент игнорирует незнакомые поля.
+ * Карточка фильма для блоков 1, 3, 8, 9, 10 #17193. Поля и их пустые значения совпадают с таблицей `movies` (#17627, `contracts/db-schema.md`), кроме `poster_url`: в БД лежит `poster_path`, полный URL собирает backend, как и у фото актеров. Пустое значение - `null` у скалярных полей и `[]` у списков, пустых строк нет. Остальные блоки (трейлер, актеры дубляжа, оценки, отзывы) добавятся новыми полями или операциями: клиент игнорирует незнакомые поля.
  */
 export type MovieCard = {
     /**
@@ -373,6 +373,10 @@ export type MovieCard = {
      * Съемочная группа (#17193 блок 8) в порядке показа. Один элемент - одна роль человека: режиссер и сценарист в одном лице - два элемента. Единственное или множественное число в подписи («Сценарист», «Сценаристы») выбирает frontend по числу элементов роли. `[]` - данных нет, frontend строки блока 8 не показывает.
      */
     crew: Array<MovieCrewMember>;
+    /**
+     * Актеры (#17193 блок 10, #17240) в порядке TMDB, не больше 30 - столько сохраняет скрипт каталога (#17640). `[]` - данных нет, frontend блок не показывает.
+     */
+    actors: Array<MovieActor>;
 };
 
 export type MovieGenre = {
@@ -407,6 +411,72 @@ export type MovieCrewMember = {
      * Режиссер, сценарист, композитор, продюсер (#17193 блок 8).
      */
     role: 'director' | 'writer' | 'composer' | 'producer';
+};
+
+export type MovieActor = {
+    /**
+     * id человека в TMDB.
+     */
+    person_id: number;
+    name: string;
+    /**
+     * Роль в фильме, подпись под именем (#17240). null - роль в TMDB не указана.
+     */
+    character: string | null;
+    /**
+     * Полный URL фото на CDN TMDB, размер w185. null - фото нет, frontend показывает заглушку.
+     */
+    photo_url: string | null;
+};
+
+export type MovieReviewsPage = {
+    /**
+     * Отзывы страницы в порядке `sort`. `[]` - отзывов нет или страница за последней.
+     */
+    reviews: Array<MovieReview>;
+    /**
+     * Есть следующая страница - frontend показывает кнопку «Еще отзывы» (#17239).
+     */
+    has_more: boolean;
+};
+
+/**
+ * Отзыв о фильме (#17239), поля - из формы отзыва
+ */
+export type MovieReview = {
+    review_id: number;
+    /**
+     * Никнейм автора. null - профиль удален, frontend пишет «Удаленный пользователь» (#17030 п. 3).
+     */
+    username: string | null;
+    /**
+     * Дата создания в UTC. Вид «12 ноября 2024, 15:37» в часовом поясе пользователя собирает frontend (#17239).
+     */
+    created_at: string;
+    /**
+     * Отзыв редактировался - пометка «Редактирован» рядом с датой (#17029 п. 3).
+     */
+    is_edited: boolean;
+    /**
+     * «Положительно», «Нейтрально», «Негативно» (#17029 п. 1.1), подписи - на frontend.
+     */
+    verdict: 'positive' | 'neutral' | 'negative';
+    /**
+     * Заголовок (#17029 п. 1.2). null - отзыв без заголовка.
+     */
+    title: string | null;
+    /**
+     * Текст отзыва (#17029 п. 1.3).
+     */
+    body: string;
+    /**
+     * Реакций «палец вверх» (#17029 п. 5).
+     */
+    likes: number;
+    /**
+     * Реакций «палец вниз». «+N», «-N» или «0» под отзывом - разница `likes - dislikes` (#17239); число реакций каждого вида - #17029 п. 5.
+     */
+    dislikes: number;
 };
 
 export type AuthOidcProviderPath = AuthOidcProvider;
@@ -1142,3 +1212,54 @@ export type GetMovieResponses = {
 };
 
 export type GetMovieResponse = GetMovieResponses[keyof GetMovieResponses];
+
+export type ListMovieReviewsData = {
+    body?: never;
+    path: {
+        /**
+         * Идентификатор фильма TMDB (#17241).
+         */
+        movie_id: number;
+    };
+    query?: {
+        /**
+         * Порядок отзывов, см. описание операции.
+         */
+        sort?: 'best' | 'worst' | 'newest' | 'oldest';
+        /**
+         * Номер страницы по 10 отзывов, с 1.
+         */
+        page?: number;
+    };
+    url: '/movies/{movie_id}/reviews';
+};
+
+export type ListMovieReviewsErrors = {
+    /**
+     * `sort` или `page` вне допустимых значений.
+     */
+    400: Error;
+    /**
+     * `movie_id` не целое положительное число.
+     */
+    404: Error;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+};
+
+export type ListMovieReviewsError = ListMovieReviewsErrors[keyof ListMovieReviewsErrors];
+
+export type ListMovieReviewsResponses = {
+    /**
+     * Страница отзывов.
+     */
+    200: MovieReviewsPage;
+};
+
+export type ListMovieReviewsResponse = ListMovieReviewsResponses[keyof ListMovieReviewsResponses];

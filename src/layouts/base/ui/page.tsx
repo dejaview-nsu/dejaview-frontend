@@ -59,6 +59,7 @@ const StandardHeader = () => {
 const $isBrandShell = combine(
   [
     routes.home.$isOpened,
+    routes.movie.$isOpened,
     routes.login.$isOpened,
     routes.register.$isOpened,
     routes.confirmEmail.$isOpened,

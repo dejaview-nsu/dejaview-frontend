@@ -9,6 +9,8 @@ export const MOCK_STORAGE_KEYS = {
   searchScenario: "dejaview:mocks:search",
   loginScenario: "dejaview:mocks:login",
   authScenario: "dejaview:mocks:auth",
+  movieScenario: "dejaview:mocks:movie",
+  reviewScenario: "dejaview:mocks:reviews",
 } as const;
 
 export const withScenarioEnv = (
