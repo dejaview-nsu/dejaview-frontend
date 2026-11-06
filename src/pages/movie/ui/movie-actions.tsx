@@ -14,7 +14,7 @@ export const MovieActions = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-5 border-y border-divider py-4">
+      <div className="flex flex-wrap items-center gap-5 border-y-2 border-dashed border-divider py-4">
         <div className="flex items-center gap-3">
           <Star className="text-brand-gold" size={28} aria-hidden="true" />
           <span className="font-heading text-heading-2 font-bold" aria-label="Оценок пока нет">
@@ -27,7 +27,7 @@ export const MovieActions = () => {
         </Button>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Button variant="brand" isDisabled={disabled} onPress={() => loginPressed()}>
+        <Button variant="brand-secondary" isDisabled={disabled} onPress={() => loginPressed()}>
           <BookmarkPlus size={20} aria-hidden="true" /> Хочу посмотреть
         </Button>
         <Button variant="brand-secondary" isDisabled={disabled} onPress={() => loginPressed()}>
@@ -48,7 +48,7 @@ export const MovieReviewAction = () => {
   return (
     <section
       aria-labelledby="movie-own-review-title"
-      className="flex flex-wrap items-center justify-between gap-5 border-t-2 border-border-strong pt-8"
+      className="flex flex-wrap items-center justify-between gap-5 border-t-2 border-dashed border-divider pt-8"
     >
       <div className="flex flex-col gap-3">
         <h2 id="movie-own-review-title" className="font-heading text-mobile-heading-2 font-bold md:text-heading-2">

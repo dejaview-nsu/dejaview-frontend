@@ -1,5 +1,5 @@
 import { UserRound } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { type MovieActor } from "@/shared/api";
 
@@ -25,19 +25,25 @@ const ActorPortrait = ({ actor }: { actor: MovieActor }) => {
   );
 };
 
-export const MovieCast = ({ actors }: { actors: MovieActor[] }) => (
-  <section aria-labelledby="movie-cast-title" className="flex flex-col gap-6 border-t-2 border-border-strong pt-8">
-    <h2 id="movie-cast-title" className="font-heading text-mobile-heading-2 font-bold md:text-heading-2">
-      Актёры
-    </h2>
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-      {actors.map((actor) => (
-        <li key={actor.person_id} className="flex min-w-0 flex-col gap-2">
-          <ActorPortrait key={actor.photo_url} actor={actor} />
-          <p className="text-sm font-bold break-words">{actor.name}</p>
-          {actor.character && <p className="text-sm text-muted break-words">{actor.character}</p>}
-        </li>
-      ))}
-    </ul>
-  </section>
-);
+export const MovieCast = ({ actors, title = "Актёры" }: { actors: MovieActor[]; title?: string }) => {
+  const titleId = useId();
+
+  if (actors.length === 0) return null;
+
+  return (
+    <section aria-labelledby={titleId} className="flex flex-col gap-6 border-t-2 border-dashed border-divider pt-8">
+      <h2 id={titleId} className="font-heading text-mobile-heading-2 font-bold md:text-heading-2">
+        {title}
+      </h2>
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {actors.map((actor) => (
+          <li key={actor.person_id} className="flex min-w-0 flex-col gap-2">
+            <ActorPortrait key={actor.photo_url} actor={actor} />
+            <p className="text-sm font-bold break-words">{actor.name}</p>
+            {actor.character && <p className="text-sm text-muted break-words">{actor.character}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};

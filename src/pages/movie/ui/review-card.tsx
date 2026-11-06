@@ -38,7 +38,7 @@ export const ReviewCard = ({ review }: { review: MovieReview }) => {
         <h3 className="font-heading text-mobile-heading-3 font-bold break-words md:text-heading-3">{review.title}</h3>
       )}
       <p className="text-sm leading-relaxed break-words whitespace-pre-wrap md:text-base">{review.body}</p>
-      <div className="flex flex-wrap items-center gap-3 border-t border-divider pt-3">
+      <div className="flex flex-wrap items-center gap-3 border-t-2 border-dashed border-divider pt-3">
         <span className="text-sm text-muted">Полезный отзыв?</span>
         <Button
           variant="brand-ghost"

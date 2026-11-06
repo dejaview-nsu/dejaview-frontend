@@ -1,3 +1,4 @@
+import { Film } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
@@ -24,10 +25,11 @@ export const MoviePoster = ({
         aria-label={`Нет постера фильма «${title}»`}
         className={cn(
           className,
-          "flex items-center justify-center bg-poster-placeholder p-6 text-center text-sm text-on-dark",
+          "flex flex-col items-center justify-center gap-3 bg-poster-placeholder p-6 text-center text-sm text-on-dark",
         )}
       >
-        <span className={variant === "card" ? "sr-only" : undefined}>Нет постера</span>
+        <Film size={40} aria-hidden="true" />
+        <span>Нет постера</span>
       </div>
     );
   return <img className={className} src={url} alt={`Постер фильма «${title}»`} onError={() => setFailed(true)} />;

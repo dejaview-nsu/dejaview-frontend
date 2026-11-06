@@ -1,6 +1,6 @@
 import { useUnit } from "effector-react";
 
-import { Button } from "@/shared/ui";
+import { Button, Select } from "@/shared/ui";
 
 import { type ReviewSort } from "../api/request";
 import { $$movie } from "../model/page";
@@ -26,25 +26,17 @@ export const MovieReviews = () => {
   });
 
   return (
-    <section aria-labelledby="movie-reviews-title" className="flex flex-col gap-6 border-t-2 border-border-strong pt-8">
+    <section
+      aria-labelledby="movie-reviews-title"
+      className="flex flex-col gap-6 border-t-2 border-dashed border-divider pt-8"
+    >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 id="movie-reviews-title" className="font-heading text-mobile-heading-2 font-bold md:text-heading-2">
           Отзывы
         </h2>
-        <label className="flex w-full flex-wrap items-center gap-3 text-sm text-muted sm:w-auto">
-          Сортировать по:
-          <select
-            className="min-h-11 w-full border-2 border-border-strong bg-card px-3 py-2 font-body text-ink outline-link focus-visible:outline-2 sm:w-auto"
-            value={sort}
-            onChange={(event) => sortChanged(event.target.value as ReviewSort)}
-          >
-            {SORT_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {(reviews.length > 0 || pending || error) && (
+          <Select label="Сортировать по:" value={sort} options={SORT_OPTIONS} onChange={sortChanged} />
+        )}
       </div>
 
       <div aria-busy={pending} className="flex flex-col gap-5">
@@ -57,7 +49,7 @@ export const MovieReviews = () => {
           </p>
         )}
         {!pending && !error && reviews.length === 0 && (
-          <p className="border border-divider bg-card p-6 text-center text-muted">Отзывов пока нет.</p>
+          <p className="text-base text-muted">Пока никто не оставил отзыв</p>
         )}
       </div>
 

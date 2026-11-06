@@ -47,7 +47,10 @@ describe("movie page", () => {
     expect(screen.getByText("Композитор")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Актёры" })).toBeInTheDocument();
     expect(screen.getByText("Мэттью Макконахи")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Сортировать по:" })).toHaveValue("best");
+    expect(screen.getByRole("region", { name: "Трейлер" })).toHaveTextContent("Трейлер скоро появится");
+    expect(screen.getByRole("button", { name: /Сортировать по:/ })).toHaveTextContent("Сначала лучшие");
+    expect(screen.getByLabelText("Сумма реакций: 0")).toHaveTextContent("0");
+    expect(screen.getByLabelText("Сумма реакций: -5")).toHaveTextContent("-5");
 
     const reviews = screen.getByRole("region", { name: "Отзывы" });
     expect(within(reviews).getAllByRole("article")).toHaveLength(10);
@@ -58,7 +61,9 @@ describe("movie page", () => {
     expect(within(reviews).getAllByRole("article")).toHaveLength(23);
     expect(screen.queryByRole("button", { name: "Ещё отзывы" })).toBeNull();
 
-    await user.selectOptions(screen.getByRole("combobox"), "oldest");
+    await user.click(screen.getByRole("button", { name: /Сортировать по:/ }));
+    expect(screen.getByRole("option", { name: "Сначала лучшие" })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("option", { name: "Самые старые" }));
     expect(within(reviews).getAllByRole("article")).toHaveLength(10);
     expect(within(within(reviews).getAllByRole("article")[0]).getByText("kinoman_1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Хочу посмотреть" }));
@@ -73,10 +78,12 @@ describe("movie page", () => {
 
     expect(screen.getByRole("heading", { name: "Фильм без данных" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Нет постера/ })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Сюжет" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Сюжет" })).toHaveTextContent("Описание пока не добавлено");
     expect(screen.queryByRole("heading", { name: "О фильме" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Актёры" })).toBeNull();
-    expect(screen.getByText("Отзывов пока нет.")).toBeInTheDocument();
+    expect(screen.getByText("Нет постера")).toBeInTheDocument();
+    expect(screen.getByText("Пока никто не оставил отзыв")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Сортировать по:/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Ещё отзывы" })).toBeNull();
   });
 
@@ -127,7 +134,7 @@ describe("movie page", () => {
     renderPage(scope);
 
     expect(screen.getByRole("heading", { name: "Фильм не найден" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Вернуться к поиску" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Перейти к поиску" })).toHaveAttribute("href", "/");
     expect(screen.queryByRole("region", { name: "Отзывы" })).toBeNull();
   });
 
@@ -188,6 +195,33 @@ describe("movie page", () => {
 
     expect(screen.getByRole("button", { name: "Оценить" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Хочу посмотреть" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Просмотрено" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Написать отзыв" })).toBeDisabled();
+  });
+
+  it.each(["Оценить", "Хочу посмотреть", "Просмотрено", "Написать отзыв"])(
+    "opens the existing login dialog for the guest action %s and keeps the movie URL",
+    async (name) => {
+      const { scope } = await setupMockApiScope({ initialEntry: "/movies/157336?source=search" });
+      renderPage(scope);
+      const action = screen.getByRole("button", { name });
+
+      expect(action).toBeEnabled();
+      await userEventSetup().click(action);
+
+      expect(screen.getByRole("dialog", { name: "Вход в DejaView" })).toBeInTheDocument();
+      expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/movies/157336?source=search");
+      expect(scope.getState(router.$path)).toBe("/movies/157336");
+    },
+  );
+
+  it("returns a directly opened movie to search", async () => {
+    const { scope, history } = await setupMockApiScope({ initialEntry: "/movies/157336" });
+    renderPage(scope);
+
+    await userEventSetup().click(screen.getByRole("button", { name: "Назад" }));
+
+    expect(history.location.pathname).toBe("/");
+    expect(history.index).toBe(0);
   });
 });

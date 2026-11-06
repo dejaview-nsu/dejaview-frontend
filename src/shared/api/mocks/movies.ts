@@ -75,8 +75,8 @@ export const REVIEW_FIXTURES: MovieReview[] = Array.from({ length: 23 }, (_, ind
   title:
     index === 2 ? null : ["Кино, к которому хочется вернуться", "Есть о чём подумать", "Ожидал большего"][index % 3],
   body: REVIEW_BODY,
-  likes: (index * 7) % 19,
-  dislikes: (index * 3) % 11,
+  likes: index < 2 ? 18 : (index * 7) % 19,
+  dislikes: index === 0 ? 18 : index === 1 ? 23 : (index * 3) % 11,
 }));
 
 const catalog = [
