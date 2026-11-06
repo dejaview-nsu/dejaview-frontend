@@ -271,8 +271,15 @@ export const zMovieCrewMember = z.object({
     ])
 });
 
+export const zMovieActor = z.object({
+    person_id: z.int(),
+    name: z.string(),
+    character: z.string().nullable(),
+    photo_url: z.url().nullable()
+});
+
 /**
- * Карточка фильма для блоков 1, 3, 8, 9 #17193. Поля и их пустые значения совпадают с таблицей `movies` (#17627, `contracts/db-schema.md`), кроме `poster_url`: в БД лежит `poster_path`, полный URL собирает backend. Пустое значение - `null` у скалярных полей и `[]` у списков, пустых строк нет. Блоки вне Sprint 1 (трейлер, актеры, оценки, отзывы) добавятся новыми необязательными полями или операциями: клиент игнорирует незнакомые поля.
+ * Карточка фильма для блоков 1, 3, 8, 9, 10 #17193. Поля и их пустые значения совпадают с таблицей `movies` (#17627, `contracts/db-schema.md`), кроме `poster_url`: в БД лежит `poster_path`, полный URL собирает backend, как и у фото актеров. Пустое значение - `null` у скалярных полей и `[]` у списков, пустых строк нет. Остальные блоки (трейлер, актеры дубляжа, оценки, отзывы) добавятся новыми полями или операциями: клиент игнорирует незнакомые поля.
  */
 export const zMovieCard = z.object({
     movie_id: z.int(),
@@ -291,7 +298,32 @@ export const zMovieCard = z.object({
     overview: z.string().min(1).nullable(),
     genres: z.array(zMovieGenre),
     countries: z.array(zMovieCountry),
-    crew: z.array(zMovieCrewMember)
+    crew: z.array(zMovieCrewMember),
+    actors: z.array(zMovieActor)
+});
+
+/**
+ * Отзыв о фильме (#17239), поля - из формы отзыва
+ */
+export const zMovieReview = z.object({
+    review_id: z.int(),
+    username: z.string().nullable(),
+    created_at: z.iso.datetime(),
+    is_edited: z.boolean(),
+    verdict: z.enum([
+        'positive',
+        'neutral',
+        'negative'
+    ]),
+    title: z.string().min(1).max(150).nullable(),
+    body: z.string().min(300).max(10000),
+    likes: z.int().gte(0),
+    dislikes: z.int().gte(0)
+});
+
+export const zMovieReviewsPage = z.object({
+    reviews: z.array(zMovieReview).max(10),
+    has_more: z.boolean()
 });
 
 export const zAuthOidcProviderPath = zAuthOidcProvider;
@@ -424,3 +456,22 @@ export const zGetMoviePath = z.object({
  * Карточка фильма.
  */
 export const zGetMovieResponse = zMovieCard;
+
+export const zListMovieReviewsPath = z.object({
+    movie_id: z.int().gte(1)
+});
+
+export const zListMovieReviewsQuery = z.object({
+    sort: z.enum([
+        'best',
+        'worst',
+        'newest',
+        'oldest'
+    ]).optional().default('best'),
+    page: z.int().gte(1).optional().default(1)
+});
+
+/**
+ * Страница отзывов.
+ */
+export const zListMovieReviewsResponse = zMovieReviewsPage;
