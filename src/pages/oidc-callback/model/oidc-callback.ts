@@ -2,7 +2,7 @@ import { createFactory, invoke } from "@withease/factories";
 import { createEffect, createEvent, createStore, sample } from "effector";
 import { readonly } from "patronum";
 
-import { getOidcProviderName, takeOidcReturnPath } from "@/features/oidc-sign-in";
+import { getOidcProviderName, takeOidcOrigin, takeOidcReturnPath } from "@/features/oidc-sign-in";
 
 import { $$session } from "@/entities/session";
 
@@ -23,6 +23,11 @@ export type OidcResult = (typeof RESULTS)[number];
 
 const toResult = (value: unknown): OidcResult => RESULTS.find((result) => result === value) ?? "error";
 
+const takeFailureTarget = () =>
+  takeOidcOrigin() === "login"
+    ? { origin: "login" as const, redirect: takeOidcReturnPath() }
+    : { origin: "register" as const, redirect: null };
+
 export const createOidcCallbackPageFactory = createFactory(() => {
   const { pendingQuery, completeMutation } = createOidcCallbackApi();
   const $$completion = invoke(createOidcCompletionFactory, { completeMutation });
@@ -32,6 +37,7 @@ export const createOidcCallbackPageFactory = createFactory(() => {
   const signedIn = createEvent();
 
   const takeReturnPathFx = createEffect(takeOidcReturnPath);
+  const takeFailureTargetFx = createEffect(takeFailureTarget);
 
   const $result = createStore<OidcResult | null>(null);
   const $providerName = createStore<string | null>(null);
@@ -161,7 +167,21 @@ export const createOidcCallbackPageFactory = createFactory(() => {
     target: $$notifications.inputs.shown,
   });
 
-  sample({ clock: failed, fn: () => ({ replace: true, query: {} }), target: routes.register.open });
+  sample({ clock: failed, target: takeFailureTargetFx });
+
+  sample({
+    clock: takeFailureTargetFx.doneData,
+    filter: ({ origin }) => origin === "register",
+    fn: () => ({ replace: true, query: {} }),
+    target: routes.register.open,
+  });
+
+  sample({
+    clock: takeFailureTargetFx.doneData,
+    filter: ({ origin }) => origin === "login",
+    fn: ({ redirect }) => ({ replace: true, query: redirect && redirect !== "/" ? { redirect } : {} }),
+    target: routes.login.open,
+  });
 
   sample({ clock: routes.oidcCallback.closed, fn: () => null, target: [$result, $providerName, $error] });
 
@@ -170,7 +190,7 @@ export const createOidcCallbackPageFactory = createFactory(() => {
   sample({ clock: routes.oidcCallback.closed, target: [$$completion.inputs.reset, $$link.inputs.reset] });
 
   return {
-    __: { takeReturnPathFx },
+    __: { takeReturnPathFx, takeFailureTargetFx },
 
     outputs: {
       $$completion,

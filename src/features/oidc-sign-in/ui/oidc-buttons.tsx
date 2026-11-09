@@ -1,10 +1,27 @@
 import { useUnit } from "effector-react";
+import { useEffect } from "react";
+
+import { cn } from "@/shared/lib/cn";
 
 import { getOidcStartUrl, OIDC_PROVIDERS } from "../config/providers";
 import { type OidcStartModel } from "../model/oidc-start";
 
 export const OidcButtons = ({ model }: { model: OidcStartModel }) => {
-  const choose = useUnit(model.inputs.providerChosen);
+  const { disabled, choose, reset } = useUnit({
+    disabled: model.outputs.$disabled,
+    choose: model.inputs.providerChosen,
+    reset: model.inputs.reset,
+  });
+
+  useEffect(() => {
+    const restore = (event: PageTransitionEvent) => {
+      if (event.persisted) reset();
+    };
+
+    window.addEventListener("pageshow", restore);
+
+    return () => window.removeEventListener("pageshow", restore);
+  }, [reset]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -17,8 +34,22 @@ export const OidcButtons = ({ model }: { model: OidcStartModel }) => {
         <a
           key={id}
           href={getOidcStartUrl(id)}
-          onClick={() => choose(id)}
-          className="flex min-h-12 items-center justify-center border-2 border-border-strong bg-card px-6 text-base font-semibold text-ink outline-link hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2"
+          aria-disabled={disabled || undefined}
+          onClick={(event) => {
+            if (disabled) {
+              event.preventDefault();
+
+              return;
+            }
+
+            if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) choose(id);
+          }}
+          className={cn(
+            "flex min-h-12 items-center justify-center border-2 px-6 text-base font-semibold outline-link focus-visible:outline-2 focus-visible:outline-offset-2",
+            disabled
+              ? "cursor-default border-border-default bg-disabled-bg text-disabled-text"
+              : "border-border-strong bg-card text-ink hover:bg-hover",
+          )}
         >
           Продолжить с {name}
         </a>

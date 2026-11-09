@@ -39,7 +39,7 @@ describe("login form UI", () => {
     const { user } = await setup();
     expect(screen.queryByText(/заглушка/)).not.toBeInTheDocument();
     expect(screen.queryByText("Забыли пароль?")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Продолжить с/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Продолжить с/ })).toHaveLength(3);
     expect(screen.queryByRole("button", { name: "Закрыть окно входа" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Войти" }));
