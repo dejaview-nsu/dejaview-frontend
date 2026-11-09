@@ -1,0 +1,1 @@
+export { REQUEST_PASSWORD_RESET_TEXTS, RESEND_AFTER_SECONDS } from "./texts";

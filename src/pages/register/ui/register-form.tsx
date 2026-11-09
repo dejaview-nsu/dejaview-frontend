@@ -8,10 +8,9 @@ import { PASSWORD_MAX_LENGTH, type RegisterField } from "@/features/register";
 
 import { revealElement } from "@/shared/lib/reveal";
 import { routes } from "@/shared/routes";
-import { Button, FormField } from "@/shared/ui";
+import { Button, FormField, PasswordChecklist } from "@/shared/ui";
 
 import { $$oidcStart, $$registerForm } from "../model";
-import { PasswordChecklist } from "./password-checklist";
 
 const fields: {
   field: RegisterField;

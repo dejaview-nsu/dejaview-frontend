@@ -12,6 +12,8 @@ export const routes = {
   register: createRoute({ path: "/register" }),
   profile: createRoute({ path: "/profile" }),
   confirmEmail: createRoute({ path: "/confirm-email" }),
+  forgotPassword: createRoute({ path: "/forgot-password" }),
+  resetPassword: createRoute({ path: "/reset-password" }),
   oidcCallback: createRoute({ path: "/auth/oidc" }),
   notFound: createRoute(),
 };
@@ -25,6 +27,8 @@ export const router = createRouter({
     routes.register,
     routes.profile,
     routes.confirmEmail,
+    routes.forgotPassword,
+    routes.resetPassword,
     routes.oidcCallback,
   ],
   notFound: routes.notFound,

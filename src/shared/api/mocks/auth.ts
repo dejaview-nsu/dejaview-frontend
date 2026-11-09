@@ -5,6 +5,7 @@ import type {
   Error as ErrorBody,
   SessionInfo,
 } from "../generated";
+import { TransportError } from "../transport/errors";
 import { COMMON_ERRORS } from "./fixtures";
 import { getSession, login, logout } from "./session";
 import { MOCK_STORAGE_KEYS, type MockStorage } from "./storage";
@@ -36,6 +37,7 @@ type MockReply = {
   headers?: Record<string, string>;
   signIn?: boolean;
   signOut?: boolean;
+  network?: boolean;
 };
 
 type ScenarioReplies = Record<string, (context: MockContext) => MockReply>;
@@ -47,6 +49,13 @@ const requestLogin = ({ request }: MockContext) => {
 
   return typeof body?.login === "string" ? body.login : "";
 };
+
+const RESET_LINK_EXPIRED = error(
+  "AUTH_RESET_LINK_EXPIRED",
+  "Срок действия ссылки истёк. Запросите восстановление пароля повторно",
+);
+
+const NO_NETWORK: MockReply = { status: 0, network: true };
 
 const ENDPOINTS = {
   register: {
@@ -210,6 +219,44 @@ const ENDPOINTS = {
       oidc_complete_expired: () => ({ status: 410, body: error("AUTH_OIDC_EXPIRED", OIDC_FAILED) }),
     },
   },
+  passwordRequest: {
+    route: "POST /auth/password-reset/request",
+    fallback: "password_request_ok",
+    replies: {
+      password_request_ok: () => ({ status: 202 }),
+      password_request_validation_error: () => ({
+        status: 400,
+        body: error("AUTH_VALIDATION_ERROR", "Введите корректные имя пользователя или email", "login"),
+      }),
+      password_request_rate_limited: () => ({ status: 429, body: COMMON_ERRORS.RATE_LIMITED }),
+      password_request_server_error: () => ({ status: 500, body: COMMON_ERRORS.INTERNAL_ERROR }),
+      password_request_network_error: () => NO_NETWORK,
+    },
+  },
+  passwordCheck: {
+    route: "POST /auth/password-reset/check",
+    fallback: "password_check_ok",
+    replies: {
+      password_check_ok: () => ({ status: 204 }),
+      password_check_expired: () => ({ status: 410, body: RESET_LINK_EXPIRED }),
+      password_check_server_error: () => ({ status: 500, body: COMMON_ERRORS.INTERNAL_ERROR }),
+      password_check_network_error: () => NO_NETWORK,
+    },
+  },
+  passwordComplete: {
+    route: "POST /auth/password-reset/complete",
+    fallback: "password_complete_ok",
+    replies: {
+      password_complete_ok: () => ({ status: 200, body: MOCK_SESSION_INFO, signIn: true }),
+      password_complete_same_as_current: () => ({
+        status: 400,
+        body: error("AUTH_PASSWORD_SAME_AS_CURRENT", "Новый пароль должен отличаться от текущего", "new_password"),
+      }),
+      password_complete_expired: () => ({ status: 410, body: RESET_LINK_EXPIRED }),
+      password_complete_server_error: () => ({ status: 500, body: COMMON_ERRORS.INTERNAL_ERROR }),
+      password_complete_network_error: () => NO_NETWORK,
+    },
+  },
 } satisfies Record<string, { route: string; fallback: string | null; replies: ScenarioReplies }>;
 
 type Endpoint = keyof typeof ENDPOINTS;
@@ -229,6 +276,9 @@ const PREFIXES: Record<Endpoint, string> = {
   logout: "logout_",
   oidcPending: "oidc_pending_",
   oidcComplete: "oidc_complete_",
+  passwordRequest: "password_request_",
+  passwordCheck: "password_check_",
+  passwordComplete: "password_complete_",
 };
 
 export const readAuthScenarios = (storage: MockStorage) =>
@@ -270,6 +320,8 @@ const createAuthHandler =
 
     const name = resolved.kind === "scenario" ? resolved.name : (fallback as string);
     const reply = (replies as ScenarioReplies)[name](context);
+
+    if (reply.network) throw new TransportError("network");
 
     if (reply.signIn) context.storage.set(MOCK_STORAGE_KEYS.session, AUTHENTICATED);
 

@@ -63,20 +63,34 @@ const $isBrandShell = combine(
     routes.register.$isOpened,
     routes.confirmEmail.$isOpened,
     routes.oidcCallback.$isOpened,
+    routes.forgotPassword.$isOpened,
+    routes.resetPassword.$isOpened,
   ],
   (opened) => opened.some(Boolean),
 );
 
 const $isAuthPage = combine(
-  [routes.login.$isOpened, routes.register.$isOpened, routes.confirmEmail.$isOpened, routes.oidcCallback.$isOpened],
+  [
+    routes.login.$isOpened,
+    routes.register.$isOpened,
+    routes.confirmEmail.$isOpened,
+    routes.oidcCallback.$isOpened,
+    routes.forgotPassword.$isOpened,
+    routes.resetPassword.$isOpened,
+  ],
+  (opened) => opened.some(Boolean),
+);
+
+const $isCompactAuthPage = combine(
+  [routes.login.$isOpened, routes.forgotPassword.$isOpened, routes.resetPassword.$isOpened],
   (opened) => opened.some(Boolean),
 );
 
 export const BaseLayout = ({ children }: { children: ReactNode }) => {
-  const { isBrandShell, isAuthPage, loginPage } = useUnit({
+  const { isBrandShell, isAuthPage, compactAuthPage } = useUnit({
     isBrandShell: $isBrandShell,
     isAuthPage: $isAuthPage,
-    loginPage: routes.login.$isOpened,
+    compactAuthPage: $isCompactAuthPage,
   });
 
   return (
@@ -100,10 +114,10 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
           />
         </>
       )}
-      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} loginPage={loginPage} /> : <StandardHeader />}
+      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} loginPage={compactAuthPage} /> : <StandardHeader />}
       <NotificationBanner />
       <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
-      {isBrandShell && <HomeFooter mobileHidden={loginPage} />}
+      {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} />}
       <LoginDialog />
     </div>
   );
