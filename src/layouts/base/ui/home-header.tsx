@@ -14,9 +14,11 @@ import { UserMenu, userMenuItemStyle, userMenuPopoverStyle, userMenuTriggerStyle
 export const HomeHeader = ({
   showGuestActions = true,
   loginPage = false,
+  contentWidth = false,
 }: {
   showGuestActions?: boolean;
   loginPage?: boolean;
+  contentWidth?: boolean;
 }) => {
   const { status, openRegister, openLogin } = useUnit({
     status: $$session.outputs.$status,
@@ -27,13 +29,17 @@ export const HomeHeader = ({
   return (
     <header
       className={cn(
-        "relative z-20 h-14 bg-header text-on-dark md:h-[72px] md:px-12",
+        "relative z-20 h-14 bg-header text-on-dark md:h-[72px]",
+        contentWidth ? "md:px-8" : "md:px-12",
         loginPage ? "px-2.5 md:border-b md:border-on-dark/40" : "border-b border-on-dark/40 px-4",
       )}
     >
       <nav
         aria-label="Главная навигация"
-        className="mx-auto flex h-full w-full max-w-results items-center justify-between gap-4"
+        className={cn(
+          "mx-auto flex h-full w-full items-center justify-between gap-4",
+          contentWidth ? "max-w-content" : "max-w-results",
+        )}
       >
         <Link to={routes.home} aria-label="DejaView — главная" className="shrink-0 outline-link">
           <BrandLogo />
