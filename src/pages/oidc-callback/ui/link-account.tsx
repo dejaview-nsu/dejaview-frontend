@@ -104,7 +104,7 @@ export const LinkAccount = ({ providerName }: { providerName: string }) => {
           onBlur={() => blurPassword()}
         />
         <Link
-          to={routes.login}
+          to={routes.forgotPassword}
           query={{}}
           className="-mt-4 inline-flex min-h-11 items-center self-start text-sm font-semibold text-link outline-link hover:underline focus-visible:outline-2"
         >

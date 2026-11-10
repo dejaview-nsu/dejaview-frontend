@@ -1,6 +1,15 @@
 import { type ApiError, type AuthRegisterRequest, zAuthEmail, zAuthPassword, zAuthUsername } from "@/shared/api";
+import {
+  checkPasswordRules,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  type PasswordRuleState,
+  passwordTests,
+} from "@/shared/lib/password";
 
 import { REGISTER_MESSAGES, REGISTER_SERVER_MESSAGES } from "./messages";
+
+export { PASSWORD_MAX_LENGTH, type PasswordRuleState };
 
 export const REGISTER_FIELDS = ["username", "email", "birthYear", "password", "passwordConfirmation"] as const;
 
@@ -11,8 +20,6 @@ export type RegisterValues = Record<RegisterField, string>;
 export type FieldError = { message: string | null };
 
 export type RegisterErrors = Record<RegisterField, FieldError | null>;
-
-export const PASSWORD_MAX_LENGTH = 128;
 
 export const MIN_BIRTH_YEAR = 1900;
 
@@ -28,28 +35,17 @@ export const passwordRules = [
   {
     id: "length",
     label: "Длина от 8 до 128 символов",
-    test: (value: string) => value.length >= 8 && value.length <= PASSWORD_MAX_LENGTH,
+    test: (value: string) => value.length >= PASSWORD_MIN_LENGTH && value.length <= PASSWORD_MAX_LENGTH,
   },
-  { id: "uppercase", label: "Заглавная латинская буква", test: (value: string) => /[A-Z]/.test(value) },
-  { id: "lowercase", label: "Строчная латинская буква", test: (value: string) => /[a-z]/.test(value) },
-  { id: "digit", label: "Хотя бы одна цифра", test: (value: string) => /[0-9]/.test(value) },
-  {
-    id: "special",
-    label: "Хотя бы один спецсимвол: ! @ # $ % и др.",
-    test: (value: string) => /[^\p{L}\p{N}\s]/u.test(value),
-  },
+  { id: "uppercase", label: "Заглавная латинская буква", test: passwordTests.uppercase },
+  { id: "lowercase", label: "Строчная латинская буква", test: passwordTests.lowercase },
+  { id: "digit", label: "Хотя бы одна цифра", test: passwordTests.digit },
+  { id: "special", label: "Хотя бы один спецсимвол: ! @ # $ % и др.", test: passwordTests.special },
 ] as const;
 
 export type PasswordRuleId = (typeof passwordRules)[number]["id"];
 
-export type PasswordRuleState = "neutral" | "passed" | "failed";
-
-export const checkPassword = (value: string) =>
-  passwordRules.map(({ id, label, test }) => ({
-    id,
-    label,
-    state: (value.length === 0 ? "neutral" : test(value) ? "passed" : "failed") as PasswordRuleState,
-  }));
+export const checkPassword = (value: string) => checkPasswordRules(passwordRules, value, { showFailures: true });
 
 const fail = (message: string | null): FieldError => ({ message });
 

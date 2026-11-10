@@ -38,7 +38,7 @@ describe("login form UI", () => {
   it("shows the production form and validates/focuses fields without a request", async () => {
     const { user } = await setup();
     expect(screen.queryByText(/заглушка/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Забыли пароль?")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Забыли пароль?" })).toHaveAttribute("href", "/forgot-password");
     expect(screen.getAllByRole("link", { name: /Продолжить с/ })).toHaveLength(3);
     expect(screen.queryByRole("button", { name: "Закрыть окно входа" })).not.toBeInTheDocument();
 

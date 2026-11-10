@@ -377,10 +377,10 @@ describe("unknown requests", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const { transport } = setup();
 
-    const response = await transport({ method: "GET", path: "/movies/603", timeouts: { response: 1000 } });
+    const response = await transport({ method: "GET", path: "/unimplemented", timeouts: { response: 1000 } });
 
     expect(response.status).toBe(404);
     expect(JSON.parse(response.bodyText)).toMatchObject({ code: "MOCK_NOT_FOUND" });
-    expect(warn).toHaveBeenCalledWith("Заглушки: нет заглушки для GET /movies/603");
+    expect(warn).toHaveBeenCalledWith("Заглушки: нет заглушки для GET /unimplemented");
   });
 });

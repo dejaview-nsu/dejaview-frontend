@@ -4,11 +4,9 @@ import { combine, createEvent, createStore, sample } from "effector";
 import { interval, readonly } from "patronum";
 
 import { type AuthResendConfirmationRequest, toApiError } from "@/shared/api";
+import { formatCountdown } from "@/shared/lib/countdown";
 
 import { createResendConfirmationApi } from "../api/request";
-
-export const formatCountdown = (seconds: number) =>
-  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
 export const createResendConfirmationFactory = createFactory(() => {
   const { resendMutation } = createResendConfirmationApi();
@@ -89,5 +87,7 @@ export const createResendConfirmationFactory = createFactory(() => {
     },
   };
 });
+
+export { formatCountdown };
 
 export type ResendConfirmationModel = ReturnType<typeof createResendConfirmationFactory>;

@@ -6,6 +6,8 @@ import { routes } from "@/shared/routes";
 
 import { AboutPage } from "./about";
 import { ConfirmEmailPage } from "./confirm-email";
+import { $$forgotPasswordRoute } from "./forgot-password";
+import { ForgotPasswordPage } from "./forgot-password";
 import { $$home } from "./home";
 import { HomePage } from "./home";
 import { $$loginRoute } from "./login";
@@ -17,6 +19,7 @@ import { $$profile } from "./profile";
 import { ProfilePage } from "./profile";
 import { $$register } from "./register";
 import { RegisterPage } from "./register";
+import { ResetPasswordPage } from "./reset-password";
 
 const PageLoader = () => {
   return (
@@ -35,6 +38,8 @@ export const Routing = createRoutesView({
     createRouteView({ route: $$register.outputs.readyRoute, view: RegisterPage }),
     createRouteView({ route: $$profile.outputs.readyRoute, view: ProfilePage }),
     createRouteView({ route: routes.confirmEmail, view: ConfirmEmailPage }),
+    createRouteView({ route: $$forgotPasswordRoute.outputs.readyRoute, view: ForgotPasswordPage }),
+    createRouteView({ route: routes.resetPassword, view: ResetPasswordPage }),
     createRouteView({ route: routes.oidcCallback, view: OidcCallbackPage }),
     createRouteView({ route: routes.notFound, view: NotFoundPage }),
   ]),

@@ -6,4 +6,4 @@ export {
   type SessionLoginError,
   type SessionUser,
 } from "./api";
-export { getLoginErrorMessages } from "./lib";
+export { getLoginErrorMessages, type LoginFieldError, normalizeLogin, validateLogin } from "./lib";

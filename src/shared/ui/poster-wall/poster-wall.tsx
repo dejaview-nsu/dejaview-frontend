@@ -17,7 +17,8 @@ const posters = [
 
 export const PosterWall = () => (
   <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-    <div className="absolute top-2 -left-10 flex origin-top-left rotate-4 flex-col gap-3 md:top-0 md:-left-[120px] md:gap-4">
+    {/* Запас по ширине и третий ряд закрывают края контейнера после поворота. */}
+    <div className="absolute top-1/2 left-1/2 flex w-[calc(100%+80px)] min-w-[1248px] -translate-x-1/2 -translate-y-1/2 rotate-4 flex-col gap-3 md:w-[calc(100%+240px)] md:min-w-[1728px] md:gap-4">
       {[
         posters,
         [
@@ -34,13 +35,14 @@ export const PosterWall = () => (
           posters[3],
           posters[9],
         ],
+        posters,
       ].map((row, index) => (
-        <div key={index} className="flex gap-3 md:gap-4">
+        <div key={index} className="grid grid-cols-12 gap-3 md:gap-4">
           {row.map(([title, year, color]) => (
             <div
               key={title}
               className={cn(
-                "flex h-[137px] w-[91px] shrink-0 flex-col justify-end gap-1 overflow-hidden border border-poster-border p-2 md:h-48 md:w-32 md:p-3",
+                "flex aspect-2/3 min-w-0 flex-col justify-end gap-1 overflow-hidden border border-poster-border p-2 md:p-3",
                 color,
               )}
             >

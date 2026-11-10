@@ -5,7 +5,7 @@ import { interval, readonly } from "patronum";
 import { createOidcStartFactory } from "@/features/oidc-sign-in";
 import { createResendConfirmationFactory } from "@/features/resend-confirmation";
 
-import { type $$session, getLoginErrorMessages } from "@/entities/session";
+import { type $$session, getLoginErrorMessages, normalizeLogin } from "@/entities/session";
 
 import { type ApiError } from "@/shared/api";
 
@@ -71,7 +71,7 @@ export const createLoginFormFactory = createFactory(
     const accepted = sample({
       clock: validated,
       filter: ({ errors }) => errors.login === null && errors.password === null,
-      fn: ({ values }) => ({ login: values.login.trim(), password: values.password }),
+      fn: ({ values }) => ({ login: normalizeLogin(values.login), password: values.password }),
     });
 
     sample({

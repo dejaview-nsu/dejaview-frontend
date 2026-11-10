@@ -1,23 +1,36 @@
+import { Film } from "lucide-react";
 import { useState } from "react";
 
-export const MoviePoster = ({ url, title }: { url: string | null; title: string }) => {
+import { cn } from "@/shared/lib/cn";
+
+export const MoviePoster = ({
+  url,
+  title,
+  variant = "card",
+}: {
+  url: string | null;
+  title: string;
+  variant?: "card" | "detail";
+}) => {
   const [failed, setFailed] = useState(false);
+  const className = cn(
+    "mx-auto aspect-[2/3] w-full shrink-0 object-cover",
+    variant === "card" ? "max-w-[200px] rounded-sm" : "border-2 border-border-strong shadow-hard-lg",
+  );
+
   if (!url || failed)
     return (
       <div
         role="img"
         aria-label={`Нет постера фильма «${title}»`}
-        className="mx-auto aspect-[2/3] w-full max-w-[200px] shrink-0 rounded-sm bg-poster-placeholder"
+        className={cn(
+          className,
+          "flex flex-col items-center justify-center gap-3 bg-poster-placeholder p-6 text-center text-sm text-on-dark",
+        )}
       >
-        <span className="sr-only">Нет постера</span>
+        <Film size={40} aria-hidden="true" />
+        <span>Нет постера</span>
       </div>
     );
-  return (
-    <img
-      className="mx-auto aspect-[2/3] w-full max-w-[200px] shrink-0 rounded-sm object-cover"
-      src={url}
-      alt={`Постер фильма «${title}»`}
-      onError={() => setFailed(true)}
-    />
-  );
+  return <img className={className} src={url} alt={`Постер фильма «${title}»`} onError={() => setFailed(true)} />;
 };

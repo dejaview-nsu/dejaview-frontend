@@ -111,7 +111,9 @@ sample({ clock: route.closed, target: $$videoSearch.inputs.cancelled });
 
 Форма на `/login` и окно входа используют общий виджет `login-form`. Логин проверяется по сгенерированной схеме `zAuthLogin`, пароль — только на непустоту. При серверной ошибке очищается пароль, логин сохраняется. Неподтверждённый email позволяет запросить новое письмо. После закрытия формы её данные сбрасываются, вход и отправка повторного письма отменяются.
 
-`inputs.loginPressed()` открывает окно на текущей публичной странице, `outputs.$isLoginDialogOpened` и `outputs.$loginDialogPath` описывают его состояние. `inputs.loginDialogDismissed()` закрывает окно без продолжения ожидающего действия. После успешного входа окно закрывается автоматически; поиск выбирает ожидающий медиа-режим или повторяет прерванную операцию. Прямой адрес `/login` остаётся отдельной страницей, а безопасный внутренний `redirect` сохраняет возврат с защищённых страниц. Виджет CAPTCHA и восстановление пароля в форму входа не включены.
+`inputs.loginPressed()` открывает окно на текущей публичной странице, `outputs.$isLoginDialogOpened` и `outputs.$loginDialogPath` описывают его состояние. `inputs.loginDialogDismissed()` закрывает окно без продолжения ожидающего действия. После успешного входа окно закрывается автоматически; поиск выбирает ожидающий медиа-режим или повторяет прерванную операцию. Прямой адрес `/login` остаётся отдельной страницей, а безопасный внутренний `redirect` сохраняет возврат с защищённых страниц. Виджет CAPTCHA в форму входа не включён. Ссылка «Забыли пароль?» под полем «Пароль» ведёт на `/forgot-password`; в окне входа переход закрывает окно.
+
+Проверка формата логина (`validateLogin`, `normalizeLogin`) общая для формы входа и запроса восстановления пароля и находится в `@/entities/session`.
 
 Под кнопкой «Войти» и на регистрации стоят кнопки «Продолжить с Google», «Продолжить с Яндекс» и «Продолжить с VK» из `features/oidc-sign-in`. Это ссылки на `GET /api/v1/auth/oidc/{provider}/start`, браузер переходит по ним сам. Перед переходом в `sessionStorage` сохраняются страница возврата и форма, с которой начат вход: `login` или `register`. Для окна входа страница возврата — та, где окно открыто, для `/login` — её `redirect`. Backend адрес возврата не принимает.
 
@@ -124,6 +126,15 @@ sample({ clock: route.closed, target: $$videoSearch.inputs.cancelled });
 После первого нажатия повторные нажатия игнорируются, на форме входа блокируется и кнопка «Войти». Пока идёт вход по паролю, кнопки провайдеров неактивны. Блокировку снимают закрытие формы и возврат на страницу кнопкой «Назад» из кэша браузера (`pageshow` с `persisted`). Нажатие с Ctrl, Shift, Alt или Cmd открывает провайдера в новой вкладке и текущую форму не блокирует.
 
 При `result=error` и истёкшем незавершённом входе (410 `AUTH_OIDC_EXPIRED`) `/auth/oidc` показывает уведомление «Не удалось выполнить вход через {провайдер}…» и возвращает на форму, с которой начат вход. Вход с формы входа ведёт на `/login?redirect=<страница возврата>`, без `redirect` для главной. Если форма не сохранена, открывается `/register`.
+
+## Восстановление пароля
+
+- `POST /auth/password-reset/request` с `{ login }` — фича `request-password-reset`. Любой 202 показывает одинаковый экран «Проверь почту», существование учётной записи не раскрывается. Ответ 400 с `field: login` подсвечивает поле клиентским текстом; сеть, таймаут, 429, 5xx и ответ не по контракту — «Произошла ошибка. Попробуйте позже» над формой. Повторный запрос доступен через 60 с: раньше backend письмо не отправит.
+- `POST /auth/password-reset/check` с `{ token }` и `POST /auth/password-reset/complete` с `{ token, new_password }` — фича `reset-password`. 410 на любом шаге — экран «Срок действия ссылки истёк». `AUTH_PASSWORD_SAME_AS_CURRENT` — «Новый пароль должен отличаться от текущего» над формой; прочие ошибки — общий текст. Тексты сервера не показываются.
+- Ответ `complete` — `SessionInfo`, cookie сессии ставит backend. Страница передаёт его в `$$session.inputs.sessionCreated`, показывает уведомление «Пароль успешно изменён» и открывает главную.
+- Обе операции отменяются при уходе со страницы, проверка ссылки — также при получении нового токена; запоздалые ответы отменённых операций игнорируются.
+
+Правила нового пароля — `@/shared/lib/password`, чек-лист — `PasswordChecklist` из `@/shared/ui`. Длина считается в кодовых точках Unicode, как на backend. Спецсимвол — любой символ, кроме букв, цифр и пробельных; это строже backend, который считает спецсимволом и кириллицу с пробелом, поэтому клиент не отправит пароль, который backend отклонит.
 
 ## Заглушки
 
@@ -186,7 +197,7 @@ localStorage.setItem("dejaview:mocks:auth", "confirm_expired,resend_too_early");
 localStorage.removeItem("dejaview:mocks:auth"); // вернуть поведение по умолчанию
 ```
 
-Префикс имени определяет эндпоинт. Эндпоинт без своего сценария работает по умолчанию: регистрация, повторная отправка, подтверждение и OIDC отвечают успехом, а сессия, вход и выход используют сохранённый вход из `dejaview:mocks:session` и старый ключ `dejaview:mocks:login`. Неизвестное имя с префиксом эндпоинта — 404 `MOCK_NOT_FOUND` и предупреждение в консоли. Успешные `confirm_ok`, `login_ok` и `oidc_complete_ok` сохраняют вход, `logout_ok` его удаляет.
+Префикс имени определяет эндпоинт. Эндпоинт без своего сценария работает по умолчанию: регистрация, повторная отправка, подтверждение, OIDC и восстановление пароля отвечают успехом, а сессия, вход и выход используют сохранённый вход из `dejaview:mocks:session` и старый ключ `dejaview:mocks:login`. Неизвестное имя с префиксом эндпоинта — 404 `MOCK_NOT_FOUND` и предупреждение в консоли. Успешные `confirm_ok`, `login_ok` и `oidc_complete_ok` сохраняют вход, `logout_ok` его удаляет.
 
 | Сценарий                                   | Эндпоинт                         | Ответ                                                                 |
 | ------------------------------------------ | -------------------------------- | --------------------------------------------------------------------- |
@@ -222,6 +233,29 @@ localStorage.removeItem("dejaview:mocks:auth"); // вернуть поведен
 | `oidc_complete_email_taken`                | `POST /auth/oidc/complete`       | 409 `AUTH_EMAIL_TAKEN`, `field: null`                                 |
 | `oidc_complete_validation_error`           | `POST /auth/oidc/complete`       | 400 `AUTH_VALIDATION_ERROR`, `field: username`                        |
 | `oidc_complete_expired`                    | `POST /auth/oidc/complete`       | 410 `AUTH_OIDC_EXPIRED`                                               |
+
+### Сценарии восстановления пароля
+
+Задаются тем же ключом `dejaview:mocks:auth` или переменной `VITE_MOCK_AUTH_SCENARIO`. Без сценария все три эндпоинта отвечают успехом. Сценарии разных эндпоинтов можно объединить через запятую: `password_check_ok,password_complete_same_as_current`.
+
+| Сценарий                              | Эндпоинт                             | Ответ                                                      |
+| ------------------------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| `password_request_ok` (по умолчанию)  | `POST /auth/password-reset/request`  | 202 без тела, для любого `login`                           |
+| `password_request_validation_error`   | `POST /auth/password-reset/request`  | 400 `AUTH_VALIDATION_ERROR`, `field: login`                |
+| `password_request_rate_limited`       | `POST /auth/password-reset/request`  | 429 `RATE_LIMITED`                                         |
+| `password_request_server_error`       | `POST /auth/password-reset/request`  | 500 `INTERNAL_ERROR`                                       |
+| `password_request_network_error`      | `POST /auth/password-reset/request`  | нет сети                                                   |
+| `password_check_ok` (по умолчанию)    | `POST /auth/password-reset/check`    | 204, ссылка действительна                                  |
+| `password_check_expired`              | `POST /auth/password-reset/check`    | 410 `AUTH_RESET_LINK_EXPIRED`                              |
+| `password_check_server_error`         | `POST /auth/password-reset/check`    | 500 `INTERNAL_ERROR`                                       |
+| `password_check_network_error`        | `POST /auth/password-reset/check`    | нет сети                                                   |
+| `password_complete_ok` (по умолчанию) | `POST /auth/password-reset/complete` | 200, `SessionInfo`; вход сохраняется                       |
+| `password_complete_same_as_current`   | `POST /auth/password-reset/complete` | 400 `AUTH_PASSWORD_SAME_AS_CURRENT`, `field: new_password` |
+| `password_complete_expired`           | `POST /auth/password-reset/complete` | 410 `AUTH_RESET_LINK_EXPIRED`                              |
+| `password_complete_server_error`      | `POST /auth/password-reset/complete` | 500 `INTERNAL_ERROR`                                       |
+| `password_complete_network_error`     | `POST /auth/password-reset/complete` | нет сети                                                   |
+
+Страница `/reset-password` в режиме моков открывается с любым непустым токеном: `/reset-password?token=demo`. Без токена сразу показывается экран «Срок действия ссылки истёк».
 
 Страницу `/auth/oidc` в режиме моков можно открыть напрямую: `/auth/oidc?provider=google&result=registration_required`. Значения `result`: `success`, `registration_required`, `link_required`, `account_blocked`, `error`.
 

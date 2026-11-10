@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { $$home, HomePage } from "@/pages/home";
 import "@/pages/login/model";
+import { $$movie } from "@/pages/movie";
 
 import { checkAudio } from "@/features/search-by-audio";
 import { fileConstraints } from "@/features/search-by-file";
@@ -144,6 +145,10 @@ describe("home search through the backend mock transport", () => {
     expect(screen.queryByRole("heading", { name: "Как это работает?" })).not.toBeInTheDocument();
     expect(scope.getState($$session.outputs.$status)).toBe("guest");
     expect(scope.getState(router.$path)).toBe("/");
+
+    await user.click(within(results).getByRole("link", { name: "Подробнее о фильме «Матрица»" }));
+    await waitFor(() => expect(scope.getState($$movie.outputs.$status)).toBe("ready"));
+    expect(scope.getState($$movie.outputs.$movie)?.movie_id).toBe(603);
   });
 
   it("text empty state allows clarifying the query and searching again", async () => {
@@ -179,7 +184,7 @@ describe("home search through the backend mock transport", () => {
     ["video", "Начало", 27205, "Открыть карточку фильма"],
     ["audio", "Интерстеллар", 157336, "Открыть карточку фильма «Интерстеллар»"],
   ] as const)("%s sends one multipart file and renders the contract response", async (mode, title, movieId, link) => {
-    const { transport, selectFile, search } = await setup();
+    const { transport, selectFile, search, user, scope } = await setup();
     const file = await selectFile(mode);
     await search();
     expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
@@ -192,6 +197,10 @@ describe("home search through the backend mock transport", () => {
     const body = requests[0].body as FormData;
     expect([...body.keys()]).toEqual(["file"]);
     expect(body.get("file")).toBe(file);
+
+    await user.click(screen.getByRole("link", { name: link }));
+    await waitFor(() => expect(scope.getState($$movie.outputs.$status)).toBe("ready"));
+    expect(scope.getState($$movie.outputs.$movie)?.movie_id).toBe(movieId);
   });
 
   it.each([
@@ -557,7 +566,7 @@ describe("home search through the backend mock transport", () => {
     expect((requests[1][0].body as FormData).get("file")).toBe(file);
   });
 
-  it("image result opens the movie placeholder route", async () => {
+  it("image result opens the movie route and preserves the selected file", async () => {
     const { scope, selectFile, search, user } = await setup();
     await selectFile("image");
     await search();
