@@ -138,11 +138,11 @@ describe("auth scenario selection", () => {
   it("an unknown endpoint still answers 404 MOCK_NOT_FOUND", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    expect((await call(memoryStorage(), "POST", "/auth/password-reset/request")).status).toBe(404);
+    expect((await call(memoryStorage(), "PUT", "/users/me/password")).status).toBe(404);
   });
 
   it("lists every scenario", () => {
-    expect(AUTH_SCENARIOS).toHaveLength(32);
+    expect(AUTH_SCENARIOS).toHaveLength(46);
   });
 });
 
@@ -367,5 +367,96 @@ describe("auth scenarios", () => {
     await call(storage, "POST", "/auth/logout");
 
     expect(storage.get(MOCK_STORAGE_KEYS.session)).toBeNull();
+  });
+});
+
+describe("password reset scenarios", () => {
+  const RESET_EXPIRED = err(
+    "AUTH_RESET_LINK_EXPIRED",
+    "Срок действия ссылки истёк. Запросите восстановление пароля повторно",
+  );
+
+  const withScenario = (scenario: string) => {
+    const storage = memoryStorage();
+
+    storage.set(MOCK_STORAGE_KEYS.authScenario, scenario);
+
+    return storage;
+  };
+
+  it.each([
+    ["password_request_ok", "/auth/password-reset/request", 202, undefined],
+    [
+      "password_request_validation_error",
+      "/auth/password-reset/request",
+      400,
+      err("AUTH_VALIDATION_ERROR", "Введите корректные имя пользователя или email", "login"),
+    ],
+    [
+      "password_request_rate_limited",
+      "/auth/password-reset/request",
+      429,
+      err("RATE_LIMITED", "Слишком много запросов. Попробуйте позже"),
+    ],
+    [
+      "password_request_server_error",
+      "/auth/password-reset/request",
+      500,
+      err("INTERNAL_ERROR", "Произошла ошибка. Попробуйте позже"),
+    ],
+    ["password_check_ok", "/auth/password-reset/check", 204, undefined],
+    ["password_check_expired", "/auth/password-reset/check", 410, RESET_EXPIRED],
+    [
+      "password_check_server_error",
+      "/auth/password-reset/check",
+      500,
+      err("INTERNAL_ERROR", "Произошла ошибка. Попробуйте позже"),
+    ],
+    ["password_complete_ok", "/auth/password-reset/complete", 200, sessionInfo],
+    [
+      "password_complete_same_as_current",
+      "/auth/password-reset/complete",
+      400,
+      err("AUTH_PASSWORD_SAME_AS_CURRENT", "Новый пароль должен отличаться от текущего", "new_password"),
+    ],
+    ["password_complete_expired", "/auth/password-reset/complete", 410, RESET_EXPIRED],
+    [
+      "password_complete_server_error",
+      "/auth/password-reset/complete",
+      500,
+      err("INTERNAL_ERROR", "Произошла ошибка. Попробуйте позже"),
+    ],
+  ])("%s answers POST %s with %i", async (scenario, path, status, body) => {
+    const response = await call(withScenario(scenario), "POST", path, { login: "anna_k", token: "t" });
+
+    expect(response.status).toBe(status);
+    expect(response.body).toEqual(body);
+  });
+
+  it.each(["/auth/password-reset/request", "/auth/password-reset/check", "/auth/password-reset/complete"])(
+    "%s answers success by default",
+    async (path) => {
+      expect((await call(memoryStorage(), "POST", path, { login: "anna_k", token: "t" })).status).toBeLessThan(300);
+    },
+  );
+
+  it.each(["password_request_network_error", "password_check_network_error", "password_complete_network_error"])(
+    "%s fails like a lost connection",
+    async (scenario) => {
+      const path = `/auth/password-reset/${scenario.split("_")[1]}`;
+
+      await expect(call(withScenario(scenario), "POST", path, {})).rejects.toMatchObject({
+        name: "TransportError",
+        kind: "network",
+      });
+    },
+  );
+
+  it("a successful reset keeps the mock session signed in", async () => {
+    const storage = withScenario("password_complete_ok");
+
+    await call(storage, "POST", "/auth/password-reset/complete", { token: "t", new_password: "Kino#2026" });
+
+    expect(storage.get(MOCK_STORAGE_KEYS.session)).toBe("authenticated");
   });
 });

@@ -24,6 +24,28 @@ export const LOGIN_MESSAGES = {
   locked: (minutes: number) => `Слишком много попыток входа. Повторите через ${minutes} минут`,
   captchaRequired: "Подтвердите, что вы не робот",
   captchaInvalid: "Проверка не пройдена. Попробуйте ещё раз",
+  forgotPassword: "Забыли пароль?",
+} as const;
+
+export const PASSWORD_MESSAGES = {
+  newPasswordRequired: "Введите новый пароль",
+  tooShort: "Пароль должен содержать не менее 8 символов",
+  tooLong: "Пароль должен содержать не более 128 символов",
+  composition:
+    "Пароль должен содержать хотя бы одну заглавную букву, одну строчную букву, одну цифру и один специальный символ",
+  allRulesPassed: "Все требования к паролю выполнены",
+  mismatch: "Пароли не совпадают",
+  sameAsCurrent: "Новый пароль должен отличаться от текущего",
+  changed: "Пароль успешно изменён",
+} as const;
+
+export const PASSWORD_CHECKLIST_LABEL = "Требования к паролю";
+
+export const PASSWORD_RULE_LABELS = {
+  length: "От 8 до 128 символов",
+  letters: "Заглавная и строчная латинская буква",
+  digit: "Хотя бы одна цифра",
+  special: "Хотя бы один спецсимвол: ! @ # $ % и др.",
 } as const;
 
 export const OIDC_MESSAGES = {

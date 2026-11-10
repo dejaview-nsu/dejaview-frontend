@@ -1,5 +1,5 @@
 import { CircleAlert, Eye, EyeOff } from "lucide-react";
-import { type InputHTMLAttributes, type ReactNode, type Ref, useState } from "react";
+import { type InputHTMLAttributes, type ReactNode, type Ref, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 
 import { cn } from "../../lib/cn";
@@ -33,6 +33,17 @@ export const FormField = ({
   inputRef: Ref<HTMLInputElement>;
 } & InputHTMLAttributes<HTMLInputElement>) => {
   const [revealed, setRevealed] = useState(false);
+  const selection = useRef<{ input: HTMLInputElement; start: number | null; end: number | null } | null>(null);
+
+  useLayoutEffect(() => {
+    const saved = selection.current;
+
+    selection.current = null;
+
+    if (saved && saved.input.isConnected && document.activeElement === saved.input) {
+      saved.input.setSelectionRange(saved.start, saved.end);
+    }
+  }, [revealed]);
 
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
@@ -71,7 +82,15 @@ export const FormField = ({
           <Button
             aria-label={revealed ? PASSWORD_TOGGLE_LABELS.hide : PASSWORD_TOGGLE_LABELS.show}
             aria-controls={id}
-            onPress={() => setRevealed((value) => !value)}
+            aria-pressed={revealed}
+            preventFocusOnPress
+            onPress={(event) => {
+              const input = event.target.parentElement?.querySelector("input");
+
+              if (input) selection.current = { input, start: input.selectionStart, end: input.selectionEnd };
+
+              setRevealed((value) => !value);
+            }}
             className={cn(
               "absolute inset-y-0.5 flex w-11 cursor-pointer items-center justify-center text-muted outline-link hover:text-ink focus-visible:outline-2",
               appearance === "login" ? "-right-0.5" : "right-0.5",

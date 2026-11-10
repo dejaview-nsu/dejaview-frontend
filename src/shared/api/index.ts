@@ -22,6 +22,8 @@ export type {
   AuthOidcCompleteRequest,
   AuthOidcPending,
   AuthOidcProvider,
+  AuthPasswordResetCompleteRequest,
+  AuthPasswordResetRequest,
   AuthRegisterRequest,
   AuthResendConfirmationRequest,
   ListMovieReviewsData,

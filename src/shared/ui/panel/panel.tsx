@@ -7,16 +7,16 @@ export const Panel = ({
   className,
   children,
 }: {
-  variant?: "form" | "panel";
+  variant?: "form" | "panel" | "card";
   className?: string;
   children: ReactNode;
 }) => (
   <div
     className={cn(
       "relative w-full bg-card",
-      variant === "form"
-        ? "desktop:border-2 desktop:border-border-strong desktop:p-8 desktop:shadow-hard-xl"
-        : "border-2 border-border-strong p-6 shadow-hard-xl md:p-10",
+      variant === "form" && "desktop:border-2 desktop:border-border-strong desktop:p-8 desktop:shadow-hard-xl",
+      variant === "panel" && "border-2 border-border-strong p-6 shadow-hard-xl md:p-10",
+      variant === "card" && "border-2 border-border-strong p-8 shadow-hard-xl",
       className,
     )}
   >

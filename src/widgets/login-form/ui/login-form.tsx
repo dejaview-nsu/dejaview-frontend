@@ -156,6 +156,13 @@ export const LoginForm = ({
           onChange={(event) => change({ field: "password", value: event.currentTarget.value })}
           onBlur={() => blur("password")}
         />
+        <Link
+          to={routes.forgotPassword}
+          query={{}}
+          className="-mt-3 inline-flex min-h-11 items-center self-end text-sm leading-normal font-semibold text-link outline-link hover:underline focus-visible:outline-2"
+        >
+          {LOGIN_MESSAGES.forgotPassword}
+        </Link>
         <Button
           type="submit"
           variant={pending ? "brand-loading" : "brand"}

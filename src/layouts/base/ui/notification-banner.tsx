@@ -25,11 +25,11 @@ export const NotificationBanner = () => {
   const Icon = notification.tone === "success" ? CircleCheck : CircleAlert;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-16 z-30 flex justify-center px-4 md:top-20">
+    <div className="pointer-events-none absolute inset-x-0 top-16 z-30 flex justify-center px-4 md:top-22 md:justify-end md:px-6">
       <div
         role={notification.tone === "error" ? "alert" : "status"}
         className={cn(
-          "pointer-events-auto flex w-full max-w-md items-start gap-3 border-2 px-4 py-3 font-body text-base leading-normal shadow-hard",
+          "pointer-events-auto flex w-full max-w-md items-center gap-3 border-2 py-2 pr-2 pl-3 font-body text-base leading-normal font-medium md:w-auto",
           notification.tone === "success"
             ? "border-success-text bg-success-bg text-success-text"
             : "border-error-text bg-error-bg text-error-text",

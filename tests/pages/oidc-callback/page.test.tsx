@@ -406,10 +406,10 @@ describe("OIDC result page", () => {
       expect(screen.getByText(failedText)).toBeInTheDocument();
     });
 
-    it("«Забыли пароль?» leads to the login route", async () => {
+    it("«Забыли пароль?» leads to password recovery", async () => {
       await link();
 
-      expect(screen.getByRole("link", { name: "Забыли пароль?" })).toHaveAttribute("href", "/login");
+      expect(screen.getByRole("link", { name: "Забыли пароль?" })).toHaveAttribute("href", "/forgot-password");
     });
 
     it("an error clears only the password", async () => {
