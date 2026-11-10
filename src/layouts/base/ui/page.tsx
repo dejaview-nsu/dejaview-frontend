@@ -59,6 +59,7 @@ const StandardHeader = () => {
 const $isBrandShell = combine(
   [
     routes.home.$isOpened,
+    routes.movie.$isOpened,
     routes.login.$isOpened,
     routes.register.$isOpened,
     routes.confirmEmail.$isOpened,
@@ -87,10 +88,11 @@ const $isCompactAuthPage = combine(
 );
 
 export const BaseLayout = ({ children }: { children: ReactNode }) => {
-  const { isBrandShell, isAuthPage, compactAuthPage } = useUnit({
+  const { isBrandShell, isAuthPage, compactAuthPage, moviePage } = useUnit({
     isBrandShell: $isBrandShell,
     isAuthPage: $isAuthPage,
     compactAuthPage: $isCompactAuthPage,
+    moviePage: routes.movie.$isOpened,
   });
 
   return (
@@ -114,10 +116,14 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
           />
         </>
       )}
-      {isBrandShell ? <HomeHeader showGuestActions={!isAuthPage} loginPage={compactAuthPage} /> : <StandardHeader />}
+      {isBrandShell ? (
+        <HomeHeader showGuestActions={!isAuthPage} loginPage={compactAuthPage} contentWidth={moviePage} />
+      ) : (
+        <StandardHeader />
+      )}
       <NotificationBanner />
       <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
-      {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} />}
+      {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} contentWidth={moviePage} />}
       <LoginDialog />
     </div>
   );

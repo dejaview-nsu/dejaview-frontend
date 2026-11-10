@@ -8,7 +8,7 @@ import { $$profile } from "@/pages/profile/model";
 import { $$session } from "@/entities/session";
 
 import { appStarted } from "@/shared/config/init";
-import { router, routes } from "@/shared/routes";
+import { backOrHomeRequested, router, routes } from "@/shared/routes";
 
 import { sessionInfo, sessionRequiredError } from "../../session-scope";
 
@@ -22,6 +22,7 @@ const frames: HTMLIFrameElement[] = [];
 afterEach(() => {
   for (const frame of frames.splice(0)) frame.remove();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 const setup = async (initialPath = "/") => {
@@ -79,6 +80,37 @@ const setup = async (initialPath = "/") => {
 };
 
 describe("application browser history", () => {
+  it.each(["/?q=space#results", "/profile?list=watchlist#movies", "/profile?list=watched#movies"])(
+    "returns from a movie to %s, including query and hash, without adding an entry",
+    async (origin) => {
+      const { scope, browserWindow, expectLocation } = await setup();
+      vi.spyOn(window.history, "state", "get").mockImplementation(() => browserWindow.history.state);
+      await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
+      await allSettled(router.navigate, { scope, params: { path: origin } });
+      await allSettled(routes.movie.open, { scope, params: { params: { movieId: "157336" }, query: {} } });
+      const entries = browserWindow.history.length;
+
+      await allSettled(backOrHomeRequested, { scope });
+      const url = new URL(origin, "http://localhost");
+      await expectLocation(url.pathname, Object.fromEntries(url.searchParams));
+
+      expect(browserWindow.location.hash).toBe(url.hash);
+      expect(browserWindow.history.length).toBe(entries);
+      await allSettled(router.forward, { scope });
+      await expectLocation("/movies/157336");
+    },
+  );
+
+  it("returns a direct movie link to search and keeps back from leading into a dead end", async () => {
+    const { scope, browserWindow, expectLocation } = await setup("/movies/157336?source=external#reviews");
+    vi.spyOn(window.history, "state", "get").mockImplementation(() => browserWindow.history.state);
+
+    await allSettled(backOrHomeRequested, { scope });
+
+    await expectLocation("/");
+    expect(browserWindow.history.state.idx).toBe(0);
+  });
+
   it("returns from /about and preserves the forward entry", async () => {
     const { scope, browserWindow, block, expectLocation } = await setup();
     await allSettled(routes.about.open, { scope, params: undefined });
