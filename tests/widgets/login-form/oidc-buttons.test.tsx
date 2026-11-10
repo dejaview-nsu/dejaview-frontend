@@ -24,12 +24,16 @@ const PROVIDERS = [
 ] as const;
 
 const guest = () => jsonResponse(401, { code: "SESSION_REQUIRED", message: "Войдите, чтобы продолжить", field: null });
+const movieNotFound = () => jsonResponse(404, { code: "MOVIE_NOT_FOUND", message: "Фильм не найден", field: null });
 
 const setup = async (path: string, { dialog = false } = {}) => {
   const held = createControlledTransport();
-  const transport = vi.fn<Transport>((request) =>
-    request.path === "/auth/session" ? Promise.resolve(guest()) : held.transport(request),
-  );
+  const transport = vi.fn<Transport>((request) => {
+    if (request.path === "/auth/session") return Promise.resolve(guest());
+    if (request.path.startsWith("/movies/")) return Promise.resolve(movieNotFound());
+
+    return held.transport(request);
+  });
   const { scope } = await setupApiScope({ initialEntry: path, transport });
 
   if (dialog) await allSettled($$session.inputs.loginPressed, { scope });
@@ -80,7 +84,7 @@ describe("provider buttons on the login form", () => {
 
     const names: string[] = [];
 
-    for (let step = 0; step < 7; step += 1) {
+    for (let step = 0; step < 8; step += 1) {
       await user.tab();
       names.push(document.activeElement?.textContent || document.activeElement?.getAttribute("aria-label") || "");
     }
@@ -88,6 +92,7 @@ describe("provider buttons on the login form", () => {
     expect(names).toEqual([
       "",
       "Показать пароль",
+      "Забыли пароль?",
       "Войти",
       "Продолжить с Google",
       "Продолжить с Яндекс",
