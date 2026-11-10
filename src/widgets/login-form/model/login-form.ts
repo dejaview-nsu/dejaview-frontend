@@ -2,6 +2,7 @@ import { createFactory, invoke } from "@withease/factories";
 import { combine, createEvent, createStore, sample, type Store } from "effector";
 import { interval, readonly } from "patronum";
 
+import { createOidcStartFactory } from "@/features/oidc-sign-in";
 import { createResendConfirmationFactory } from "@/features/resend-confirmation";
 
 import { type $$session, getLoginErrorMessages, normalizeLogin } from "@/entities/session";
@@ -19,6 +20,7 @@ import {
 export const createLoginFormFactory = createFactory(
   ({ session, $active }: { session: typeof $$session; $active: Store<boolean> }) => {
     const $$resend = invoke(createResendConfirmationFactory);
+    const $$oidcStart = invoke(createOidcStartFactory, { origin: "login", $blocked: session.outputs.$isSigningIn });
 
     const fieldChanged = createEvent<{ field: LoginField; value: string }>();
     const fieldBlurred = createEvent<LoginField>();
@@ -40,6 +42,7 @@ export const createLoginFormFactory = createFactory(
     const { tick: lockTick } = interval({ timeout: 1000, start: lockStarted, stop: lockStopped });
 
     const $pending = session.outputs.$isSigningIn;
+    const $oidcPending = $$oidcStart.outputs.$pending;
     const $lockMinutes = $lockSeconds.map((seconds) => Math.ceil(seconds / 60));
     const $clientErrors = $values.map(validateLoginForm);
     const $errors = combine($clientErrors, $checked, (errors, checked): LoginErrors => ({
@@ -60,8 +63,8 @@ export const createLoginFormFactory = createFactory(
 
     const validated = sample({
       clock: submitted,
-      source: { values: $values, active: $active, pending: $pending, locked: $locked },
-      filter: ({ active, pending, locked }) => active && !pending && !locked,
+      source: { values: $values, active: $active, pending: $pending, locked: $locked, oidcPending: $oidcPending },
+      filter: ({ active, pending, locked, oidcPending }) => active && !pending && !locked && !oidcPending,
       fn: ({ values }) => ({ values, errors: validateLoginForm(values) }),
     });
 
@@ -169,6 +172,8 @@ export const createLoginFormFactory = createFactory(
 
     sample({ clock: reset, target: $$resend.inputs.reset });
 
+    sample({ clock: reset, target: $$oidcStart.inputs.reset });
+
     sample({ clock: reset, fn: () => emptyLoginValues, target: $values });
 
     sample({ clock: reset, fn: () => [], target: $checked });
@@ -187,6 +192,7 @@ export const createLoginFormFactory = createFactory(
       inputs: { fieldChanged, fieldBlurred, submitted, reset },
       outputs: {
         $$resend,
+        $$oidcStart,
         $values: readonly($values),
         $errors,
         $messages,

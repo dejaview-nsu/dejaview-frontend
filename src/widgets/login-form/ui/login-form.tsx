@@ -3,6 +3,7 @@ import { useUnit } from "effector-react";
 import { CircleAlert, LoaderCircle, LockKeyhole, RotateCwClock, TriangleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import { OidcButtons } from "@/features/oidc-sign-in";
 import { ResendControls } from "@/features/resend-confirmation";
 
 import { CONFIRMATION_MESSAGES, LOGIN_MESSAGES } from "@/shared/config/auth-messages";
@@ -28,6 +29,7 @@ export const LoginForm = ({
     errors,
     messages,
     pending,
+    oidcPending,
     locked,
     accountBlocked,
     focusRequest,
@@ -41,6 +43,7 @@ export const LoginForm = ({
     errors: model.outputs.$errors,
     messages: model.outputs.$messages,
     pending: model.outputs.$pending,
+    oidcPending: model.outputs.$$oidcStart.outputs.$pending,
     locked: model.outputs.$locked,
     accountBlocked: model.outputs.$accountBlocked,
     focusRequest: model.outputs.$focusRequest,
@@ -166,7 +169,7 @@ export const LoginForm = ({
         <Button
           type="submit"
           variant={pending ? "brand-loading" : "brand"}
-          isDisabled={pending || locked}
+          isDisabled={pending || locked || oidcPending}
           aria-busy={pending}
           className="w-full tracking-[1.5px]"
         >
@@ -176,6 +179,8 @@ export const LoginForm = ({
           {pending ? "Входим..." : "Войти"}
         </Button>
       </form>
+
+      <OidcButtons model={model.outputs.$$oidcStart} />
 
       <p className="-mx-2 text-center text-base leading-[1.55] whitespace-nowrap">
         Нет аккаунта?{" "}

@@ -1,11 +1,12 @@
 import { type Query } from "@effector/router";
 import { createFactory } from "@withease/factories";
-import { createEffect, createEvent, sample } from "effector";
+import { combine, createEffect, createEvent, createStore, sample, type Store } from "effector";
+import { not, readonly } from "patronum";
 
 import { type AuthOidcProvider } from "@/shared/api";
 import { router } from "@/shared/routes";
 
-import { saveOidcReturnPath } from "../lib/return-path";
+import { type OidcOrigin, saveOidcOrigin, saveOidcReturnPath } from "../lib/return-path";
 
 const AUTH_PATHS = ["/login", "/register", "/auth/oidc", "/confirm-email"];
 
@@ -23,23 +24,41 @@ export const toOidcReturnPath = ({ path, query }: { path: string | null; query: 
   return typeof query.redirect === "string" ? query.redirect : "/";
 };
 
-export const createOidcStartFactory = createFactory(() => {
-  const providerChosen = createEvent<AuthOidcProvider>();
+export const createOidcStartFactory = createFactory(
+  ({ origin = "register", $blocked }: { origin?: OidcOrigin; $blocked?: Store<boolean> } = {}) => {
+    const providerChosen = createEvent<AuthOidcProvider>();
+    const reset = createEvent();
 
-  const saveReturnPathFx = createEffect(saveOidcReturnPath);
+    const saveReturnPathFx = createEffect(saveOidcReturnPath);
+    const saveOriginFx = createEffect(saveOidcOrigin);
 
-  sample({
-    clock: providerChosen,
-    source: { path: router.$path, query: router.$query },
-    fn: toOidcReturnPath,
-    target: saveReturnPathFx,
-  });
+    const $pending = createStore(false);
 
-  return {
-    __: { saveReturnPathFx },
+    const $disabled = combine($pending, $blocked ?? createStore(false), (pending, blocked) => pending || blocked);
 
-    inputs: { providerChosen },
-  };
-});
+    const started = sample({ clock: providerChosen, filter: not($disabled) });
+
+    sample({
+      clock: started,
+      source: { path: router.$path, query: router.$query },
+      fn: toOidcReturnPath,
+      target: saveReturnPathFx,
+    });
+
+    sample({ clock: started, fn: () => origin, target: saveOriginFx });
+
+    sample({ clock: started, fn: () => true, target: $pending });
+
+    sample({ clock: reset, fn: () => false, target: $pending });
+
+    return {
+      __: { saveReturnPathFx, saveOriginFx },
+
+      inputs: { providerChosen, reset },
+
+      outputs: { $pending: readonly($pending), $disabled },
+    };
+  },
+);
 
 export type OidcStartModel = ReturnType<typeof createOidcStartFactory>;
