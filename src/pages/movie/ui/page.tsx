@@ -24,11 +24,7 @@ export const MoviePage = () => {
 
   return (
     <div className="mx-auto flex w-full max-w-[calc(var(--container-content)+4rem)] flex-col gap-8 px-4 py-6 font-body text-ink md:gap-10 md:px-8 md:py-10">
-      <Button
-        variant="brand-ghost"
-        onPress={() => backPressed()}
-        className="self-start px-0 text-link hover:bg-transparent hover:underline"
-      >
+      <Button variant="brand-link" onPress={() => backPressed()} className="self-start">
         <ArrowLeft size={20} aria-hidden="true" /> Назад
       </Button>
 

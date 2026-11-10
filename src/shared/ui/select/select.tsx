@@ -22,7 +22,7 @@ export const Select = <Value extends string>({
     className="flex w-full flex-wrap items-center gap-3 font-body sm:w-auto"
   >
     <Label className="text-sm text-muted">{label}</Label>
-    <Button className="flex h-12 w-full cursor-pointer items-center justify-between gap-4 rounded-none border-2 border-border-strong bg-input px-3 text-base text-ink outline-link focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto">
+    <Button className="flex h-12 w-full cursor-pointer items-center justify-between gap-4 rounded-none border-2 border-border-strong bg-card px-3 text-base text-ink outline-link hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto">
       <SelectValue>{({ selectedText }) => selectedText}</SelectValue>
       <ChevronDown size={20} aria-hidden="true" />
     </Button>
