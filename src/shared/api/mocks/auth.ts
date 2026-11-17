@@ -7,11 +7,9 @@ import type {
 } from "../generated";
 import { TransportError } from "../transport/errors";
 import { COMMON_ERRORS } from "./fixtures";
-import { getSession, login, logout } from "./session";
+import { clearMockSession, getSession, login, logout, startMockSession } from "./session";
 import { MOCK_STORAGE_KEYS, type MockStorage } from "./storage";
 import { type MockContext, type MockHandler, mockNotFound, mockResponse, wait } from "./utils";
-
-const AUTHENTICATED = "authenticated";
 
 export const MOCK_SESSION_INFO = {
   user: { username: "movie_fan_42", avatar_url: null, has_password: true },
@@ -323,9 +321,9 @@ const createAuthHandler =
 
     if (reply.network) throw new TransportError("network");
 
-    if (reply.signIn) context.storage.set(MOCK_STORAGE_KEYS.session, AUTHENTICATED);
+    if (reply.signIn) startMockSession(context.storage);
 
-    if (reply.signOut) context.storage.remove(MOCK_STORAGE_KEYS.session);
+    if (reply.signOut) clearMockSession(context.storage);
 
     return mockResponse(reply.status, reply.body, reply.headers);
   };

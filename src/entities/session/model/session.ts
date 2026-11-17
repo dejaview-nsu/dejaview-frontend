@@ -24,6 +24,7 @@ export const createSessionFactory = createFactory(() => {
   const signOutStarted = createEvent();
   const signOutCompleted = createEvent();
   const sessionCreated = createEvent<SessionInfo>();
+  const sessionInvalidated = createEvent();
   const statusResolved = createEvent<Exclude<SessionStatus, "unknown">>();
   const loginDialogRequested = createEvent<{ path: string; replace: boolean }>();
   const loginPressed = createEvent();
@@ -108,6 +109,8 @@ export const createSessionFactory = createFactory(() => {
 
   sample({ clock: statusResolved, target: $status });
 
+  sample({ clock: sessionInvalidated, fn: () => "guest" as const, target: statusResolved });
+
   sample({ clock: sessionQuery.finished.success, fn: ({ result }) => result.user, target: $user });
 
   sample({ clock: sessionCreated, fn: ({ user }) => user, target: $user });
@@ -189,6 +192,7 @@ export const createSessionFactory = createFactory(() => {
       signInCancelled,
       signedOut,
       sessionCreated,
+      sessionInvalidated,
       loginRequired,
       loginPressed,
       loginDialogDismissed,

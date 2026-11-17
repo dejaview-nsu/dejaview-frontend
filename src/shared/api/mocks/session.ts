@@ -1,4 +1,10 @@
-import { COMMON_ERRORS, createSessionInfo, LOGIN_ERRORS, LOGIN_LOCKED_RETRY_AFTER_SECONDS } from "./fixtures";
+import {
+  COMMON_ERRORS,
+  createSessionInfo,
+  LOGIN_ERRORS,
+  LOGIN_LOCKED_RETRY_AFTER_SECONDS,
+  SESSION_USER,
+} from "./fixtures";
 import { MOCK_STORAGE_KEYS, type MockStorage } from "./storage";
 import { type MockHandler, mockResponse, wait } from "./utils";
 
@@ -34,13 +40,30 @@ const resolveLoginScenario = (storage: MockStorage): LoginScenario | null => {
 
 export const hasMockSession = (storage: MockStorage) => storage.get(MOCK_STORAGE_KEYS.session) === AUTHENTICATED;
 
-export const clearMockSession = (storage: MockStorage) => storage.remove(MOCK_STORAGE_KEYS.session);
+export const getMockUsername = (storage: MockStorage) =>
+  storage.get(MOCK_STORAGE_KEYS.sessionUser) ?? SESSION_USER.username;
+
+export const startMockSession = (storage: MockStorage, username: string = SESSION_USER.username) => {
+  storage.set(MOCK_STORAGE_KEYS.sessionUser, username);
+  storage.set(MOCK_STORAGE_KEYS.session, AUTHENTICATED);
+};
+
+export const clearMockSession = (storage: MockStorage) => {
+  storage.remove(MOCK_STORAGE_KEYS.session);
+  storage.remove(MOCK_STORAGE_KEYS.sessionUser);
+};
+
+const sessionInfo = (storage: MockStorage) => {
+  const session = createSessionInfo();
+
+  return { ...session, user: { ...session.user, username: getMockUsername(storage) } };
+};
 
 export const getSession: MockHandler = async ({ request, storage, delays }) => {
   await wait(delays.jsonMs, request.signal);
 
   return hasMockSession(storage)
-    ? mockResponse(200, createSessionInfo())
+    ? mockResponse(200, sessionInfo(storage))
     : mockResponse(401, COMMON_ERRORS.SESSION_REQUIRED);
 };
 
@@ -57,9 +80,12 @@ export const login: MockHandler = async ({ request, storage, delays }) => {
     return mockResponse(status, body, headers);
   }
 
-  storage.set(MOCK_STORAGE_KEYS.session, AUTHENTICATED);
+  const body = request.body as { login?: unknown } | undefined;
+  const username = typeof body?.login === "string" ? body.login.trim() : SESSION_USER.username;
 
-  return mockResponse(200, createSessionInfo());
+  startMockSession(storage, username || SESSION_USER.username);
+
+  return mockResponse(200, sessionInfo(storage));
 };
 
 export const logout: MockHandler = async ({ request, storage, delays }) => {

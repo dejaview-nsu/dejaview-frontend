@@ -479,12 +479,68 @@ export type MovieReview = {
     dislikes: number;
 };
 
+export type UserListPage = {
+    /**
+     * Фильмы страницы в порядке `sort`. `[]` - список пуст, по `q` ничего не нашлось или страница за последней.
+     */
+    movies: Array<UserListMovie>;
+    /**
+     * Сколько фильмов списка подходит под `q`, без `q` - сколько в списке всего. Число страниц для пагинации и «Страница X из Y» (#17030 п. 2.4.3) - `ceil(total / 24)`.
+     */
+    total: number;
+};
+
+/**
+ * Плитка фильма в списке профиля (#17030 п. 2.2.1.1, 2.2.2.1).
+ */
+export type UserListMovie = {
+    /**
+     * Идентификатор фильма TMDB (#17241). По нему frontend открывает карточку фильма (#17030 п. 2.2.1.2).
+     */
+    movie_id: number;
+    /**
+     * Название на русском, как в `MovieCard.title`.
+     */
+    title: string;
+    /**
+     * Полный URL постера на CDN TMDB, как в `MovieCard`. null - постера нет, frontend показывает заглушку.
+     */
+    poster_url: string | null;
+    /**
+     * Средняя оценка пользователей платформы с одним знаком после запятой (#17028, `round(avg(score), 1)` по `ratings` в `contracts/db-schema.md`). null - оценок нет.
+     */
+    average_rating: number | null;
+    /**
+     * Оценка текущего пользователя (#17028). null - не выставлена, на плитке кнопка «Оценить» (#17030 п. 2.2.1.1.4).
+     */
+    user_rating: number | null;
+};
+
+/**
+ * Фильм у текущего пользователя - состояние блоков 6, 7 #17193 на странице фильма. Оценку пользователя (блок 5, #17028) добавит ее задача новым полем: клиент игнорирует незнакомые поля.
+ */
+export type UserMovieState = {
+    /**
+     * Фильм в списке «Хочу посмотреть», чекбокс установлен (#17026).
+     */
+    want_to_watch: boolean;
+    /**
+     * Фильм в списке «Просмотрено», чекбокс установлен (#17027).
+     */
+    watched: boolean;
+};
+
 export type AuthOidcProviderPath = AuthOidcProvider;
 
 /**
  * Cookie незавершенного входа через OIDC, см. тег OIDC.
  */
 export type AuthOidcCookie = string;
+
+/**
+ * `want_to_watch` - «Хочу посмотреть» (#17026), `watched` - «Просмотрено» (#17027).
+ */
+export type ListTypePath = 'want_to_watch' | 'watched';
 
 export type SearchByImageData = {
     body: SearchImageRequest;
@@ -1263,3 +1319,200 @@ export type ListMovieReviewsResponses = {
 };
 
 export type ListMovieReviewsResponse = ListMovieReviewsResponses[keyof ListMovieReviewsResponses];
+
+export type ListUserMoviesData = {
+    body?: never;
+    path: {
+        /**
+         * `want_to_watch` - «Хочу посмотреть» (#17026), `watched` - «Просмотрено» (#17027).
+         */
+        list_type: 'want_to_watch' | 'watched';
+    };
+    query?: {
+        /**
+         * Порядок фильмов, см. описание операции.
+         */
+        sort?: 'newest' | 'oldest' | 'title_asc' | 'title_desc' | 'best' | 'worst';
+        /**
+         * Часть названия фильма, см. описание операции.
+         */
+        q?: string;
+        /**
+         * Номер страницы по 24 фильма, с 1.
+         */
+        page?: number;
+    };
+    url: '/users/me/lists/{list_type}';
+};
+
+export type ListUserMoviesErrors = {
+    /**
+     * `list_type`, `sort` или `page` вне допустимых значений.
+     */
+    400: Error;
+    /**
+     * Нет сессии или сессия истекла (#17094 п. 1.1, 1.3).
+     */
+    401: Error;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+};
+
+export type ListUserMoviesError = ListUserMoviesErrors[keyof ListUserMoviesErrors];
+
+export type ListUserMoviesResponses = {
+    /**
+     * Страница списка.
+     */
+    200: UserListPage;
+};
+
+export type ListUserMoviesResponse = ListUserMoviesResponses[keyof ListUserMoviesResponses];
+
+export type RemoveMovieFromListData = {
+    body?: never;
+    path: {
+        /**
+         * `want_to_watch` - «Хочу посмотреть» (#17026), `watched` - «Просмотрено» (#17027).
+         */
+        list_type: 'want_to_watch' | 'watched';
+        /**
+         * Идентификатор фильма TMDB (#17241).
+         */
+        movie_id: number;
+    };
+    query?: never;
+    url: '/users/me/lists/{list_type}/{movie_id}';
+};
+
+export type RemoveMovieFromListErrors = {
+    /**
+     * `list_type` не из списка.
+     */
+    400: Error;
+    /**
+     * Нет сессии или сессия истекла (#17094 п. 1.1, 1.3).
+     */
+    401: Error;
+    /**
+     * `movie_id` не целое положительное число.
+     */
+    404: Error;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+};
+
+export type RemoveMovieFromListError = RemoveMovieFromListErrors[keyof RemoveMovieFromListErrors];
+
+export type RemoveMovieFromListResponses = {
+    /**
+     * Фильма в списке нет.
+     */
+    204: void;
+};
+
+export type RemoveMovieFromListResponse = RemoveMovieFromListResponses[keyof RemoveMovieFromListResponses];
+
+export type AddMovieToListData = {
+    body?: never;
+    path: {
+        /**
+         * `want_to_watch` - «Хочу посмотреть» (#17026), `watched` - «Просмотрено» (#17027).
+         */
+        list_type: 'want_to_watch' | 'watched';
+        /**
+         * Идентификатор фильма TMDB (#17241).
+         */
+        movie_id: number;
+    };
+    query?: never;
+    url: '/users/me/lists/{list_type}/{movie_id}';
+};
+
+export type AddMovieToListErrors = {
+    /**
+     * `list_type` не из списка.
+     */
+    400: Error;
+    /**
+     * Нет сессии или сессия истекла (#17094 п. 1.1, 1.3).
+     */
+    401: Error;
+    /**
+     * `movie_id` не целое положительное число или фильма нет в `movies`.
+     */
+    404: Error;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+};
+
+export type AddMovieToListError = AddMovieToListErrors[keyof AddMovieToListErrors];
+
+export type AddMovieToListResponses = {
+    /**
+     * Фильм в списке.
+     */
+    204: void;
+};
+
+export type AddMovieToListResponse = AddMovieToListResponses[keyof AddMovieToListResponses];
+
+export type GetUserMovieStateData = {
+    body?: never;
+    path: {
+        /**
+         * Идентификатор фильма TMDB (#17241).
+         */
+        movie_id: number;
+    };
+    query?: never;
+    url: '/users/me/movies/{movie_id}';
+};
+
+export type GetUserMovieStateErrors = {
+    /**
+     * Нет сессии или сессия истекла (#17094 п. 1.1, 1.3).
+     */
+    401: Error;
+    /**
+     * `movie_id` не целое положительное число.
+     */
+    404: Error;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+};
+
+export type GetUserMovieStateError = GetUserMovieStateErrors[keyof GetUserMovieStateErrors];
+
+export type GetUserMovieStateResponses = {
+    /**
+     * Фильм в списках пользователя.
+     */
+    200: UserMovieState;
+};
+
+export type GetUserMovieStateResponse = GetUserMovieStateResponses[keyof GetUserMovieStateResponses];

@@ -86,6 +86,19 @@ const catalog = [
   ...FOUND_RESULTS.video.results,
 ];
 
+export const findMockMovie = (movieId: number): MovieCard | null => {
+  if (movieId === MOVIE_FIXTURE.movie_id) return MOVIE_FIXTURE;
+  if (movieId === EMPTY_MOVIE_FIXTURE.movie_id) return EMPTY_MOVIE_FIXTURE;
+
+  const movie =
+    catalog.find((entry) => entry.movie_id === movieId) ??
+    (movieId >= 900000 && movieId < 900012
+      ? TEXT_FOUND_RESULTS.results[(movieId - 900000) % TEXT_FOUND_RESULTS.results.length]
+      : null);
+
+  return movie ? { ...EMPTY_MOVIE_FIXTURE, ...movie, movie_id: movieId, original_title: movie.title } : null;
+};
+
 export const movieCard: MockHandler = async ({ request, storage, delays }) => {
   await wait(delays.jsonMs, request.signal);
   const movieId = Number(request.path.split("/")[2]);
@@ -103,16 +116,10 @@ export const movieCard: MockHandler = async ({ request, storage, delays }) => {
     return mockResponse(200, { ...EMPTY_MOVIE_FIXTURE, movie_id: movieId });
   if (scenario === "MOVIE_NOT_FOUND")
     return mockResponse(404, { code: "MOVIE_NOT_FOUND", message: "Фильм не найден", field: null });
-  if (movieId === MOVIE_FIXTURE.movie_id) return mockResponse(200, MOVIE_FIXTURE);
-
-  const movie =
-    catalog.find((entry) => entry.movie_id === movieId) ??
-    (movieId >= 900000 && movieId < 900012
-      ? TEXT_FOUND_RESULTS.results[(movieId - 900000) % TEXT_FOUND_RESULTS.results.length]
-      : null);
+  const movie = findMockMovie(movieId);
 
   return movie
-    ? mockResponse(200, { ...EMPTY_MOVIE_FIXTURE, ...movie, movie_id: movieId, original_title: movie.title })
+    ? mockResponse(200, movie)
     : mockResponse(404, { code: "MOVIE_NOT_FOUND", message: "Фильм не найден", field: null });
 };
 

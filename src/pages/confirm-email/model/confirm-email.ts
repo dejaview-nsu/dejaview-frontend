@@ -1,6 +1,6 @@
 import { type QueryValue } from "@effector/router";
 import { createFactory, invoke } from "@withease/factories";
-import { createEvent, createStore, sample } from "effector";
+import { createEffect, createEvent, createStore, sample } from "effector";
 import { readonly } from "patronum";
 
 import { createResendConfirmationFactory } from "@/features/resend-confirmation";
@@ -10,7 +10,7 @@ import { $$session } from "@/entities/session";
 import { toApiError } from "@/shared/api";
 import { CONFIRMATION_MESSAGES } from "@/shared/config/auth-messages";
 import { $$notifications } from "@/shared/lib/notifications";
-import { router, routes } from "@/shared/routes";
+import { parseReturnPath, router, routes, takeRegistrationReturnPath } from "@/shared/routes";
 
 import { createConfirmEmailApi } from "../api/request";
 
@@ -29,6 +29,8 @@ export const createConfirmEmailPageFactory = createFactory(() => {
   const retryPressed = createEvent();
   const confirmationRequested = createEvent<string>();
   const linkExpired = createEvent<string>();
+
+  const takeReturnPathFx = createEffect(takeRegistrationReturnPath);
 
   const $token = createStore<string | null>(null);
   const $requestedToken = createStore<string | null>(null);
@@ -95,8 +97,13 @@ export const createConfirmEmailPageFactory = createFactory(() => {
 
   sample({
     clock: confirmMutation.finished.success,
-    fn: () => ({ replace: true, query: {} }),
-    target: routes.home.open,
+    target: takeReturnPathFx,
+  });
+
+  sample({
+    clock: takeReturnPathFx.doneData,
+    fn: (path) => ({ ...parseReturnPath(path ?? "/"), replace: true }),
+    target: router.navigate,
   });
 
   const expiredFailure = sample({
@@ -151,6 +158,8 @@ export const createConfirmEmailPageFactory = createFactory(() => {
   sample({ clock: routes.confirmEmail.closed, target: $$resend.inputs.reset });
 
   return {
+    __: { takeReturnPathFx },
+
     inputs: { retryPressed },
 
     outputs: {

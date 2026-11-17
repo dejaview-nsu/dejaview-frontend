@@ -23,10 +23,7 @@ export type OidcResult = (typeof RESULTS)[number];
 
 const toResult = (value: unknown): OidcResult => RESULTS.find((result) => result === value) ?? "error";
 
-const takeFailureTarget = () =>
-  takeOidcOrigin() === "login"
-    ? { origin: "login" as const, redirect: takeOidcReturnPath() }
-    : { origin: "register" as const, redirect: null };
+const takeFailureTarget = () => ({ origin: takeOidcOrigin(), redirect: takeOidcReturnPath() });
 
 export const createOidcCallbackPageFactory = createFactory(() => {
   const { pendingQuery, completeMutation } = createOidcCallbackApi();
@@ -172,7 +169,7 @@ export const createOidcCallbackPageFactory = createFactory(() => {
   sample({
     clock: takeFailureTargetFx.doneData,
     filter: ({ origin }) => origin === "register",
-    fn: () => ({ replace: true, query: {} }),
+    fn: ({ redirect }) => ({ replace: true, query: redirect && redirect !== "/" ? { redirect } : {} }),
     target: routes.register.open,
   });
 
