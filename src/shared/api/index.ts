@@ -16,6 +16,7 @@ export {
   toApiError,
 } from "./errors";
 export type {
+  AddMovieToListData,
   AuthConfirmationSent,
   AuthLoginError,
   AuthLoginRequest,
@@ -27,6 +28,8 @@ export type {
   AuthRegisterRequest,
   AuthResendConfirmationRequest,
   ListMovieReviewsData,
+  ListTypePath,
+  ListUserMoviesData,
   MovieActor,
   MovieCard,
   MovieReview,
@@ -35,6 +38,9 @@ export type {
   SearchErrorCode,
   SearchResponse,
   SessionInfo,
+  UserListMovie,
+  UserListPage,
+  UserMovieState,
   UserSummary,
 } from "./generated";
 export {
@@ -50,6 +56,9 @@ export {
   zMovieReviewsPage,
   zSearchResponse,
   zSessionInfo,
+  zUserListMovie,
+  zUserListPage,
+  zUserMovieState,
 } from "./generated/zod.gen";
 export { API_BASE_URL } from "./config";
 export type { ApiResponse, ErrorMessages } from "./parse-response";

@@ -326,12 +326,41 @@ export const zMovieReviewsPage = z.object({
     has_more: z.boolean()
 });
 
+/**
+ * Плитка фильма в списке профиля (#17030 п. 2.2.1.1, 2.2.2.1).
+ */
+export const zUserListMovie = z.object({
+    movie_id: z.int(),
+    title: z.string().min(1),
+    poster_url: z.url().nullable(),
+    average_rating: z.number().gte(1).lte(10).nullable(),
+    user_rating: z.int().gte(1).lte(10).nullable()
+});
+
+export const zUserListPage = z.object({
+    movies: z.array(zUserListMovie).max(24),
+    total: z.int().gte(0)
+});
+
+/**
+ * Фильм у текущего пользователя - состояние блоков 6, 7 #17193 на странице фильма. Оценку пользователя (блок 5, #17028) добавит ее задача новым полем: клиент игнорирует незнакомые поля.
+ */
+export const zUserMovieState = z.object({
+    want_to_watch: z.boolean(),
+    watched: z.boolean()
+});
+
 export const zAuthOidcProviderPath = zAuthOidcProvider;
 
 /**
  * Cookie незавершенного входа через OIDC, см. тег OIDC.
  */
 export const zAuthOidcCookie = z.string();
+
+/**
+ * `want_to_watch` - «Хочу посмотреть» (#17026), `watched` - «Просмотрено» (#17027).
+ */
+export const zListTypePath = z.enum(['want_to_watch', 'watched']);
 
 export const zSearchByImageBody = zSearchImageRequest;
 
@@ -475,3 +504,54 @@ export const zListMovieReviewsQuery = z.object({
  * Страница отзывов.
  */
 export const zListMovieReviewsResponse = zMovieReviewsPage;
+
+export const zListUserMoviesPath = z.object({
+    list_type: z.enum(['want_to_watch', 'watched'])
+});
+
+export const zListUserMoviesQuery = z.object({
+    sort: z.enum([
+        'newest',
+        'oldest',
+        'title_asc',
+        'title_desc',
+        'best',
+        'worst'
+    ]).optional().default('newest'),
+    q: z.string().optional(),
+    page: z.int().gte(1).optional().default(1)
+});
+
+/**
+ * Страница списка.
+ */
+export const zListUserMoviesResponse = zUserListPage;
+
+export const zRemoveMovieFromListPath = z.object({
+    list_type: z.enum(['want_to_watch', 'watched']),
+    movie_id: z.int().gte(1)
+});
+
+/**
+ * Фильма в списке нет.
+ */
+export const zRemoveMovieFromListResponse = z.void();
+
+export const zAddMovieToListPath = z.object({
+    list_type: z.enum(['want_to_watch', 'watched']),
+    movie_id: z.int().gte(1)
+});
+
+/**
+ * Фильм в списке.
+ */
+export const zAddMovieToListResponse = z.void();
+
+export const zGetUserMovieStatePath = z.object({
+    movie_id: z.int().gte(1)
+});
+
+/**
+ * Фильм в списках пользователя.
+ */
+export const zGetUserMovieStateResponse = zUserMovieState;

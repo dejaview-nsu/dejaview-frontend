@@ -10,7 +10,7 @@ import { revealElement } from "@/shared/lib/reveal";
 import { routes } from "@/shared/routes";
 import { Button, FormField, PasswordChecklist } from "@/shared/ui";
 
-import { $$oidcStart, $$registerForm } from "../model";
+import { $$oidcStart, $$registerForm, $registerLoginQuery } from "../model";
 
 const fields: {
   field: RegisterField;
@@ -61,6 +61,7 @@ export const RegisterForm = () => {
     changeField,
     blurField,
     submit,
+    loginQuery,
   } = useUnit({
     values: $$registerForm.outputs.$values,
     errors: $$registerForm.outputs.$errors,
@@ -72,6 +73,7 @@ export const RegisterForm = () => {
     changeField: $$registerForm.inputs.fieldChanged,
     blurField: $$registerForm.inputs.fieldBlurred,
     submit: $$registerForm.inputs.submitted,
+    loginQuery: $registerLoginQuery,
   });
 
   const inputs = useRef<Partial<Record<RegisterField, HTMLInputElement | null>>>({});
@@ -154,7 +156,7 @@ export const RegisterForm = () => {
           Уже есть аккаунт?{" "}
           <Link
             to={routes.login}
-            query={{}}
+            query={loginQuery}
             className="inline-flex min-h-11 items-center font-bold text-link outline-link hover:underline focus-visible:outline-2"
           >
             Войти

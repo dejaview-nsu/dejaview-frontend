@@ -66,7 +66,7 @@ describe("movie page", () => {
     await user.click(screen.getByRole("option", { name: "Самые старые" }));
     expect(within(reviews).getAllByRole("article")).toHaveLength(10);
     expect(within(within(reviews).getAllByRole("article")[0]).getByText("kinoman_1")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Хочу посмотреть" }));
+    await user.click(screen.getByRole("checkbox", { name: "Хочу посмотреть" }));
     expect(screen.getByRole("dialog", { name: "Вход в DejaView" })).toBeInTheDocument();
     expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/movies/157336");
     expect(scope.getState(router.$path)).toBe("/movies/157336");
@@ -189,31 +189,40 @@ describe("movie page", () => {
       initialEntry: "/movies/1",
       authenticated: true,
       transport: async ({ path }) =>
-        jsonResponse(200, path.includes("/reviews") ? { reviews: [], has_more: false } : EMPTY_MOVIE_FIXTURE),
+        jsonResponse(
+          200,
+          path.startsWith("/users/me/movies/")
+            ? { want_to_watch: false, watched: false }
+            : path.includes("/reviews")
+              ? { reviews: [], has_more: false }
+              : EMPTY_MOVIE_FIXTURE,
+        ),
     });
     renderPage(scope);
 
     expect(screen.getByRole("button", { name: "Оценить" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Хочу посмотреть" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Просмотрено" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Хочу посмотреть" })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: "Просмотрено" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Написать отзыв" })).toBeDisabled();
   });
 
-  it.each(["Оценить", "Хочу посмотреть", "Просмотрено", "Написать отзыв"])(
-    "opens the existing login dialog for the guest action %s and keeps the movie URL",
-    async (name) => {
-      const { scope } = await setupMockApiScope({ initialEntry: "/movies/157336?source=search" });
-      renderPage(scope);
-      const action = screen.getByRole("button", { name });
+  it.each([
+    { name: "Оценить", role: "button" },
+    { name: "Хочу посмотреть", role: "checkbox" },
+    { name: "Просмотрено", role: "checkbox" },
+    { name: "Написать отзыв", role: "button" },
+  ])("opens the existing login dialog for the guest action %s and keeps the movie URL", async ({ name, role }) => {
+    const { scope } = await setupMockApiScope({ initialEntry: "/movies/157336?source=search" });
+    renderPage(scope);
+    const action = screen.getByRole(role, { name });
 
-      expect(action).toBeEnabled();
-      await userEventSetup().click(action);
+    expect(action).toBeEnabled();
+    await userEventSetup().click(action);
 
-      expect(screen.getByRole("dialog", { name: "Вход в DejaView" })).toBeInTheDocument();
-      expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/movies/157336?source=search");
-      expect(scope.getState(router.$path)).toBe("/movies/157336");
-    },
-  );
+    expect(screen.getByRole("dialog", { name: "Вход в DejaView" })).toBeInTheDocument();
+    expect(scope.getState($$session.outputs.$loginDialogPath)).toBe("/movies/157336?source=search");
+    expect(scope.getState(router.$path)).toBe("/movies/157336");
+  });
 
   it("returns a directly opened movie to search", async () => {
     const { scope, history } = await setupMockApiScope({ initialEntry: "/movies/157336" });

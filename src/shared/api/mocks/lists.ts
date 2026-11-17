@@ -1,0 +1,127 @@
+import { z } from "zod";
+
+import type { ListTypePath, UserListMovie, UserMovieState } from "../generated";
+import { TransportError } from "../transport/errors";
+import { COMMON_ERRORS } from "./fixtures";
+import { findMockMovie } from "./movies";
+import { clearMockSession, getMockUsername, hasMockSession } from "./session";
+import { MOCK_STORAGE_KEYS, type MockStorage } from "./storage";
+import { type MockHandler, mockResponse, wait } from "./utils";
+
+type UserLists = Record<ListTypePath, number[]>;
+
+const zStoredLists = z.object({
+  want_to_watch: z.array(z.number().int().positive().safe()),
+  watched: z.array(z.number().int().positive().safe()),
+});
+
+const storageKey = (storage: MockStorage) =>
+  `${MOCK_STORAGE_KEYS.lists}:${encodeURIComponent(getMockUsername(storage))}`;
+
+const readLists = (storage: MockStorage): UserLists => {
+  try {
+    const result = zStoredLists.safeParse(JSON.parse(storage.get(storageKey(storage)) ?? "null"));
+
+    if (result.success) return result.data;
+  } catch {
+    // Old or manually edited development storage must not break the mock API.
+  }
+
+  return { want_to_watch: [], watched: [] };
+};
+
+const isListType = (value: string): value is ListTypePath => value === "want_to_watch" || value === "watched";
+const isMovieId = (value: string) => /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
+const notFound = () => mockResponse(404, { code: "MOVIE_NOT_FOUND", message: "Фильм не найден", field: null });
+const invalid = (field: string) =>
+  mockResponse(400, { code: "INVALID_PARAMETER", message: "Некорректный запрос", field });
+
+const toListMovie = (movieId: number): UserListMovie | null => {
+  const movie = findMockMovie(movieId);
+
+  return movie
+    ? { movie_id: movieId, title: movie.title, poster_url: movie.poster_url, average_rating: null, user_rating: null }
+    : null;
+};
+
+export const userMovieLists: MockHandler = async ({ request, storage, delays }) => {
+  const username = getMockUsername(storage);
+  const authenticated = hasMockSession(storage);
+
+  await wait(delays.jsonMs, request.signal);
+
+  if (!authenticated || !hasMockSession(storage) || username !== getMockUsername(storage))
+    return mockResponse(401, COMMON_ERRORS.SESSION_REQUIRED);
+
+  const scenario = storage.get(MOCK_STORAGE_KEYS.listScenario);
+
+  if (scenario === "NETWORK_ERROR" || scenario === "TIMEOUT")
+    throw new TransportError(scenario === "TIMEOUT" ? "timeout" : "network");
+  if (scenario === "SESSION_EXPIRED") {
+    clearMockSession(storage);
+
+    return mockResponse(401, COMMON_ERRORS.SESSION_EXPIRED);
+  }
+  if (scenario === "error")
+    return mockResponse(500, { code: "INTERNAL_ERROR", message: "Произошла ошибка. Попробуйте позже", field: null });
+
+  const url = new URL(request.path, "http://localhost");
+  const parts = url.pathname.split("/");
+  const lists = readLists(storage);
+
+  if (parts[3] === "movies") {
+    if (!isMovieId(parts[4])) return notFound();
+
+    const movieId = Number(parts[4]);
+    const state: UserMovieState = {
+      want_to_watch: lists.want_to_watch.includes(movieId),
+      watched: lists.watched.includes(movieId),
+    };
+
+    return mockResponse(200, state);
+  }
+
+  const listType = parts[4];
+
+  if (!isListType(listType)) return invalid("list_type");
+
+  if (request.method === "GET") {
+    const sort = url.searchParams.get("sort") ?? "newest";
+    const page = url.searchParams.get("page") ?? "1";
+
+    if (!["newest", "oldest", "title_asc", "title_desc", "best", "worst"].includes(sort)) return invalid("sort");
+    if (!isMovieId(page)) return invalid("page");
+
+    const query = (url.searchParams.get("q") ?? "").trim().toLocaleLowerCase("ru");
+    const movies = lists[listType]
+      .map(toListMovie)
+      .filter((movie): movie is UserListMovie => movie !== null && movie.title.toLocaleLowerCase("ru").includes(query));
+
+    if (sort !== "oldest") movies.reverse();
+    if (sort === "title_asc" || sort === "title_desc") {
+      const direction = sort === "title_asc" ? 1 : -1;
+
+      movies.sort((a, b) => direction * a.title.localeCompare(b.title, "ru"));
+    }
+
+    return mockResponse(200, {
+      movies: movies.slice((Number(page) - 1) * 24, Number(page) * 24),
+      total: movies.length,
+    });
+  }
+
+  if (!isMovieId(parts[5])) return notFound();
+
+  const movieId = Number(parts[5]);
+
+  if (request.method === "PUT") {
+    if (!findMockMovie(movieId)) return notFound();
+    if (!lists[listType].includes(movieId)) lists[listType].push(movieId);
+  } else {
+    lists[listType] = lists[listType].filter((id) => id !== movieId);
+  }
+
+  storage.set(storageKey(storage), JSON.stringify(lists));
+
+  return mockResponse(204);
+};

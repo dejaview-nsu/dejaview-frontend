@@ -1,5 +1,6 @@
 import type { Transport } from "../transport/types";
 import { AUTH_ROUTES } from "./auth";
+import { userMovieLists } from "./lists";
 import { movieCard, movieReviews } from "./movies";
 import { createSearchHandler } from "./search";
 import type { MockStorage } from "./storage";
@@ -22,6 +23,12 @@ export const createMockTransport =
 
     if (request.method === "GET" && /^\/movies\/[^/?]+$/.test(request.path)) handler = movieCard;
     if (request.method === "GET" && /^\/movies\/[^/?]+\/reviews(?:\?|$)/.test(request.path)) handler = movieReviews;
+    if (
+      (request.method === "GET" && /^\/users\/me\/(?:movies|lists)\/[^/?]+(?:\?|$)/.test(request.path)) ||
+      ((request.method === "PUT" || request.method === "DELETE") &&
+        /^\/users\/me\/lists\/[^/?]+\/[^/?]+$/.test(request.path))
+    )
+      handler = userMovieLists;
 
     if (!handler) {
       console.warn(`Заглушки: нет заглушки для ${route}`);
