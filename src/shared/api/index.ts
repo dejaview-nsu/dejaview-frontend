@@ -41,6 +41,8 @@ export type {
   UserListMovie,
   UserListPage,
   UserMovieState,
+  UserPasswordChangeRequest,
+  UserProfile,
   UserSummary,
 } from "./generated";
 export {
@@ -59,6 +61,7 @@ export {
   zUserListMovie,
   zUserListPage,
   zUserMovieState,
+  zUserProfile,
 } from "./generated/zod.gen";
 export { API_BASE_URL } from "./config";
 export type { ApiResponse, ErrorMessages } from "./parse-response";

@@ -53,10 +53,20 @@ export const clearMockSession = (storage: MockStorage) => {
   storage.remove(MOCK_STORAGE_KEYS.sessionUser);
 };
 
+export const hasMockPassword = (storage: MockStorage) => storage.get(MOCK_STORAGE_KEYS.sessionPasswordless) !== "true";
+
 const sessionInfo = (storage: MockStorage) => {
   const session = createSessionInfo();
 
-  return { ...session, user: { ...session.user, username: getMockUsername(storage) } };
+  return {
+    ...session,
+    user: {
+      ...session.user,
+      username: getMockUsername(storage),
+      avatar_url: storage.get(MOCK_STORAGE_KEYS.sessionAvatar),
+      has_password: hasMockPassword(storage),
+    },
+  };
 };
 
 export const getSession: MockHandler = async ({ request, storage, delays }) => {
@@ -86,6 +96,25 @@ export const login: MockHandler = async ({ request, storage, delays }) => {
   startMockSession(storage, username || SESSION_USER.username);
 
   return mockResponse(200, sessionInfo(storage));
+};
+
+export const changePassword: MockHandler = async ({ request, storage, delays }) => {
+  await wait(delays.jsonMs, request.signal);
+
+  if (!hasMockSession(storage)) return mockResponse(401, COMMON_ERRORS.SESSION_REQUIRED);
+
+  const body = request.body as { current_password?: unknown } | undefined;
+
+  if (hasMockPassword(storage) && (typeof body?.current_password !== "string" || body.current_password === ""))
+    return mockResponse(400, {
+      code: "AUTH_VALIDATION_ERROR",
+      message: "Введите текущий пароль",
+      field: "current_password",
+    });
+
+  storage.remove(MOCK_STORAGE_KEYS.sessionPasswordless);
+
+  return mockResponse(204);
 };
 
 export const logout: MockHandler = async ({ request, storage, delays }) => {

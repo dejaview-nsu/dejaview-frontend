@@ -325,6 +325,36 @@ export type UserSummary = {
     has_password: boolean;
 };
 
+export type UserProfile = {
+    username: string;
+    /**
+     * Год рождения, указанный при регистрации.
+     */
+    birth_year: number;
+    /**
+     * Дата и время регистрации в UTC.
+     */
+    registered_at: string;
+    stats: {
+        /**
+         * Число фильмов в списке «Просмотрено».
+         */
+        watched_count: number;
+        /**
+         * Число оценок пользователя.
+         */
+        ratings_count: number;
+        /**
+         * Среднее арифметическое оценок пользователя, 0 при отсутствии оценок.
+         */
+        average_rating: number;
+        /**
+         * Число отзывов пользователя.
+         */
+        reviews_count: number;
+    };
+};
+
 /**
  * Карточка фильма для блоков 1, 3, 8, 9, 10 #17193. Поля и их пустые значения совпадают с таблицей `movies` (#17627, `contracts/db-schema.md`), кроме `poster_url`: в БД лежит `poster_path`, полный URL собирает backend, как и у фото актеров. Пустое значение - `null` у скалярных полей и `[]` у списков, пустых строк нет. Остальные блоки (трейлер, актеры дубляжа, оценки, отзывы) добавятся новыми полями или операциями: клиент игнорирует незнакомые поля.
  */
@@ -1189,6 +1219,39 @@ export type CompletePasswordResetResponses = {
 };
 
 export type CompletePasswordResetResponse = CompletePasswordResetResponses[keyof CompletePasswordResetResponses];
+
+export type GetUserProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/users/me';
+};
+
+export type GetUserProfileErrors = {
+    /**
+     * Нет сессии или сессия истекла (#17094 п. 1.1, 1.3).
+     */
+    401: Error;
+    /**
+     * Превышен лимит 100 запросов в минуту (#17094 п. 3.4), code `RATE_LIMITED`. Отвечает nginx (`limit_req`, wiki `Nginx`): тело и `Retry-After` задаются в его конфиге, `Retry-After` - постоянное число.
+     */
+    429: Error;
+    /**
+     * Непредвиденная ошибка сервера.
+     */
+    500: Error;
+};
+
+export type GetUserProfileError = GetUserProfileErrors[keyof GetUserProfileErrors];
+
+export type GetUserProfileResponses = {
+    /**
+     * Профиль владельца сессии.
+     */
+    200: UserProfile;
+};
+
+export type GetUserProfileResponse = GetUserProfileResponses[keyof GetUserProfileResponses];
 
 export type ChangePasswordData = {
     body: UserPasswordChangeRequest;

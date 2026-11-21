@@ -7,6 +7,8 @@ export type MockStorage = {
 export const MOCK_STORAGE_KEYS = {
   session: "dejaview:mocks:session",
   sessionUser: "dejaview:mocks:session-user",
+  sessionPasswordless: "dejaview:mocks:session-passwordless",
+  sessionAvatar: "dejaview:mocks:session-avatar",
   searchScenario: "dejaview:mocks:search",
   loginScenario: "dejaview:mocks:login",
   authScenario: "dejaview:mocks:auth",
@@ -14,6 +16,7 @@ export const MOCK_STORAGE_KEYS = {
   reviewScenario: "dejaview:mocks:reviews",
   lists: "dejaview:mocks:lists",
   listScenario: "dejaview:mocks:list-scenario",
+  profileScenario: "dejaview:mocks:profile",
 } as const;
 
 export const withScenarioEnv = (

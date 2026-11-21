@@ -159,10 +159,10 @@ describe("application browser history", () => {
 
   it("preserves previous history when login replaces the guarded profile entry", async () => {
     const { scope, browserWindow, expectLocation } = await setup("/about");
-    await allSettled(routes.profile.open, { scope, params: { query: { tab: "lists" } } });
-    await expectLocation("/login", { redirect: "/profile?tab=lists" });
+    await allSettled(routes.profile.open, { scope, params: { query: { tab: "watched" } } });
+    await expectLocation("/login", { redirect: "/profile?tab=watched" });
     await allSettled($$session.inputs.signedIn, { scope, params: { login: "movie_fan_42", password: "Kino#2026" } });
-    await expectLocation("/profile", { tab: "lists" });
+    await expectLocation("/profile", { tab: "watched" });
     expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
     expect(scope.getState($$profile.outputs.readyRoute.$isOpened)).toBe(true);
     expect(browserWindow.history.length).toBe(2);
@@ -170,7 +170,7 @@ describe("application browser history", () => {
     browserWindow.history.back();
     await expectLocation("/about");
     browserWindow.history.forward();
-    await expectLocation("/profile", { tab: "lists" });
+    await expectLocation("/profile", { tab: "watched" });
   });
 
   it("replaces profile on sign out and supports router back/forward commands", async () => {

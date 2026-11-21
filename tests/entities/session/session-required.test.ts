@@ -93,7 +93,18 @@ describe("401 on a user action", () => {
   it("replaces history entry on a protected page", async () => {
     const { scope, history } = await setupSessionScope({
       authenticated: true,
-      transport: async () => sessionError("SESSION_EXPIRED"),
+      transport: async (request) => {
+        if (request.path === "/users/me")
+          return jsonResponse(200, {
+            username: "movie_fan_42",
+            birth_year: 2001,
+            registered_at: "2026-09-14T09:00:00Z",
+            stats: { watched_count: 0, ratings_count: 0, average_rating: 0, reviews_count: 0 },
+          });
+        if (request.path.startsWith("/users/me/lists/")) return jsonResponse(200, { movies: [], total: 0 });
+
+        return sessionError("SESSION_EXPIRED");
+      },
     });
 
     await allSettled(routes.profile.open, { scope, params: undefined });

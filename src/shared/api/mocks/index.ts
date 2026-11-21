@@ -3,6 +3,7 @@ import { createMockTransport } from "./transport";
 import { DEFAULT_MOCK_DELAYS } from "./utils";
 
 export { AUTH_SCENARIOS, type AuthScenario } from "./auth";
+export { PROFILE_SCENARIOS } from "./profile";
 export { SEARCH_SCENARIOS, type SearchScenario } from "./search";
 export { TEXT_SEARCH_SCENARIOS } from "./text-search";
 export { LOGIN_SCENARIOS, type LoginScenario } from "./session";
