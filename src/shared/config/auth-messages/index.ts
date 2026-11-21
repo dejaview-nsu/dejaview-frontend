@@ -28,6 +28,8 @@ export const LOGIN_MESSAGES = {
 } as const;
 
 export const PASSWORD_MESSAGES = {
+  currentPasswordRequired: "Введите текущий пароль",
+  currentPasswordInvalid: "Неверный текущий пароль",
   newPasswordRequired: "Введите новый пароль",
   tooShort: "Пароль должен содержать не менее 8 символов",
   tooLong: "Пароль должен содержать не более 128 символов",

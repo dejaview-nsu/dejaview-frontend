@@ -1,0 +1,1 @@
+export { ANNOUNCEMENT_DELAY_MS, CHANGE_PASSWORD_TEXTS } from "./texts";

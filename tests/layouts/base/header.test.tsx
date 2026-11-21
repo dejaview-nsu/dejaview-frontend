@@ -10,7 +10,7 @@ import { BaseLayout } from "@/layouts/base";
 
 import { $$session } from "@/entities/session";
 
-import { router } from "@/shared/routes";
+import { router, routes } from "@/shared/routes";
 
 import { setupSessionScope } from "../../session-scope";
 import { userEventSetup } from "../../test-utils";
@@ -68,5 +68,20 @@ describe("base layout header", () => {
 
     expect(screen.getByRole("menuitem", { name: /Профиль/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Выйти/ })).toBeInTheDocument();
+  });
+
+  it("opens the profile from the avatar menu", async () => {
+    const { scope } = await setupSessionScope({ initialEntry: "/", authenticated: true });
+    renderLayout(scope);
+    const user = userEventSetup();
+
+    await user.click(screen.getByRole("button", { name: "Меню пользователя movie_fan_42" }));
+
+    expect(screen.getByText("movie_fan_42", { selector: "p" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: /Профиль/ }));
+
+    expect(scope.getState(router.$path)).toBe("/profile");
+    expect(scope.getState(routes.profile.$isOpened)).toBe(true);
   });
 });

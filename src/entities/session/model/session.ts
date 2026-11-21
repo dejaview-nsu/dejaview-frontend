@@ -13,6 +13,10 @@ import { toLocationPath } from "./location";
 
 export type SessionStatus = "unknown" | "guest" | "authenticated";
 
+export type SignOutErrorDisplay = "notification" | "caller";
+
+export type SignOutOptions = { errors: SignOutErrorDisplay };
+
 export const createSessionFactory = createFactory(() => {
   const { sessionQuery, signInMutation, signOutMutation } = createSessionApi();
 
@@ -21,7 +25,10 @@ export const createSessionFactory = createFactory(() => {
   const signInStarted = createEvent<SessionCredentials>();
   const signInCancelled = createEvent();
   const signedOut = createEvent();
-  const signOutStarted = createEvent();
+  const signOutRequested = createEvent<SignOutOptions>();
+  const signOutStarted = createEvent<SignOutErrorDisplay>();
+  const signOutFailed = createEvent<ApiError>();
+  const passwordSet = createEvent();
   const signOutCompleted = createEvent();
   const sessionCreated = createEvent<SessionInfo>();
   const sessionInvalidated = createEvent();
@@ -38,6 +45,7 @@ export const createSessionFactory = createFactory(() => {
   const $loginDialogPath = createStore<string | null>(null);
   const $loginError = createStore<ApiError | null>(null);
   const $isCheckingAfterLogin = createStore(false);
+  const $signOutErrorDisplay = createStore<SignOutErrorDisplay>("notification");
 
   const $isAuthenticated = $status.map((status) => status === "authenticated");
   const $isLoginDialogOpened = $loginDialogPath.map((path) => path !== null);
@@ -80,9 +88,13 @@ export const createSessionFactory = createFactory(() => {
 
   sample({ clock: [routes.login.closed, authCancelled], fn: () => null, target: $loginError });
 
-  sample({ clock: signedOut, filter: $canSignOut, target: signOutStarted });
+  sample({ clock: signedOut, fn: () => ({ errors: "notification" as const }), target: signOutRequested });
 
-  sample({ clock: signOutStarted, target: signOutMutation.start });
+  sample({ clock: signOutRequested, filter: $canSignOut, fn: ({ errors }) => errors, target: signOutStarted });
+
+  sample({ clock: signOutStarted, target: $signOutErrorDisplay });
+
+  sample({ clock: signOutStarted, fn: () => undefined, target: signOutMutation.start });
 
   sample({ clock: signOutMutation.finished.success, target: signOutCompleted });
 
@@ -95,7 +107,14 @@ export const createSessionFactory = createFactory(() => {
   sample({
     clock: signOutMutation.finished.failure,
     filter: ({ error }) => toApiError(error).status !== 401,
-    fn: ({ error }) => ({ text: toApiError(error).message, tone: "error" as const }),
+    fn: ({ error }) => toApiError(error),
+    target: signOutFailed,
+  });
+
+  sample({
+    clock: signOutFailed,
+    filter: $signOutErrorDisplay.map((display) => display === "notification"),
+    fn: (error) => ({ text: error.message, tone: "error" as const }),
     target: $$notifications.inputs.shown,
   });
 
@@ -114,6 +133,14 @@ export const createSessionFactory = createFactory(() => {
   sample({ clock: sessionQuery.finished.success, fn: ({ result }) => result.user, target: $user });
 
   sample({ clock: sessionCreated, fn: ({ user }) => user, target: $user });
+
+  sample({
+    clock: passwordSet,
+    source: $user,
+    filter: Boolean,
+    fn: (user) => ({ ...(user as SessionUser), has_password: true }),
+    target: $user,
+  });
 
   sample({ clock: sessionCreated, fn: () => "authenticated" as const, target: statusResolved });
 
@@ -191,6 +218,8 @@ export const createSessionFactory = createFactory(() => {
       signedIn,
       signInCancelled,
       signedOut,
+      signOutRequested,
+      passwordSet,
       sessionCreated,
       sessionInvalidated,
       loginRequired,
@@ -208,6 +237,7 @@ export const createSessionFactory = createFactory(() => {
       $loginDialogPath: readonly($loginDialogPath),
       loginDialogDismissed: readonly(loginDialogDismissed),
       statusResolved: readonly(statusResolved),
+      signOutFailed: readonly(signOutFailed),
     },
   };
 });
