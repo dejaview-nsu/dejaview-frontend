@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe("notification banner", () => {
-  it("sticks 16 px from the top inside a layer that starts under the header", async () => {
+  it("sticks 16 px from the top as a zero-height layer under the header", async () => {
     const scope = renderBanner();
 
     window.scrollY = 2000;
@@ -43,9 +43,10 @@ describe("notification banner", () => {
     const row = screen.getByRole("status").parentElement;
     const layer = row?.parentElement;
 
-    expect(layer).toHaveClass("pointer-events-none", "absolute", "inset-0", "z-40", "px-4", "md:px-12");
-    expect(layer).not.toHaveClass("fixed");
-    expect(row).toHaveClass("sticky", "top-4", "mt-2", "md:mt-4", "mx-auto", "max-w-results");
+    expect(layer).toHaveClass("pointer-events-none", "sticky", "top-4", "z-40", "h-0", "px-4", "md:px-12");
+    expect(layer).toHaveClass("mt-2", "-mb-2", "md:mt-4", "md:-mb-4");
+    expect(layer).not.toHaveClass("fixed", "absolute");
+    expect(row).toHaveClass("mx-auto", "max-w-results");
     expect(row).toHaveClass("justify-center", "md:justify-end");
     expect(screen.getByRole("status")).toHaveClass("pointer-events-auto", "w-full", "md:w-auto");
   });

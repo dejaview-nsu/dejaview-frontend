@@ -33,10 +33,15 @@ export const NotificationBanner = ({ contentWidth = false }: { contentWidth?: bo
   const Icon = TONE_ICONS[notification.tone];
 
   return (
-    <div className={cn("pointer-events-none absolute inset-0 z-40 px-4", contentWidth ? "md:px-8" : "md:px-12")}>
+    <div
+      className={cn(
+        "pointer-events-none sticky top-4 z-40 mt-2 -mb-2 h-0 px-4 md:mt-4 md:-mb-4",
+        contentWidth ? "md:px-8" : "md:px-12",
+      )}
+    >
       <div
         className={cn(
-          "sticky top-4 mx-auto mt-2 flex w-full justify-center md:mt-4 md:justify-end",
+          "mx-auto flex w-full justify-center md:justify-end",
           contentWidth ? "max-w-content" : "max-w-results",
         )}
       >

@@ -128,11 +128,9 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
       ) : (
         <StandardHeader />
       )}
-      <div className="relative flex flex-1 flex-col">
-        <NotificationBanner contentWidth={contentWidth} />
-        <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
-        {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} contentWidth={contentWidth} />}
-      </div>
+      <NotificationBanner contentWidth={contentWidth} />
+      <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
+      {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} contentWidth={contentWidth} />}
       <LoginDialog />
     </div>
   );
