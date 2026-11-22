@@ -1,4 +1,11 @@
-export { $$session, createAuthorizedRouteFactory, createGuestRouteFactory, type SessionStatus } from "./model";
+export {
+  $$session,
+  createAuthorizedRouteFactory,
+  createGuestRouteFactory,
+  type SessionStatus,
+  type SignOutErrorDisplay,
+  type SignOutOptions,
+} from "./model";
 export {
   getLoginErrorDetails,
   type SessionCredentials,

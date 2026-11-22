@@ -7,7 +7,7 @@ import type {
 } from "../generated";
 import { TransportError } from "../transport/errors";
 import { COMMON_ERRORS } from "./fixtures";
-import { clearMockSession, getSession, login, logout, startMockSession } from "./session";
+import { changePassword, clearMockSession, getSession, login, logout, startMockSession } from "./session";
 import { MOCK_STORAGE_KEYS, type MockStorage } from "./storage";
 import { type MockContext, type MockHandler, mockNotFound, mockResponse, wait } from "./utils";
 
@@ -36,6 +36,7 @@ type MockReply = {
   signIn?: boolean;
   signOut?: boolean;
   network?: boolean;
+  timeout?: boolean;
 };
 
 type ScenarioReplies = Record<string, (context: MockContext) => MockReply>;
@@ -54,6 +55,12 @@ const RESET_LINK_EXPIRED = error(
 );
 
 const NO_NETWORK: MockReply = { status: 0, network: true };
+
+const TIMED_OUT: MockReply = { status: 0, timeout: true };
+
+const NOT_CONTRACT: MockReply = { status: 418, body: "<html>I'm a teapot</html>" };
+
+const SESSION_EXPIRED: MockReply = { status: 401, body: COMMON_ERRORS.SESSION_EXPIRED, signOut: true };
 
 const ENDPOINTS = {
   register: {
@@ -165,6 +172,41 @@ const ENDPOINTS = {
     fallback: null,
     replies: {
       logout_ok: () => ({ status: 204, signOut: true }),
+      logout_session_expired: () => SESSION_EXPIRED,
+      logout_rate_limited: () => ({ status: 429, body: COMMON_ERRORS.RATE_LIMITED }),
+      logout_server_error: () => ({ status: 500, body: COMMON_ERRORS.INTERNAL_ERROR }),
+      logout_network_error: () => NO_NETWORK,
+      logout_timeout: () => TIMED_OUT,
+      logout_invalid_response: () => NOT_CONTRACT,
+    },
+  },
+  passwordChange: {
+    route: "PUT /users/me/password",
+    fallback: null,
+    replies: {
+      password_change_ok: () => ({ status: 204 }),
+      password_change_current_required: () => ({
+        status: 400,
+        body: error("AUTH_VALIDATION_ERROR", "Введите текущий пароль", "current_password"),
+      }),
+      password_change_current_invalid: () => ({
+        status: 400,
+        body: error("AUTH_CURRENT_PASSWORD_INVALID", "Неверный текущий пароль", "current_password"),
+      }),
+      password_change_same_as_current: () => ({
+        status: 400,
+        body: error("AUTH_PASSWORD_SAME_AS_CURRENT", "Новый пароль должен отличаться от текущего", "new_password"),
+      }),
+      password_change_validation_error: () => ({
+        status: 400,
+        body: error("AUTH_VALIDATION_ERROR", "Пароль должен содержать не менее 8 символов", "new_password"),
+      }),
+      password_change_session_expired: () => SESSION_EXPIRED,
+      password_change_rate_limited: () => ({ status: 429, body: COMMON_ERRORS.RATE_LIMITED }),
+      password_change_server_error: () => ({ status: 500, body: COMMON_ERRORS.INTERNAL_ERROR }),
+      password_change_network_error: () => NO_NETWORK,
+      password_change_timeout: () => TIMED_OUT,
+      password_change_invalid_response: () => NOT_CONTRACT,
     },
   },
   oidcPending: {
@@ -277,6 +319,7 @@ const PREFIXES: Record<Endpoint, string> = {
   passwordRequest: "password_request_",
   passwordCheck: "password_check_",
   passwordComplete: "password_complete_",
+  passwordChange: "password_change_",
 };
 
 export const readAuthScenarios = (storage: MockStorage) =>
@@ -296,7 +339,12 @@ export const resolveAuthScenario = (
   return name in ENDPOINTS[endpoint].replies ? { kind: "scenario", name } : { kind: "unknown", name };
 };
 
-const STATEFUL_DEFAULTS: Partial<Record<Endpoint, MockHandler>> = { session: getSession, login, logout };
+const STATEFUL_DEFAULTS: Partial<Record<Endpoint, MockHandler>> = {
+  session: getSession,
+  login,
+  logout,
+  passwordChange: changePassword,
+};
 
 const createAuthHandler =
   (endpoint: Endpoint): MockHandler =>
@@ -320,6 +368,8 @@ const createAuthHandler =
     const reply = (replies as ScenarioReplies)[name](context);
 
     if (reply.network) throw new TransportError("network");
+
+    if (reply.timeout) throw new TransportError("timeout");
 
     if (reply.signIn) startMockSession(context.storage);
 

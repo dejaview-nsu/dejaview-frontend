@@ -2,6 +2,7 @@ import type { Transport } from "../transport/types";
 import { AUTH_ROUTES } from "./auth";
 import { userMovieLists } from "./lists";
 import { movieCard, movieReviews } from "./movies";
+import { userProfile } from "./profile";
 import { createSearchHandler } from "./search";
 import type { MockStorage } from "./storage";
 import { textSearch } from "./text-search";
@@ -13,6 +14,7 @@ const ROUTES: Record<string, MockHandler> = {
   "POST /search/image": createSearchHandler("image"),
   "POST /search/video": createSearchHandler("video"),
   "POST /search/text": textSearch,
+  "GET /users/me": userProfile,
 };
 
 export const createMockTransport =

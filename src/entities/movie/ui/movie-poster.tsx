@@ -10,12 +10,13 @@ export const MoviePoster = ({
 }: {
   url: string | null;
   title: string;
-  variant?: "card" | "detail";
+  variant?: "card" | "detail" | "tile";
 }) => {
   const [failed, setFailed] = useState(false);
   const className = cn(
     "mx-auto aspect-[2/3] w-full shrink-0 object-cover",
-    variant === "card" ? "max-w-[200px] rounded-sm" : "border-2 border-border-strong shadow-hard-lg",
+    variant === "card" && "max-w-[200px] rounded-sm",
+    variant === "detail" && "border-2 border-border-strong shadow-hard-lg",
   );
 
   if (!url || failed)

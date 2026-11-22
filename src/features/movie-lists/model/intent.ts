@@ -102,7 +102,7 @@ export const createMovieListIntentFactory = createFactory(() => {
     target: cancelled,
   });
 
-  sample({ clock: $$session.inputs.signedOut, target: cancelled });
+  sample({ clock: $$session.inputs.signOutRequested, target: cancelled });
 
   return {
     inputs: { requested, consumed, cancelled },

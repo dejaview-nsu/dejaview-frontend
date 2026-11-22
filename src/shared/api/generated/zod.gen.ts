@@ -250,6 +250,18 @@ export const zSessionInfo = z.object({
     expires_at: z.iso.datetime()
 });
 
+export const zUserProfile = z.object({
+    username: z.string(),
+    birth_year: z.int().gte(1900),
+    registered_at: z.iso.datetime(),
+    stats: z.object({
+        watched_count: z.int().gte(0),
+        ratings_count: z.int().gte(0),
+        average_rating: z.number().gte(0).lte(10),
+        reviews_count: z.int().gte(0)
+    })
+});
+
 export const zMovieGenre = z.object({
     id: z.int(),
     name: z.string()
@@ -469,6 +481,11 @@ export const zCompletePasswordResetBody = zAuthPasswordResetCompleteRequest;
  * Создана сессия, установлена cookie `dv_session`.
  */
 export const zCompletePasswordResetResponse = zSessionInfo;
+
+/**
+ * Профиль владельца сессии.
+ */
+export const zGetUserProfileResponse = zUserProfile;
 
 export const zChangePasswordBody = zUserPasswordChangeRequest;
 

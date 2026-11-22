@@ -2,7 +2,7 @@ import { createFactory, invoke } from "@withease/factories";
 import { createEvent, createStore, sample } from "effector";
 import { readonly } from "patronum";
 
-export type NotificationTone = "success" | "error";
+export type NotificationTone = "success" | "error" | "info";
 
 export type Notification = { id: number; text: string; tone: NotificationTone };
 

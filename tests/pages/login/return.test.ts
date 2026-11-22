@@ -29,10 +29,10 @@ describe("return after login", () => {
   });
 
   it("keeps query of redirect path", async () => {
-    const { scope } = await signInFrom("/login?redirect=%2Fprofile%3Ftab%3Dlists");
+    const { scope } = await signInFrom("/login?redirect=%2Fprofile%3Ftab%3Dwatched");
 
     expect(scope.getState(router.$path)).toBe("/profile");
-    expect(scope.getState(router.$query)).toEqual({ tab: "lists" });
+    expect(scope.getState(router.$query)).toEqual({ tab: "watched" });
   });
 
   it("opens home without redirect", async () => {

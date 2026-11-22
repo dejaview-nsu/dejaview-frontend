@@ -60,6 +60,7 @@ const $isBrandShell = combine(
   [
     routes.home.$isOpened,
     routes.movie.$isOpened,
+    routes.profile.$isOpened,
     routes.login.$isOpened,
     routes.register.$isOpened,
     routes.confirmEmail.$isOpened,
@@ -82,17 +83,23 @@ const $isAuthPage = combine(
   (opened) => opened.some(Boolean),
 );
 
+const $isContentWidthPage = combine(
+  routes.movie.$isOpened,
+  routes.profile.$isOpened,
+  (movie, profile) => movie || profile,
+);
+
 const $isCompactAuthPage = combine(
   [routes.login.$isOpened, routes.forgotPassword.$isOpened, routes.resetPassword.$isOpened],
   (opened) => opened.some(Boolean),
 );
 
 export const BaseLayout = ({ children }: { children: ReactNode }) => {
-  const { isBrandShell, isAuthPage, compactAuthPage, moviePage } = useUnit({
+  const { isBrandShell, isAuthPage, compactAuthPage, contentWidth } = useUnit({
     isBrandShell: $isBrandShell,
     isAuthPage: $isAuthPage,
     compactAuthPage: $isCompactAuthPage,
-    moviePage: routes.movie.$isOpened,
+    contentWidth: $isContentWidthPage,
   });
 
   return (
@@ -117,13 +124,13 @@ export const BaseLayout = ({ children }: { children: ReactNode }) => {
         </>
       )}
       {isBrandShell ? (
-        <HomeHeader showGuestActions={!isAuthPage} loginPage={compactAuthPage} contentWidth={moviePage} />
+        <HomeHeader showGuestActions={!isAuthPage} loginPage={compactAuthPage} contentWidth={contentWidth} />
       ) : (
         <StandardHeader />
       )}
-      <NotificationBanner />
+      <NotificationBanner contentWidth={contentWidth} />
       <main className={cn("mx-auto flex w-full flex-1 flex-col", !isBrandShell && "max-w-4xl p-6")}>{children}</main>
-      {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} contentWidth={moviePage} />}
+      {isBrandShell && <HomeFooter mobileHidden={compactAuthPage} contentWidth={contentWidth} />}
       <LoginDialog />
     </div>
   );

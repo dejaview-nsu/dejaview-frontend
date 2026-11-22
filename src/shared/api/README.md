@@ -108,6 +108,8 @@ sample({ clock: route.closed, target: $$videoSearch.inputs.cancelled });
 - `inputs.signedOut()` — выход без подтверждения через `POST /auth/logout`. Успех и HTTP 401 очищают пользователя и открывают главную без query-параметров; в шапке появляются «Войти» и «Зарегистрироваться». Медиа-режимы снова требуют входа.
 - `outputs.$isSigningOut` — запрос выхода идёт, меню пользователя заблокировано. Повторный выход, вход и проверка сессии в это время игнорируются. Уже запущенные вход и проверка сессии отменяются, их запоздалые ответы не меняют состояние.
 - При остальных ошибках выхода текущая страница и сессия сохраняются, сообщение показывается в уведомлении. Выход можно повторить. Cookie сессии удаляет backend, JavaScript не имеет к ней доступа.
+- `inputs.signOutRequested({ errors })` — тот же выход с выбором места для ошибки: `"notification"` — уведомлением, как `signedOut()`; `"caller"` — без уведомления, вызывающая модель получает ошибку из `outputs.signOutFailed` (так работает окно «Выход из профиля»).
+- `inputs.passwordSet()` — после задания пароля в профиле отмечает у пользователя `has_password: true` без повторного запроса сессии.
 
 Форма на `/login` и окно входа используют общий виджет `login-form`. Логин проверяется по сгенерированной схеме `zAuthLogin`, пароль — только на непустоту. При серверной ошибке очищается пароль, логин сохраняется. Неподтверждённый email позволяет запросить новое письмо. После закрытия формы её данные сбрасываются, вход и отправка повторного письма отменяются.
 
@@ -195,7 +197,70 @@ localStorage.removeItem("dejaview:mocks:session"); // выйти без кноп
 
 Список профиля поддерживает поиск по части русского названия, сортировку и страницы по 24 фильма. Оценки пока равны `null`, поэтому `best` и `worst` возвращают фильмы от новых добавлений к старым. Для API доступны все фильмы mock-поиска и `/movies/1000001`; неизвестный фильм нельзя добавить.
 
-Ошибки задаются ключом `dejaview:mocks:list-scenario`: `error` — HTTP 500, `NETWORK_ERROR` — нет сети, `TIMEOUT` — таймаут, `SESSION_EXPIRED` — HTTP 401 с завершением mock-сессии. Удаление ключа возвращает успешные ответы. Ошибки и отмена запроса не меняют списки.
+Сценарии задаются ключом `dejaview:mocks:list-scenario` и действуют со следующего запроса:
+
+| Сценарий           | Что вернёт                                                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| без сценария       | успешные ответы; списки нового логина пусты                                                                                                                                          |
+| `demo`             | если у пользователя ещё нет сохранённых списков, заполняет «Хочу посмотреть» (13 фильмов) и «Просмотрено» (4 фильма); у фильмов появляется `average_rating`, кроме `/movies/1000001` |
+| `error`            | HTTP 500 на любой запрос списков                                                                                                                                                     |
+| `RATE_LIMITED`     | HTTP 429 на любой запрос списков                                                                                                                                                     |
+| `INVALID_RESPONSE` | HTTP 200 с телом не по контракту                                                                                                                                                     |
+| `NETWORK_ERROR`    | нет сети                                                                                                                                                                             |
+| `TIMEOUT`          | таймаут                                                                                                                                                                              |
+| `SESSION_EXPIRED`  | HTTP 401 с завершением mock-сессии                                                                                                                                                   |
+
+Сценарии с префиксом `remove_` действуют только на `DELETE`, чтение и добавление работают:
+
+| Сценарий                   | Что вернёт                         |
+| -------------------------- | ---------------------------------- |
+| `remove_error`             | HTTP 500 `INTERNAL_ERROR`          |
+| `remove_rate_limited`      | HTTP 429 `RATE_LIMITED`            |
+| `remove_invalid_parameter` | HTTP 400 `INVALID_PARAMETER`       |
+| `remove_not_found`         | HTTP 404 `MOVIE_NOT_FOUND`         |
+| `remove_invalid_response`  | HTTP 418 с HTML вместо JSON        |
+| `remove_network_error`     | нет сети                           |
+| `remove_timeout`           | таймаут                            |
+| `remove_session_expired`   | HTTP 401 с завершением mock-сессии |
+
+Удаление ключа возвращает успешные ответы. Ошибки и отмена запроса не меняют списки.
+
+### Профиль
+
+`GET /users/me` возвращает профиль из контракта: имя введённого логина, `birth_year: 2001`, `registered_at: 2026-09-14T09:00:00Z`. `watched_count` равен числу фильмов в сохранённом списке «Просмотрено», поэтому меняется после добавления или удаления. Без входа — 401 `SESSION_REQUIRED`.
+
+Сценарий задаётся ключом `dejaview:mocks:profile`:
+
+| Сценарий               | Что вернёт                                |
+| ---------------------- | ----------------------------------------- |
+| `found` (по умолчанию) | оценок и отзывов нет, `average_rating: 0` |
+| `rated`                | 38 оценок, средняя 7,8, 12 отзывов        |
+| `error`                | HTTP 500                                  |
+| `RATE_LIMITED`         | HTTP 429                                  |
+| `INVALID_RESPONSE`     | HTTP 200 без `registered_at` и статистики |
+| `NETWORK_ERROR`        | нет сети                                  |
+| `TIMEOUT`              | таймаут                                   |
+| `SESSION_EXPIRED`      | HTTP 401 с завершением mock-сессии        |
+
+Данные пользователя в `GET /auth/session` задаются отдельными ключами:
+
+| Ключ                                  | Значение   | Что меняет                                                           |
+| ------------------------------------- | ---------- | -------------------------------------------------------------------- |
+| `dejaview:mocks:session-passwordless` | `"true"`   | `has_password: false`; после задания пароля в профиле ключ удаляется |
+| `dejaview:mocks:session-avatar`       | адрес фото | `avatar_url`; без ключа — `null`                                     |
+
+```js
+localStorage.setItem("dejaview:mocks:list-scenario", "demo"); // заполненные списки
+localStorage.setItem("dejaview:mocks:list-scenario", "remove_error"); // ошибка удаления
+localStorage.setItem("dejaview:mocks:profile", "rated"); // статистика с оценками
+localStorage.removeItem("dejaview:mocks:profile"); // профиль по умолчанию
+localStorage.setItem("dejaview:mocks:session-passwordless", "true"); // учётная запись без пароля
+localStorage.setItem("dejaview:mocks:session-avatar", "https://picsum.photos/320"); // фото профиля
+localStorage.setItem("dejaview:mocks:auth", "password_change_current_invalid"); // ошибка смены пароля
+localStorage.setItem("dejaview:mocks:auth", "logout_server_error"); // ошибка выхода
+```
+
+Смена пароля и выход проверяются сценариями ключа `dejaview:mocks:auth` (`password_change_*`, `logout_*`) — см. таблицу ниже.
 
 ### Сценарии регистрации, входа и OIDC
 
@@ -207,7 +272,7 @@ localStorage.setItem("dejaview:mocks:auth", "confirm_expired,resend_too_early");
 localStorage.removeItem("dejaview:mocks:auth"); // вернуть поведение по умолчанию
 ```
 
-Префикс имени определяет эндпоинт. Эндпоинт без своего сценария работает по умолчанию: регистрация, повторная отправка, подтверждение, OIDC и восстановление пароля отвечают успехом, а сессия, вход и выход используют сохранённый вход из `dejaview:mocks:session` и старый ключ `dejaview:mocks:login`. Неизвестное имя с префиксом эндпоинта — 404 `MOCK_NOT_FOUND` и предупреждение в консоли. Успешные `confirm_ok`, `login_ok` и `oidc_complete_ok` сохраняют вход, `logout_ok` его удаляет.
+Префикс имени определяет эндпоинт. Эндпоинт без своего сценария работает по умолчанию: регистрация, повторная отправка, подтверждение, OIDC и восстановление пароля отвечают успехом, а сессия, вход и выход используют сохранённый вход из `dejaview:mocks:session` и старый ключ `dejaview:mocks:login`. Неизвестное имя с префиксом эндпоинта — 404 `MOCK_NOT_FOUND` и предупреждение в консоли. Успешные `confirm_ok`, `login_ok` и `oidc_complete_ok` сохраняют вход; `logout_ok`, `logout_session_expired` и `password_change_session_expired` его удаляют. Без сценария `PUT /users/me/password` требует вход и `current_password` у учётной записи с паролем, затем отвечает 204.
 
 | Сценарий                                   | Эндпоинт                         | Ответ                                                                 |
 | ------------------------------------------ | -------------------------------- | --------------------------------------------------------------------- |
@@ -234,6 +299,23 @@ localStorage.removeItem("dejaview:mocks:auth"); // вернуть поведен
 | `login_locked`                             | `POST /auth/login`               | 429 `AUTH_LOGIN_LOCKED`, `Retry-After: 781` (14 минут)                |
 | `login_rate_limited`                       | `POST /auth/login`               | 429 `RATE_LIMITED`                                                    |
 | `logout_ok`                                | `POST /auth/logout`              | 204                                                                   |
+| `logout_session_expired`                   | `POST /auth/logout`              | 401 `SESSION_EXPIRED`                                                 |
+| `logout_rate_limited`                      | `POST /auth/logout`              | 429 `RATE_LIMITED`                                                    |
+| `logout_server_error`                      | `POST /auth/logout`              | 500 `INTERNAL_ERROR`                                                  |
+| `logout_network_error`                     | `POST /auth/logout`              | нет сети                                                              |
+| `logout_timeout`                           | `POST /auth/logout`              | таймаут                                                               |
+| `logout_invalid_response`                  | `POST /auth/logout`              | 418 с HTML вместо JSON                                                |
+| `password_change_ok`                       | `PUT /users/me/password`         | 204                                                                   |
+| `password_change_current_required`         | `PUT /users/me/password`         | 400 `AUTH_VALIDATION_ERROR`, `field: current_password`                |
+| `password_change_current_invalid`          | `PUT /users/me/password`         | 400 `AUTH_CURRENT_PASSWORD_INVALID`                                   |
+| `password_change_same_as_current`          | `PUT /users/me/password`         | 400 `AUTH_PASSWORD_SAME_AS_CURRENT`                                   |
+| `password_change_validation_error`         | `PUT /users/me/password`         | 400 `AUTH_VALIDATION_ERROR`, `field: new_password`                    |
+| `password_change_session_expired`          | `PUT /users/me/password`         | 401 `SESSION_EXPIRED`                                                 |
+| `password_change_rate_limited`             | `PUT /users/me/password`         | 429 `RATE_LIMITED`                                                    |
+| `password_change_server_error`             | `PUT /users/me/password`         | 500 `INTERNAL_ERROR`                                                  |
+| `password_change_network_error`            | `PUT /users/me/password`         | нет сети                                                              |
+| `password_change_timeout`                  | `PUT /users/me/password`         | таймаут                                                               |
+| `password_change_invalid_response`         | `PUT /users/me/password`         | 418 с HTML вместо JSON                                                |
 | `oidc_pending_registration` (по умолчанию) | `GET /auth/oidc/pending`         | 200, `kind: registration`, Google, `ivan_petrov`                      |
 | `oidc_pending_link`                        | `GET /auth/oidc/pending`         | 200, `kind: link`, VK, `ivan@example.com`                             |
 | `oidc_pending_expired`                     | `GET /auth/oidc/pending`         | 410 `AUTH_OIDC_EXPIRED`                                               |

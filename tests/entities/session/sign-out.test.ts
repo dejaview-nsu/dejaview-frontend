@@ -1,5 +1,5 @@
 import { historyAdapter } from "@effector/router";
-import { allSettled, fork, scopeBind } from "effector";
+import { allSettled, createEffect, fork, sample, scopeBind } from "effector";
 import { createMemoryHistory } from "history";
 import { describe, expect, it, vi } from "vitest";
 
@@ -100,6 +100,37 @@ describe("sign out", () => {
       expect(scope.getState(router.$path)).toBe("/");
     },
   );
+
+  it("reports the failure to the caller without a notification when asked", async () => {
+    const failed = vi.fn();
+    const failedFx = createEffect(failed);
+
+    sample({ clock: $$session.outputs.signOutFailed, target: failedFx });
+
+    const { scope, transport } = await setupControlled();
+
+    void allSettled($$session.inputs.signOutRequested, { scope, params: { errors: "caller" } });
+    await transport.waitForCalls(1);
+    transport.current().resolve(jsonResponse(500, { code: "INTERNAL_ERROR", message: "Произошла ошибка" }));
+    await allSettled(scope);
+
+    expect(failed).toHaveBeenCalledOnce();
+    expect(failed.mock.calls[0][0]).toMatchObject({ status: 500, code: "INTERNAL_ERROR" });
+    expect(scope.getState($$notifications.outputs.$notification)).toBeNull();
+    expect(scope.getState($$session.outputs.$status)).toBe("authenticated");
+  });
+
+  it("marks the user as having a password after it was set", async () => {
+    const { scope } = await setupControlled();
+
+    await allSettled($$session.inputs.sessionCreated, {
+      scope,
+      params: { ...sessionInfo, user: { ...sessionInfo.user, has_password: false } },
+    });
+    await allSettled($$session.inputs.passwordSet, { scope });
+
+    expect(scope.getState($$session.outputs.$user)).toEqual({ ...sessionInfo.user, has_password: true });
+  });
 
   it("ignores duplicate clicks and new auth requests while signing out, then permits another session", async () => {
     const { scope, transport, signOut } = await setupControlled();

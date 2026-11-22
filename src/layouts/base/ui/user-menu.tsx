@@ -50,7 +50,14 @@ export const UserMenu = ({ className }: { className?: string }) => {
           aria-hidden="true"
         />
       </Button>
-      <Popover placement="bottom end" offset={4} className={`${userMenuPopoverStyle} min-w-[146px]`}>
+      <Popover
+        placement="bottom end"
+        offset={4}
+        className={`${userMenuPopoverStyle} w-[calc(100vw-2rem)] md:w-auto md:min-w-[246px]`}
+      >
+        <p className="mb-2 truncate border-b border-dashed border-divider px-2 pb-3 font-body text-base text-ink">
+          {username}
+        </p>
         <Menu aria-label="Меню пользователя" className="flex flex-col gap-2 outline-none">
           <MenuItem className={userMenuItemStyle} onAction={() => openProfile()}>
             <User size={24} strokeWidth={1.75} aria-hidden="true" /> Профиль

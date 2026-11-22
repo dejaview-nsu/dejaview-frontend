@@ -1,4 +1,4 @@
-import { callApi, type ListTypePath, zNoContent, zUserMovieState } from "@/shared/api";
+import { callApi, type ListTypePath, type UnauthorizedPolicy, zNoContent, zUserMovieState } from "@/shared/api";
 
 export const getMovieLists = (movieId: string) =>
   callApi({
@@ -12,14 +12,16 @@ export const changeMovieList = ({
   movieId,
   list,
   selected,
+  onUnauthorized = "guest",
 }: {
   movieId: string;
   list: ListTypePath;
   selected: boolean;
+  onUnauthorized?: UnauthorizedPolicy;
 }) =>
   callApi({
     method: selected ? "PUT" : "DELETE",
     path: `/users/me/lists/${list}/${movieId}`,
     schema: zNoContent,
-    onUnauthorized: "guest",
+    onUnauthorized,
   });

@@ -138,11 +138,11 @@ describe("auth scenario selection", () => {
   it("an unknown endpoint still answers 404 MOCK_NOT_FOUND", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    expect((await call(memoryStorage(), "PUT", "/users/me/password")).status).toBe(404);
+    expect((await call(memoryStorage(), "PUT", "/users/me/name")).status).toBe(404);
   });
 
   it("lists every scenario", () => {
-    expect(AUTH_SCENARIOS).toHaveLength(46);
+    expect(AUTH_SCENARIOS).toHaveLength(63);
   });
 });
 
