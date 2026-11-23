@@ -160,6 +160,19 @@ export const userMovieLists: MockHandler = async ({ request, storage, delays }) 
 
       movies.sort((a, b) => direction * a.title.localeCompare(b.title, "ru"));
     }
+    if (sort === "best" || sort === "worst") {
+      const direction = sort === "best" ? -1 : 1;
+
+      movies.sort((a, b) => {
+        const left = a.average_rating;
+        const right = b.average_rating;
+        if (left === right) return 0;
+        if (left === null) return 1;
+        if (right === null) return -1;
+
+        return direction * (left - right);
+      });
+    }
 
     return mockResponse(200, {
       movies: movies.slice((Number(page) - 1) * 24, Number(page) * 24),

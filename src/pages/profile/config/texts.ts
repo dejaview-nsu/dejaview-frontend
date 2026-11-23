@@ -29,6 +29,7 @@ export const PROFILE_TEXTS = {
   } satisfies Record<ProfileTab, string>,
   loadingList: "Загружаем список",
   listFailed: INTERNAL_ERROR_MESSAGE,
+  refreshListFailed: "Не удалось обновить список.",
   retryList: "Повторить загрузку списка",
   emptyTitle: "Список пуст",
   emptyHint: {

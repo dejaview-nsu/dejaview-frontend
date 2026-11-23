@@ -1,8 +1,8 @@
 import { RouterProvider } from "@effector/router-react";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { allSettled, type Scope } from "effector";
 import { Provider } from "effector-react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Routing } from "@/pages";
 
@@ -10,6 +10,7 @@ import { type Transport, type TransportRequest } from "@/shared/api";
 import { createMockTransport, MOCK_STORAGE_KEYS, type MockStorage, NO_MOCK_DELAYS } from "@/shared/api/mocks";
 import { router } from "@/shared/routes";
 
+import { jsonResponse } from "../../controlled-transport";
 import { createTestMockStorage, setupApiScope, setupMockApiScope } from "../../session-scope";
 import { userEventSetup } from "../../test-utils";
 
@@ -71,6 +72,111 @@ const movieTitles = () =>
 afterEach(() => sessionStorage.clear());
 
 describe("profile page", () => {
+  it("scrolls to the list when paging and keeps the applied query across tabs", async () => {
+    const storage = signedInStorage();
+    const mock = createMockTransport({ storage, delays: NO_MOCK_DELAYS });
+    const transport = vi.fn<Transport>(async (request) => {
+      const url = new URL(request.path, "http://localhost");
+
+      if (url.pathname !== "/users/me/lists/want_to_watch") return mock(request);
+
+      const page = Number(url.searchParams.get("page"));
+
+      return jsonResponse(200, {
+        movies: [{ movie_id: page, title: "Фильм " + page, poster_url: null, average_rating: null, user_rating: null }],
+        total: 49,
+      });
+    });
+    const { scope } = await act(() => setupApiScope({ initialEntry: "/profile", transport }));
+    renderApp(scope);
+    const user = userEventSetup();
+
+    await user.click(await screen.findByRole("button", { name: "Название, А-Я" }));
+    const search = screen.getByRole("textbox", { name: "Поиск по названию" });
+    fireEvent.change(search, { target: { value: "фильм" } });
+    search.focus();
+    await user.keyboard("{Enter}");
+    const navigation = await screen.findByRole("navigation", { name: "Страницы списка" });
+    const scroll = vi.fn();
+    Object.defineProperty(navigation.parentElement, "scrollIntoView", { value: scroll });
+    const desktop = within(navigation.children[0] as HTMLElement);
+
+    await user.click(desktop.getByRole("button", { name: "Вперёд" }));
+    await screen.findByRole("heading", { name: "Фильм 2" });
+    expect(scroll).toHaveBeenCalledWith({ block: "start" });
+    expect(transport.mock.lastCall?.[0].path).toContain("sort=title_asc&page=2&q=");
+    expect(screen.getByText("Страница 2 из 3")).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "фильм черновик" } });
+    await user.click(screen.getByRole("tab", { name: "Просмотрено" }));
+    await screen.findByRole("heading", { name: "Список пуст" });
+    await user.click(screen.getByRole("tab", { name: "Хочу посмотреть" }));
+    expect(screen.getByRole("textbox", { name: "Поиск по названию" })).toHaveValue("фильм черновик");
+    expect(screen.getByText("Страница 2 из 3")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Оценка, Сначала лучшие" }));
+    await screen.findByRole("heading", { name: "Фильм 1" });
+    expect(transport.mock.lastCall?.[0].path).toContain("sort=best&page=1&q=" + encodeURIComponent("фильм"));
+  });
+
+  it("applies only submitted searches and preserves sorting when clearing", async () => {
+    const storage = signedInStorage({ want_to_watch: [603, 157336], watched: [] });
+    const mock = createMockTransport({ storage, delays: NO_MOCK_DELAYS });
+    const transport = vi.fn(mock);
+    const { scope } = await act(() => setupApiScope({ initialEntry: "/profile", transport }));
+    renderApp(scope);
+    const user = userEventSetup();
+    const search = await screen.findByRole("textbox", { name: "Поиск по названию" });
+    const requests = () =>
+      transport.mock.calls.map(([request]) => request.path).filter((path) => path.startsWith("/users/me/lists/"));
+
+    await user.click(screen.getByRole("button", { name: "Название, А-Я" }));
+    await screen.findByRole("heading", { name: "Матрица" });
+    const beforeTyping = requests().length;
+    fireEvent.change(search, { target: { value: "мА" } });
+    fireEvent.change(search, { target: { value: "мАтР" } });
+    expect(requests()).toHaveLength(beforeTyping);
+    await user.click(screen.getByRole("button", { name: "Найти" }));
+    await waitFor(() => expect(movieTitles()).toEqual(["Матрица"]));
+    expect(requests().at(-1)).toContain("sort=title_asc&page=1&q=");
+
+    fireEvent.change(search, { target: { value: "Матрица" } });
+    search.focus();
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(requests().at(-1)).toContain(encodeURIComponent("Матрица")));
+    await screen.findByRole("heading", { name: "Матрица" });
+    fireEvent.change(search, { target: { value: "Зеркало" } });
+    await user.keyboard("{Enter}");
+    await screen.findByRole("heading", { name: "Ничего не найдено" });
+    expect(movieTitles()).toEqual([]);
+
+    await user.click(screen.getAllByRole("button", { name: "Очистить" }).at(-1)!);
+    await waitFor(() => expect(movieTitles()).toEqual(["Интерстеллар", "Матрица"]));
+    expect(search).toHaveValue("");
+    expect(requests().at(-1)).toBe("/users/me/lists/want_to_watch?sort=title_asc&page=1");
+  });
+
+  it("cycles through all six server sorting options", async () => {
+    const storage = signedInStorage({ want_to_watch: [603, 157336], watched: [] });
+    const transport = vi.fn(createMockTransport({ storage, delays: NO_MOCK_DELAYS }));
+    const { scope } = await act(() => setupApiScope({ initialEntry: "/profile", transport }));
+    renderApp(scope);
+    const user = userEventSetup();
+
+    for (const [label, sort] of [
+      ["Дата, Сначала новые", "oldest"],
+      ["Дата, Сначала старые", "newest"],
+      ["Название, А-Я", "title_asc"],
+      ["Название, А-Я", "title_desc"],
+      ["Оценка, Сначала лучшие", "best"],
+      ["Оценка, Сначала лучшие", "worst"],
+    ]) {
+      await user.click(await screen.findByRole("button", { name: new RegExp(label) }));
+      await waitFor(() =>
+        expect(transport.mock.lastCall?.[0].path).toBe("/users/me/lists/want_to_watch?sort=" + sort + "&page=1"),
+      );
+    }
+  });
   it("sends a guest to login and back to the profile tab after signing in", async () => {
     const { scope, user } = await openProfile(createTestMockStorage(), "/profile?tab=watched");
 
@@ -267,6 +373,42 @@ describe("profile list loading errors", () => {
 });
 
 describe("profile list removal", () => {
+  it("keeps the remaining cards with an inline retry when the refresh after DELETE fails", async () => {
+    const storage = signedInStorage({ want_to_watch: [603, 157336], watched: [] });
+    const mock = createMockTransport({ storage, delays: NO_MOCK_DELAYS });
+    let loads = 0;
+    const transport: Transport = async (request) => {
+      if (request.method !== "GET" || !request.path.startsWith("/users/me/lists/want_to_watch?")) {
+        return mock(request);
+      }
+
+      loads++;
+      if (loads === 2) return jsonResponse(500, { code: "INTERNAL_ERROR", message: "Error", field: null });
+      if (loads > 2) return mock(request);
+
+      return jsonResponse(200, {
+        movies: [
+          { movie_id: 157336, title: "Интерстеллар", poster_url: null, average_rating: null, user_rating: null },
+          { movie_id: 603, title: "Матрица", poster_url: null, average_rating: null, user_rating: null },
+        ],
+        total: 25,
+      });
+    };
+    const { scope } = await act(() => setupApiScope({ initialEntry: "/profile", transport }));
+    renderApp(scope);
+    const user = userEventSetup();
+
+    await user.click(await screen.findByRole("button", { name: "Удалить «Интерстеллар» из списка" }));
+    expect(await screen.findByText("Не удалось обновить список.")).toBeInTheDocument();
+    expect(movieTitles()).toEqual(["Матрица"]);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Повторить загрузку списка" }));
+    await waitFor(() => expect(screen.queryByText("Не удалось обновить список.")).not.toBeInTheDocument());
+    expect(movieTitles()).toEqual(["Матрица"]);
+    expect(loads).toBe(3);
+  });
+
   it("removes the movie, updates the statistics and the movie page", async () => {
     const storage = signedInStorage({ want_to_watch: [157336], watched: [603, 157336] });
     const { scope, user } = await openProfile(storage, "/profile?tab=watched");

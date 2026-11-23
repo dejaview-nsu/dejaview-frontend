@@ -62,7 +62,10 @@ export const ProfileTabs = () => {
         <TabPanel
           key={id}
           id={id}
-          className="mt-8 outline-none data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-4 data-[focus-visible]:outline-link md:mt-10"
+          className={cn(
+            "outline-none data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-4 data-[focus-visible]:outline-link",
+            isListTab(id) ? "mt-6 md:mt-8" : "mt-8 md:mt-10",
+          )}
         >
           <TabContent tab={id} />
         </TabPanel>
