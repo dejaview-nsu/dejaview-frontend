@@ -81,7 +81,7 @@ describe("profile list model", () => {
       `/users/me/lists/watched?sort=title_asc&page=2&q=${encodeURIComponent("матр")}`,
     );
 
-    transport.current().resolve(jsonResponse(200, page([])));
+    transport.current().resolve(jsonResponse(200, page([603], 25)));
     await opening;
   });
 
@@ -202,6 +202,58 @@ describe("profile list model", () => {
     expect(ids(context)).toHaveLength(24);
   });
 
+  it("restarts a pending refresh when an otherwise complete page loses a movie", async () => {
+    const context = setup();
+    const { $$model, scope, transport } = context;
+    await open(context, "watched", page([1, 2]));
+
+    const first = allSettled($$model.inputs.movieRemoved, { scope, params: { list: "watched", movieId: 3 } });
+    await transport.waitForCalls(2);
+    const second = allSettled($$model.inputs.movieRemoved, { scope, params: { list: "watched", movieId: 2 } });
+    await transport.waitForCalls(3);
+
+    expect(transport.calls[1].request.signal?.aborted).toBe(true);
+    transport.calls[2].resolve(jsonResponse(200, page([1])));
+    transport.calls[1].resolve(jsonResponse(200, page([1, 2])));
+    await Promise.all([first, second]);
+
+    expect(ids(context)).toEqual([1]);
+    expect(scope.getState($$model.outputs.$total)).toBe(1);
+  });
+
+  it("keeps the remaining movies on refresh failure and clears them when the query changes", async () => {
+    const context = setup();
+    const { $$model, scope, transport } = context;
+    const firstPage = Array.from({ length: 24 }, (_, index) => index + 1);
+    await open(context, "watched", page(firstPage, 25));
+
+    const removing = allSettled($$model.inputs.movieRemoved, { scope, params: { list: "watched", movieId: 1 } });
+    await transport.waitForCalls(2);
+    transport.current().resolve(jsonResponse(500, serverError));
+    await removing;
+    expect(scope.getState($$model.outputs.$status)).toBe("ready");
+    expect(scope.getState($$model.outputs.$refreshFailed)).toBe(true);
+    expect(ids(context)).toEqual(firstPage.slice(1));
+
+    await allSettled($$model.inputs.draftChanged, { scope, params: "match" });
+    const retrying = allSettled($$model.inputs.retryPressed, { scope });
+    await transport.waitForCalls(3);
+    expect(transport.current().request.path).toBe(transport.calls[1].request.path);
+    expect(ids(context)).toEqual(firstPage.slice(1));
+
+    const searching = allSettled($$model.inputs.searchSubmitted, { scope });
+    await transport.waitForCalls(4);
+    expect(transport.current().request.path).toContain("q=match");
+    expect(transport.calls[2].request.signal?.aborted).toBe(true);
+    expect(ids(context)).toEqual([]);
+    expect(scope.getState($$model.outputs.$refreshFailed)).toBe(false);
+
+    transport.calls[3].resolve(jsonResponse(200, page([25])));
+    transport.calls[2].resolve(jsonResponse(200, page(firstPage, 25)));
+    await Promise.all([retrying, searching]);
+    expect(ids(context)).toEqual([25]);
+  });
+
   it("aborts the request on close and ignores the late response", async () => {
     const context = setup();
     const { $$model, scope, transport } = context;
@@ -218,4 +270,118 @@ describe("profile list model", () => {
     expect(ids(context)).toEqual([]);
     expect(scope.getState($$model.outputs.$query)).toBeNull();
   });
+
+  it.each([
+    [0, 0],
+    [1, 1],
+    [23, 1],
+    [24, 1],
+    [25, 2],
+    [48, 2],
+    [49, 3],
+  ])("derives the number of pages for %i movies", async (total, expected) => {
+    const context = setup();
+    await open(
+      context,
+      "watched",
+      page(
+        Array.from({ length: Math.min(total, 24) }, (_, index) => index + 1),
+        total,
+      ),
+    );
+    expect(context.scope.getState(context.$$model.outputs.$pageCount)).toBe(expected);
+  });
+
+  it("bounds page changes and ignores older pages while a newer one is loading", async () => {
+    const context = setup();
+    const { $$model, scope, transport } = context;
+    await open(context, "watched", page([1], 49));
+
+    for (const invalid of [0, 4, 1.5, Infinity]) {
+      await allSettled($$model.inputs.pageSelected, { scope, params: invalid });
+    }
+    expect(transport.calls).toHaveLength(1);
+
+    const second = allSettled($$model.inputs.pageSelected, { scope, params: 2 });
+    await transport.waitForCalls(2);
+    const third = allSettled($$model.inputs.pageSelected, { scope, params: 3 });
+    await transport.waitForCalls(3);
+
+    expect(transport.calls[1].request.signal?.aborted).toBe(true);
+    transport.calls[2].resolve(jsonResponse(200, page([49], 49)));
+    transport.calls[1].resolve(jsonResponse(200, page([25], 49)));
+    await Promise.all([second, third]);
+
+    expect(ids(context)).toEqual([49]);
+    expect(scope.getState($$model.outputs.$query)?.page).toBe(3);
+  });
+
+  it("returns to the last available page after removing its only movie, preserving search and sorting", async () => {
+    const context = setup();
+    const { $$model, scope, transport } = context;
+    const pending = allSettled($$model.inputs.opened, {
+      scope,
+      params: { list: "watched", sort: "best", q: "title", page: 2 },
+    });
+    await transport.waitForCalls(1);
+    transport.current().resolve(jsonResponse(200, page([25], 25)));
+    await pending;
+
+    const removing = allSettled($$model.inputs.movieRemoved, { scope, params: { list: "watched", movieId: 25 } });
+    await transport.waitForCalls(2);
+    transport.current().resolve(jsonResponse(200, page([], 24)));
+    await transport.waitForCalls(3);
+    expect(transport.current().request.path).toBe("/users/me/lists/watched?sort=best&page=1&q=title");
+    transport.current().resolve(jsonResponse(200, page([1], 24)));
+    await removing;
+
+    expect(ids(context)).toEqual([1]);
+    expect(scope.getState($$model.outputs.$pageCount)).toBe(1);
+    expect(scope.getState($$model.outputs.$query)?.page).toBe(1);
+  });
+
+  it("recovers when the server reports fewer pages than previously loaded", async () => {
+    const context = setup();
+    const { $$model, scope, transport } = context;
+    await open(context, "watched", page([1], 49));
+
+    const selecting = allSettled($$model.inputs.pageSelected, { scope, params: 3 });
+    await transport.waitForCalls(2);
+    transport.current().resolve(jsonResponse(200, page([], 25)));
+    await transport.waitForCalls(3);
+    expect(transport.current().request.path).toBe("/users/me/lists/watched?sort=newest&page=2");
+    transport.current().resolve(jsonResponse(200, page([25], 25)));
+    await selecting;
+
+    expect(ids(context)).toEqual([25]);
+    expect(scope.getState($$model.outputs.$pageCount)).toBe(2);
+    expect(scope.getState($$model.outputs.$query)?.page).toBe(2);
+  });
+
+  it.each([0, 2])(
+    "checks the full list only when its count is unknown and search returns no matches (%i)",
+    async (total) => {
+      const { $$model, scope, transport } = setup();
+      const pending = allSettled($$model.inputs.opened, {
+        scope,
+        params: { list: "watched", sort: "newest", q: "absent", page: 1 },
+      });
+      await transport.waitForCalls(1);
+      transport.current().resolve(jsonResponse(200, page([])));
+      await transport.waitForCalls(2);
+      expect(transport.current().request.path).toBe("/users/me/lists/watched?sort=newest&page=1");
+      transport.current().resolve(jsonResponse(200, page(total ? [1, 2] : [])));
+      await pending;
+
+      expect(scope.getState($$model.outputs.$fullTotal)).toBe(total);
+      expect(scope.getState($$model.outputs.$movies)).toEqual([]);
+
+      await allSettled($$model.inputs.draftChanged, { scope, params: "still absent" });
+      const next = allSettled($$model.inputs.searchSubmitted, { scope });
+      await transport.waitForCalls(3);
+      transport.current().resolve(jsonResponse(200, page([])));
+      await next;
+      expect(transport.calls).toHaveLength(3);
+    },
+  );
 });

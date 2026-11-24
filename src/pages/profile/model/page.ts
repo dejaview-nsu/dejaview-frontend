@@ -10,16 +10,18 @@ import { isSessionError } from "@/shared/api";
 import { $$notifications } from "@/shared/lib/notifications";
 import { router, routes } from "@/shared/routes";
 
-import type { ListQuery } from "../api/request";
 import { PROFILE_TEXTS } from "../config";
-import { DEFAULT_PROFILE_TAB, isListTab, isProfileTab, parseProfileTab, type ProfileTab } from "../lib";
+import { DEFAULT_PROFILE_TAB, isListTab, isProfileTab, LIST_TABS, parseProfileTab, type ProfileTab } from "../lib";
 import { createProfileListFactory } from "./list";
 import { createProfileFactory } from "./profile";
 import { createSignOutDialogFactory } from "./sign-out";
 
 export const $$profile = invoke(createAuthorizedRouteFactory, { route: routes.profile, session: $$session });
 export const $$userProfile = invoke(createProfileFactory);
-export const $$profileList = invoke(createProfileListFactory);
+export const $$profileLists = {
+  want_to_watch: invoke(createProfileListFactory),
+  watched: invoke(createProfileListFactory),
+};
 export const $$listRemoval = invoke(createListRemovalFactory);
 export const $$changePassword = invoke(createChangePasswordFactory, {
   $hasPassword: $$session.outputs.$user.map((user) => user?.has_password ?? true),
@@ -39,25 +41,27 @@ const $rawTab = router.$query.map((query) => query.tab ?? null);
 
 export const $tab = $rawTab.map(parseProfileTab);
 
-const $listQuery = $tab.map((tab): ListQuery | null =>
-  isListTab(tab) ? { list: tab, sort: "newest", q: "", page: 1 } : null,
-);
-
 sample({ clock: readyRoute.opened, target: $$userProfile.inputs.opened });
 
-const listQueryChanged = sample({
-  clock: [readyRoute.opened, $listQuery],
-  source: $listQuery,
-  filter: readyRoute.$isOpened,
-});
+for (const list of LIST_TABS) {
+  const $$list = $$profileLists[list];
 
-sample({
-  clock: listQueryChanged,
-  filter: (query): query is ListQuery => query !== null,
-  target: $$profileList.inputs.opened,
-});
+  sample({
+    clock: [readyRoute.opened, $tab],
+    source: { tab: $tab, opened: readyRoute.$isOpened, query: $$list.outputs.$query },
+    filter: ({ tab, opened, query }) => opened && isListTab(tab) && tab === list && query === null,
+    fn: () => ({ list, sort: "newest" as const, q: "", page: 1 }),
+    target: $$list.inputs.opened,
+  });
 
-sample({ clock: listQueryChanged, filter: (query) => query === null, target: $$profileList.inputs.closed });
+  sample({ clock: readyRoute.closed, target: $$list.inputs.closed });
+
+  sample({
+    clock: $$listRemoval.outputs.removed,
+    filter: (removal) => removal.list === list,
+    target: $$list.inputs.movieRemoved,
+  });
+}
 
 sample({ clock: $tab, filter: (tab) => tab !== "security", target: $$changePassword.inputs.reset });
 
@@ -84,14 +88,11 @@ sample({
   clock: readyRoute.closed,
   target: [
     $$userProfile.inputs.closed,
-    $$profileList.inputs.closed,
     $$listRemoval.inputs.reset,
     $$changePassword.inputs.reset,
     $$signOutDialog.inputs.closed,
   ],
 });
-
-sample({ clock: $$listRemoval.outputs.removed, target: $$profileList.inputs.movieRemoved });
 
 sample({
   clock: $$listRemoval.outputs.removed,

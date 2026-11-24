@@ -2,7 +2,7 @@ export {
   $$changePassword,
   $$listRemoval,
   $$profile,
-  $$profileList,
+  $$profileLists,
   $$signOutDialog,
   $$userProfile,
   $tab,
